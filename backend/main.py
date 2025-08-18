@@ -1,8 +1,12 @@
 from typing import Dict, List, Optional, Any
 from uuid import uuid4, UUID
 from datetime import datetime
+import os
+import json
+import asyncio
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -91,6 +95,83 @@ def rollback_page(page_id: str, version_id: UUID, req: RollbackRequest | None = 
                 del page_versions[0]
             return {"version_id": str(new_version.id)}
     raise HTTPException(status_code=404, detail="Version not found")
+
+
+async def _request_with_retry(method: str, url: str, *, headers: dict, data: bytes | None = None) -> httpx.Response:
+    """Helper to perform HTTP requests with retries and exponential backoff."""
+    backoff = 0.5
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.request(method, url, headers=headers, content=data)
+            if response.status_code < 500:
+                return response
+        except httpx.HTTPError:
+            pass
+        if attempt == 2:
+            break
+        await asyncio.sleep(backoff)
+        backoff *= 2
+    raise HTTPException(status_code=502, detail="Cloudflare request failed")
+
+
+@app.post("/api/pages/{page_id}/deploy")
+async def deploy_page(page_id: str):
+    """Deploy the latest version of a page to Cloudflare KV."""
+    page_versions = versions_store.get(page_id)
+    if not page_versions:
+        raise HTTPException(status_code=404, detail="Page not found")
+    latest = page_versions[-1]
+
+    account = os.getenv("CF_ACCOUNT_ID")
+    namespace = os.getenv("CF_NAMESPACE_ID")
+    token = os.getenv("CF_API_TOKEN")
+    if not all([account, namespace, token]):
+        raise HTTPException(status_code=500, detail="Cloudflare credentials missing")
+
+    key = f"prod:{page_id}:latest.json"
+    url = (
+        f"https://api.cloudflare.com/client/v4/accounts/{account}/storage/kv/"
+        f"namespaces/{namespace}/values/{key}"
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    data = json.dumps(latest.json).encode()
+    resp = await _request_with_retry("PUT", url, headers=headers, data=data)
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail="KV write failed")
+
+    return {"status": "ok", "key": key, "version": str(latest.id)}
+
+
+@app.get("/edge-config/{page_id}")
+async def get_edge_config(page_id: str):
+    """Fetch deployed page JSON from Cloudflare KV for local testing."""
+    account = os.getenv("CF_ACCOUNT_ID")
+    namespace = os.getenv("CF_NAMESPACE_ID")
+    token = os.getenv("CF_API_TOKEN")
+    if not all([account, namespace, token]):
+        raise HTTPException(status_code=500, detail="Cloudflare credentials missing")
+
+    key = f"prod:{page_id}:latest.json"
+    url = (
+        f"https://api.cloudflare.com/client/v4/accounts/{account}/storage/kv/"
+        f"namespaces/{namespace}/values/{key}"
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await _request_with_retry("GET", url, headers=headers)
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail="KV fetch failed")
+
+    return Response(
+        content=resp.content,
+        media_type="application/json",
+        headers={"Cache-Control": "public, max-age=60"},
+    )
 
 @app.get("/health")
 def health_check():
