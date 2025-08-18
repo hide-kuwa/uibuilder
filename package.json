@@ -9,7 +9,8 @@
     "react-docgen-typescript": "^2.2.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-beautiful-dnd": "^13.1.1"
+    "react-beautiful-dnd": "^13.1.1",
+    "react-window": "^1.8.9"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
