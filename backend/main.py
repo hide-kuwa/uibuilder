@@ -5,6 +5,9 @@ import os
 import json
 import asyncio
 import hashlib
+import subprocess
+import tempfile
+from pathlib import Path
 
 import httpx
 import jwt
@@ -21,20 +24,31 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.security import SecurityMiddleware
 from pydantic import BaseModel
 
+
 class PageVersion(BaseModel):
-    """Representation of a single stored page version."""
     id: UUID
     page_id: str
     created_at: datetime
     author: Optional[str] = None
     json: Dict[str, Any]
 
+
 class PublishRequest(BaseModel):
     author: Optional[str] = None
     json: Dict[str, Any]
 
+
 class RollbackRequest(BaseModel):
     author: Optional[str] = None
+
+
+class CodegenRequest(BaseModel):
+    spec: Dict[str, Any]
+    out_file: str
+    branch: str
+    base: str
+    title: str
+    body: Optional[str] = None
 
 
 SECRET_KEY = "dev-secret"
@@ -55,7 +69,6 @@ users = {
         "role": "editor",
     },
 }
-
 
 security = HTTPBearer()
 
@@ -88,16 +101,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-@app.post("/auth/login")
-def login(req: LoginRequest):
-    user = users.get(req.email)
-    if not user or user["hashed_password"] != hash_password(req.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token(
-        {"sub": req.email, "role": user["role"]}, timedelta(minutes=5)
-    )
-    return {"access_token": token}
-
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -112,19 +115,30 @@ app.add_middleware(
     referrer_policy="same-origin",
 )
 
-# In-memory store of page versions: {page_id: [PageVersion, ...]}
+
+@app.post("/auth/login")
+def login(req: LoginRequest):
+    user = users.get(req.email)
+    if not user or user["hashed_password"] != hash_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token(
+        {"sub": req.email, "role": user["role"]}, timedelta(minutes=5)
+    )
+    return {"access_token": token}
+
+
 versions_store: Dict[str, List[PageVersion]] = {}
 MAX_VERSIONS_PER_PAGE = 50
 
-# WebSocket rooms and presence tracking
 ws_rooms: Dict[str, Set[WebSocket]] = {}
 presence_map: Dict[str, Set[str]] = {}
 
 
 async def broadcast_presence(page_id: str):
-    users = list(presence_map.get(page_id, set()))
+    users_list = list(presence_map.get(page_id, set()))
     for ws in ws_rooms.get(page_id, set()):
-        await ws.send_json({"type": "presence", "users": users})
+        await ws.send_json({"type": "presence", "users": users_list})
+
 
 @app.post("/api/pages/{page_id}/publish")
 def publish_page(
@@ -132,7 +146,6 @@ def publish_page(
     req: PublishRequest,
     _: dict = Depends(require_role(["editor", "admin"])),
 ):
-    """Create a new version for the specified page."""
     version = PageVersion(
         id=uuid4(),
         page_id=page_id,
@@ -143,22 +156,21 @@ def publish_page(
     page_versions = versions_store.setdefault(page_id, [])
     page_versions.append(version)
     if len(page_versions) > MAX_VERSIONS_PER_PAGE:
-        # Drop the oldest version to maintain the limit
         del page_versions[0]
     return {"version_id": str(version.id)}
 
+
 @app.get("/api/pages/{page_id}/versions")
 def list_versions(page_id: str):
-    """List version metadata for a page."""
     page_versions = versions_store.get(page_id, [])
     return [
         {"id": str(v.id), "created_at": v.created_at, "author": v.author}
         for v in page_versions
     ]
 
+
 @app.get("/api/pages/{page_id}/versions/{version_id}")
 def get_version(page_id: str, version_id: UUID):
-    """Retrieve the JSON payload for a specific page version."""
     page_versions = versions_store.get(page_id)
     if not page_versions:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -167,6 +179,7 @@ def get_version(page_id: str, version_id: UUID):
             return v.json
     raise HTTPException(status_code=404, detail="Version not found")
 
+
 @app.post("/api/pages/{page_id}/rollback/{version_id}")
 def rollback_page(
     page_id: str,
@@ -174,7 +187,6 @@ def rollback_page(
     req: RollbackRequest | None = None,
     _: dict = Depends(require_role(["editor", "admin"])),
 ):
-    """Rollback to a specified version by creating a new head version."""
     page_versions = versions_store.get(page_id)
     if not page_versions:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -194,13 +206,16 @@ def rollback_page(
     raise HTTPException(status_code=404, detail="Version not found")
 
 
-async def _request_with_retry(method: str, url: str, *, headers: dict, data: bytes | None = None) -> httpx.Response:
-    """Helper to perform HTTP requests with retries and exponential backoff."""
+async def _request_with_retry(
+    method: str, url: str, *, headers: dict, data: bytes | None = None
+) -> httpx.Response:
     backoff = 0.5
     for attempt in range(3):
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.request(method, url, headers=headers, content=data)
+                response = await client.request(
+                    method, url, headers=headers, content=data
+                )
             if response.status_code < 500:
                 return response
         except httpx.HTTPError:
@@ -216,7 +231,6 @@ async def _request_with_retry(method: str, url: str, *, headers: dict, data: byt
 async def deploy_page(
     page_id: str, _=Depends(require_role(["admin"]))
 ):
-    """Deploy the latest version of a page to Cloudflare KV."""
     page_versions = versions_store.get(page_id)
     if not page_versions:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -248,7 +262,6 @@ async def deploy_page(
 
 @app.get("/edge-config/{page_id}")
 async def get_edge_config(page_id: str):
-    """Fetch deployed page JSON from Cloudflare KV for local testing."""
     account = os.getenv("CF_ACCOUNT_ID")
     namespace = os.getenv("CF_NAMESPACE_ID")
     token = os.getenv("CF_API_TOKEN")
@@ -306,6 +319,41 @@ async def page_ws(websocket: WebSocket, page_id: str):
         room.discard(websocket)
         presence_map.get(page_id, set()).discard(user_id)
         await broadcast_presence(page_id)
+
+
+@app.post("/api/codegen")
+def codegen(req: CodegenRequest):
+    repo_root = Path(__file__).resolve().parent.parent
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as tmp:
+        json.dump(req.spec, tmp)
+        tmp_path = tmp.name
+
+    out_path = repo_root / req.out_file
+    subprocess.run(
+        ["node", str(repo_root / "scripts" / "json2tsx.js"), "--in", tmp_path, "--out", str(out_path)],
+        check=True,
+        cwd=repo_root,
+    )
+
+    cmd = [
+        "npx",
+        "ts-node",
+        str(repo_root / "commit-and-pr.ts"),
+        "--branch",
+        req.branch,
+        "--base",
+        req.base,
+        "--title",
+        req.title,
+        "--body",
+        req.body or "",
+        "--paths",
+        req.out_file,
+    ]
+    pr_proc = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_root, check=True)
+    pr_url = pr_proc.stdout.strip().splitlines()[-1]
+    return {"pr_url": pr_url}
+
 
 @app.get("/health")
 def health_check():
