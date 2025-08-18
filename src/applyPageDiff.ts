@@ -1,7 +1,10 @@
+import { PropBinding } from './store';
+
 export interface PageNode {
   id: string;
   type: string;
   props?: Record<string, any>;
+  bindings?: Record<string, PropBinding>;
   children?: PageNode[];
 }
 
@@ -9,7 +12,8 @@ export type PatchOp =
   | { op: 'add'; path: string; node: PageNode }
   | { op: 'remove'; path: string }
   | { op: 'move'; from: string; path: string }
-  | { op: 'replaceProps'; path: string; props: Record<string, any> };
+  | { op: 'replaceProps'; path: string; props: Record<string, any> }
+  | { op: 'replaceBindings'; path: string; bindings: Record<string, PropBinding> };
 
 function parsePath(path: string): string[] {
   if (path === '' || path === '/') return [];
@@ -51,6 +55,7 @@ function cloneNode(node: PageNode): PageNode {
   return {
     ...node,
     props: node.props ? { ...node.props } : undefined,
+    bindings: node.bindings ? { ...node.bindings } : undefined,
     children: node.children ? node.children.map(cloneNode) : undefined,
   };
 }
@@ -96,6 +101,18 @@ function replaceProps(root: PageNode, path: string, props: Record<string, any>):
   }));
 }
 
+function replaceBindings(
+  root: PageNode,
+  path: string,
+  bindings: Record<string, PropBinding>
+): PageNode {
+  const segments = parsePath(path);
+  return updateNode(root, segments, (node) => ({
+    ...node,
+    bindings: { ...(node.bindings || {}), ...bindings },
+  }));
+}
+
 export function applyPageDiff(currentTree: PageNode, diff: PatchOp[]): PageNode {
   let tree = currentTree;
   for (const op of diff) {
@@ -113,6 +130,9 @@ export function applyPageDiff(currentTree: PageNode, diff: PatchOp[]): PageNode 
       }
       case 'replaceProps':
         tree = replaceProps(tree, op.path, op.props);
+        break;
+      case 'replaceBindings':
+        tree = replaceBindings(tree, op.path, op.bindings);
         break;
       default: {
         const _exhaustive: never = op;
