@@ -5,16 +5,22 @@
   "scripts": {
     "gen:component-meta": "ts-node scripts/gen-component-meta.ts --root ./src/components --out ./public/component-meta.json"
   },
+  "bin": {
+    "json2tsx": "./scripts/json2tsx.js"
+  },
   "dependencies": {
-    "react-docgen-typescript": "^2.2.2",
+    "@babel/generator": "^7.28.3",
+    "@babel/types": "^7.28.2",
+    "prettier": "^3.6.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
+    "react-docgen-typescript": "^2.2.2",
+    "react-dom": "^18.2.0",
     "react-window": "^1.8.9"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@types/react": "^18.2.47",
     "ts-node": "^10.9.1",
-    "@types/react": "^18.2.47"
+    "typescript": "^5.4.0"
   }
 }
