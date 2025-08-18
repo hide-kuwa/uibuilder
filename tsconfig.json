@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "jsx": "react",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["scripts/**/*", "src/**/*"]
+}
