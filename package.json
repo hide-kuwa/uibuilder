@@ -1,0 +1,16 @@
+{
+  "name": "uibuilder",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "gen:component-meta": "ts-node scripts/gen-component-meta.ts --root ./src/components --out ./public/component-meta.json"
+  },
+  "dependencies": {
+    "react-docgen-typescript": "^2.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.1",
+    "@types/react": "^18.2.47"
+  }
+}
