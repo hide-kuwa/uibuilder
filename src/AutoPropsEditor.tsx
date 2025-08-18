@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useDataSources } from './dataSources';
+import { PropBinding } from './store';
 
 interface PropMeta {
   name: string;
@@ -17,6 +19,8 @@ interface AutoPropsEditorProps {
   selectedComponentType: string;
   selectedProps: Record<string, any>;
   onChange: (nextProps: Record<string, any>) => void;
+  bindings?: Record<string, PropBinding>;
+  onBindingsChange?: (next: Record<string, PropBinding>) => void;
 }
 
 // Attempt to extract union/enum values from a type string like '"a" | "b"' or 'Enum.A | Enum.B'
@@ -47,9 +51,13 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   selectedComponentType,
   selectedProps,
   onChange,
+  bindings = {},
+  onBindingsChange,
 }) => {
   const [componentMeta, setComponentMeta] = useState<ComponentMeta[]>([]);
   const [localProps, setLocalProps] = useState<Record<string, any>>({});
+  const [localBindings, setLocalBindings] = useState<Record<string, PropBinding>>({});
+  const { sources } = useDataSources();
 
   // load component meta
   useEffect(() => {
@@ -74,7 +82,8 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   // keep local props in sync with selected props
   useEffect(() => {
     setLocalProps(selectedProps || {});
-  }, [selectedComponentType, selectedProps]);
+    setLocalBindings(bindings || {});
+  }, [selectedComponentType, selectedProps, bindings]);
 
   // debounce onChange
   useEffect(() => {
@@ -83,6 +92,14 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     }, 300);
     return () => clearTimeout(handle);
   }, [localProps, onChange]);
+
+  useEffect(() => {
+    if (!onBindingsChange) return;
+    const handle = setTimeout(() => {
+      onBindingsChange(localBindings);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [localBindings, onBindingsChange]);
 
   const meta = useMemo(
     () => componentMeta.find((m) => m.displayName === selectedComponentType),
@@ -93,9 +110,64 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     setLocalProps((prev) => ({ ...prev, [name]: value }));
   };
 
+  const updateBinding = (name: string, value: PropBinding | undefined) => {
+    setLocalBindings((prev) => {
+      const next = { ...prev };
+      if (!value) delete next[name];
+      else next[name] = value;
+      return next;
+    });
+  };
+
   const renderControl = (prop: PropMeta, missing: boolean) => {
     const value = localProps[prop.name];
+    const binding = localBindings[prop.name];
     const common = `w-full border rounded px-2 py-1 ${missing ? 'border-red-500' : 'border-gray-300'}`;
+
+    if (binding) {
+      return (
+        <div className="space-y-1">
+          <div className="flex space-x-1">
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={binding.source}
+              onChange={(e) => updateBinding(prop.name, { ...binding, source: e.target.value })}
+            >
+              <option value="">Select source</option>
+              {sources.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              className="text-xs text-red-500"
+              onClick={() => updateBinding(prop.name, undefined)}
+            >
+              Unbind
+            </button>
+          </div>
+          <input
+            className="w-full border rounded px-2 py-1"
+            placeholder="Endpoint"
+            value={binding.endpoint}
+            onChange={(e) => updateBinding(prop.name, { ...binding, endpoint: e.target.value })}
+          />
+          <input
+            className="w-full border rounded px-2 py-1"
+            placeholder="JSONPath"
+            value={binding.path}
+            onChange={(e) => updateBinding(prop.name, { ...binding, path: e.target.value })}
+          />
+          <input
+            className="w-full border rounded px-2 py-1"
+            placeholder="Fallback"
+            value={binding.fallback ?? ''}
+            onChange={(e) => updateBinding(prop.name, { ...binding, fallback: e.target.value })}
+          />
+        </div>
+      );
+    }
 
     const unionValues = parseLiteralUnion(prop.type);
     if (unionValues) {
@@ -142,14 +214,22 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       );
     }
 
-    // default to text input
+    // default to text input with bind option
     return (
-      <input
-        type="text"
-        className={common}
-        value={value ?? ''}
-        onChange={(e) => updateProp(prop.name, e.target.value)}
-      />
+      <div className="flex space-x-1">
+        <input
+          type="text"
+          className={common + ' flex-1'}
+          value={value ?? ''}
+          onChange={(e) => updateProp(prop.name, e.target.value)}
+        />
+        <button
+          className="text-xs text-blue-600"
+          onClick={() => updateBinding(prop.name, { source: '', endpoint: '', path: '' })}
+        >
+          Bind
+        </button>
+      </div>
     );
   };
 

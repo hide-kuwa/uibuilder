@@ -3,8 +3,17 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 export interface ComponentNode {
   id: string;
   type: string;
+  props?: Record<string, any>;
+  bindings?: Record<string, PropBinding>;
   children?: ComponentNode[];
   isContainer?: boolean;
+}
+
+export interface PropBinding {
+  source: string;
+  endpoint: string;
+  path: string;
+  fallback?: string;
 }
 
 interface EditorState {
