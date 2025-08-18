@@ -4,6 +4,9 @@ from datetime import datetime
 import os
 import json
 import asyncio
+import subprocess
+import tempfile
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException, Response
@@ -24,6 +27,15 @@ class PublishRequest(BaseModel):
 
 class RollbackRequest(BaseModel):
     author: Optional[str] = None
+
+
+class CodegenRequest(BaseModel):
+    spec: Dict[str, Any]
+    out_file: str
+    branch: str
+    base: str
+    title: str
+    body: Optional[str] = None
 
 app = FastAPI()
 app.add_middleware(
@@ -172,6 +184,41 @@ async def get_edge_config(page_id: str):
         media_type="application/json",
         headers={"Cache-Control": "public, max-age=60"},
     )
+
+
+@app.post("/api/codegen")
+def codegen(req: CodegenRequest):
+    """Generate code and open a pull request with the changes."""
+    repo_root = Path(__file__).resolve().parent.parent
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as tmp:
+        json.dump(req.spec, tmp)
+        tmp_path = tmp.name
+
+    out_path = repo_root / req.out_file
+    subprocess.run(
+        ["node", str(repo_root / "scripts" / "json2tsx.js"), "--in", tmp_path, "--out", str(out_path)],
+        check=True,
+        cwd=repo_root,
+    )
+
+    cmd = [
+        "npx",
+        "ts-node",
+        str(repo_root / "commit-and-pr.ts"),
+        "--branch",
+        req.branch,
+        "--base",
+        req.base,
+        "--title",
+        req.title,
+        "--body",
+        req.body or "",
+        "--paths",
+        req.out_file,
+    ]
+    pr_proc = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_root, check=True)
+    pr_url = pr_proc.stdout.strip().splitlines()[-1]
+    return {"pr_url": pr_url}
 
 @app.get("/health")
 def health_check():
