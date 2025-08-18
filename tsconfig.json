@@ -9,6 +9,8 @@
     "jsx": "react",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "types": ["node", "jest"],
+    "typeRoots": ["./node_modules/@types", "./.tmp/node_modules/@types"],
     "outDir": "dist"
   },
   "include": ["scripts/**/*", "src/**/*"]

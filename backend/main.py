@@ -1,13 +1,24 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 from uuid import uuid4, UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import json
 import asyncio
+import hashlib
 
 import httpx
-from fastapi import FastAPI, HTTPException, Response
+import jwt
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Response,
+    Depends,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette.middleware.security import SecurityMiddleware
 from pydantic import BaseModel
 
 class PageVersion(BaseModel):
@@ -25,6 +36,68 @@ class PublishRequest(BaseModel):
 class RollbackRequest(BaseModel):
     author: Optional[str] = None
 
+
+SECRET_KEY = "dev-secret"
+ALGORITHM = "HS256"
+
+
+def hash_password(p: str) -> str:
+    return hashlib.sha256(p.encode()).hexdigest()
+
+
+users = {
+    "demo@example.com": {
+        "hashed_password": hash_password("demo"),
+        "role": "admin",
+    },
+    "editor@example.com": {
+        "hashed_password": hash_password("editor"),
+        "role": "editor",
+    },
+}
+
+
+security = HTTPBearer()
+
+
+def create_access_token(data: dict, expires_delta: timedelta) -> str:
+    to_encode = data.copy()
+    to_encode["exp"] = datetime.utcnow() + expires_delta
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def require_role(roles: List[str]):
+    def dependency(
+        credentials: HTTPAuthorizationCredentials = Depends(security),
+    ):
+        try:
+            payload = jwt.decode(
+                credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
+            )
+        except jwt.PyJWTError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        if payload.get("role") not in roles:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        return payload
+
+    return dependency
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/login")
+def login(req: LoginRequest):
+    user = users.get(req.email)
+    if not user or user["hashed_password"] != hash_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token(
+        {"sub": req.email, "role": user["role"]}, timedelta(minutes=5)
+    )
+    return {"access_token": token}
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -33,13 +106,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(
+    SecurityMiddleware,
+    content_security_policy="default-src 'self'",
+    referrer_policy="same-origin",
+)
 
 # In-memory store of page versions: {page_id: [PageVersion, ...]}
 versions_store: Dict[str, List[PageVersion]] = {}
 MAX_VERSIONS_PER_PAGE = 50
 
+# WebSocket rooms and presence tracking
+ws_rooms: Dict[str, Set[WebSocket]] = {}
+presence_map: Dict[str, Set[str]] = {}
+
+
+async def broadcast_presence(page_id: str):
+    users = list(presence_map.get(page_id, set()))
+    for ws in ws_rooms.get(page_id, set()):
+        await ws.send_json({"type": "presence", "users": users})
+
 @app.post("/api/pages/{page_id}/publish")
-def publish_page(page_id: str, req: PublishRequest):
+def publish_page(
+    page_id: str,
+    req: PublishRequest,
+    _: dict = Depends(require_role(["editor", "admin"])),
+):
     """Create a new version for the specified page."""
     version = PageVersion(
         id=uuid4(),
@@ -76,7 +168,12 @@ def get_version(page_id: str, version_id: UUID):
     raise HTTPException(status_code=404, detail="Version not found")
 
 @app.post("/api/pages/{page_id}/rollback/{version_id}")
-def rollback_page(page_id: str, version_id: UUID, req: RollbackRequest | None = None):
+def rollback_page(
+    page_id: str,
+    version_id: UUID,
+    req: RollbackRequest | None = None,
+    _: dict = Depends(require_role(["editor", "admin"])),
+):
     """Rollback to a specified version by creating a new head version."""
     page_versions = versions_store.get(page_id)
     if not page_versions:
@@ -116,7 +213,9 @@ async def _request_with_retry(method: str, url: str, *, headers: dict, data: byt
 
 
 @app.post("/api/pages/{page_id}/deploy")
-async def deploy_page(page_id: str):
+async def deploy_page(
+    page_id: str, _=Depends(require_role(["admin"]))
+):
     """Deploy the latest version of a page to Cloudflare KV."""
     page_versions = versions_store.get(page_id)
     if not page_versions:
@@ -172,6 +271,41 @@ async def get_edge_config(page_id: str):
         media_type="application/json",
         headers={"Cache-Control": "public, max-age=60"},
     )
+
+
+@app.websocket("/ws/pages/{page_id}")
+async def page_ws(websocket: WebSocket, page_id: str):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=1008)
+        return
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        await websocket.close(code=1008)
+        return
+    user_id = payload.get("sub", "unknown")
+    await websocket.accept()
+    room = ws_rooms.setdefault(page_id, set())
+    room.add(websocket)
+    presence_map.setdefault(page_id, set()).add(user_id)
+    await broadcast_presence(page_id)
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            if msg.get("type") == "edit":
+                await asyncio.sleep(0.01)
+                for ws in list(room):
+                    if ws is not websocket:
+                        await ws.send_json(
+                            {"type": "edit", "user": user_id, "data": msg.get("data")}
+                        )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        room.discard(websocket)
+        presence_map.get(page_id, set()).discard(user_id)
+        await broadcast_presence(page_id)
 
 @app.get("/health")
 def health_check():
