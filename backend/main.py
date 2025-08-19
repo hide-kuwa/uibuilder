@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os
 import json
 import asyncio
+import logging
 import hashlib
 import subprocess
 import tempfile
@@ -134,7 +135,7 @@ async def broadcast_presence(page_id: str):
         await ws.send_json({"type": "presence", "users": users_list})
 
 @app.post("/api/pages/{page_id}/publish")
-def publish_page(
+async def publish_page(
     page_id: str,
     req: PublishRequest,
     _: dict = Depends(require_role(["editor", "admin"])),
@@ -150,6 +151,10 @@ def publish_page(
     page_versions.append(version)
     if len(page_versions) > MAX_VERSIONS_PER_PAGE:
         del page_versions[0]
+    try:
+        await deploy_page(page_id)
+    except Exception:
+        logging.exception("Deploy failed for page %s", page_id)
     return {"version_id": str(version.id)}
 
 @app.get("/api/pages/{page_id}/versions")
