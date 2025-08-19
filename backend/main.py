@@ -20,8 +20,8 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from starlette.middleware.security import SecurityMiddleware
 from pydantic import BaseModel
 
 
@@ -109,11 +109,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(
-    SecurityMiddleware,
-    content_security_policy="default-src 'self'",
-    referrer_policy="same-origin",
-)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Referrer-Policy"] = "same-origin"
+    return response
+
 
 
 @app.post("/auth/login")
