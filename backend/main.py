@@ -18,31 +18,34 @@ from fastapi import (
     Depends,
     WebSocket,
     WebSocketDisconnect,
+    Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class PageVersion(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     id: UUID
     page_id: str
     created_at: datetime
     author: Optional[str] = None
     json: Dict[str, Any]
 
-
 class PublishRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     author: Optional[str] = None
     json: Dict[str, Any]
 
-
 class RollbackRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     author: Optional[str] = None
 
-
 class CodegenRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     spec: Dict[str, Any]
     out_file: str
     branch: str
@@ -50,14 +53,11 @@ class CodegenRequest(BaseModel):
     title: str
     body: Optional[str] = None
 
-
 SECRET_KEY = "dev-secret"
 ALGORITHM = "HS256"
 
-
 def hash_password(p: str) -> str:
     return hashlib.sha256(p.encode()).hexdigest()
-
 
 users = {
     "demo@example.com": {
@@ -72,12 +72,10 @@ users = {
 
 security = HTTPBearer()
 
-
 def create_access_token(data: dict, expires_delta: timedelta) -> str:
     to_encode = data.copy()
     to_encode["exp"] = datetime.utcnow() + expires_delta
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def require_role(roles: List[str]):
     def dependency(
@@ -92,14 +90,11 @@ def require_role(roles: List[str]):
         if payload.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Forbidden")
         return payload
-
     return dependency
-
 
 class LoginRequest(BaseModel):
     email: str
     password: str
-
 
 app = FastAPI()
 app.add_middleware(
@@ -117,8 +112,6 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "same-origin"
     return response
 
-
-
 @app.post("/auth/login")
 def login(req: LoginRequest):
     user = users.get(req.email)
@@ -129,19 +122,16 @@ def login(req: LoginRequest):
     )
     return {"access_token": token}
 
-
 versions_store: Dict[str, List[PageVersion]] = {}
 MAX_VERSIONS_PER_PAGE = 50
 
 ws_rooms: Dict[str, Set[WebSocket]] = {}
 presence_map: Dict[str, Set[str]] = {}
 
-
 async def broadcast_presence(page_id: str):
     users_list = list(presence_map.get(page_id, set()))
     for ws in ws_rooms.get(page_id, set()):
         await ws.send_json({"type": "presence", "users": users_list})
-
 
 @app.post("/api/pages/{page_id}/publish")
 def publish_page(
@@ -162,7 +152,6 @@ def publish_page(
         del page_versions[0]
     return {"version_id": str(version.id)}
 
-
 @app.get("/api/pages/{page_id}/versions")
 def list_versions(page_id: str):
     page_versions = versions_store.get(page_id, [])
@@ -170,7 +159,6 @@ def list_versions(page_id: str):
         {"id": str(v.id), "created_at": v.created_at, "author": v.author}
         for v in page_versions
     ]
-
 
 @app.get("/api/pages/{page_id}/versions/{version_id}")
 def get_version(page_id: str, version_id: UUID):
@@ -181,7 +169,6 @@ def get_version(page_id: str, version_id: UUID):
         if v.id == version_id:
             return v.json
     raise HTTPException(status_code=404, detail="Version not found")
-
 
 @app.post("/api/pages/{page_id}/rollback/{version_id}")
 def rollback_page(
@@ -208,7 +195,6 @@ def rollback_page(
             return {"version_id": str(new_version.id)}
     raise HTTPException(status_code=404, detail="Version not found")
 
-
 async def _request_with_retry(
     method: str, url: str, *, headers: dict, data: bytes | None = None
 ) -> httpx.Response:
@@ -228,7 +214,6 @@ async def _request_with_retry(
         await asyncio.sleep(backoff)
         backoff *= 2
     raise HTTPException(status_code=502, detail="Cloudflare request failed")
-
 
 @app.post("/api/pages/{page_id}/deploy")
 async def deploy_page(
@@ -258,10 +243,9 @@ async def deploy_page(
     data = json.dumps(latest.json).encode()
     resp = await _request_with_retry("PUT", url, headers=headers, data=data)
     if resp.status_code >= 300:
-        raise HTTPException(status_code=502, detail="KV write failed")
+        raise HTTPException(status_code=502, detail=f"KV write failed ({resp.status_code}): {resp.text}")
 
     return {"status": "ok", "key": key, "version": str(latest.id)}
-
 
 @app.get("/edge-config/{page_id}")
 async def get_edge_config(page_id: str):
@@ -280,14 +264,13 @@ async def get_edge_config(page_id: str):
 
     resp = await _request_with_retry("GET", url, headers=headers)
     if resp.status_code >= 300:
-        raise HTTPException(status_code=502, detail="KV fetch failed")
+        raise HTTPException(status_code=502, detail=f"KV fetch failed ({resp.status_code}): {resp.text}")
 
     return Response(
         content=resp.content,
         media_type="application/json",
         headers={"Cache-Control": "public, max-age=60"},
     )
-
 
 @app.websocket("/ws/pages/{page_id}")
 async def page_ws(websocket: WebSocket, page_id: str):
@@ -323,7 +306,6 @@ async def page_ws(websocket: WebSocket, page_id: str):
         presence_map.get(page_id, set()).discard(user_id)
         await broadcast_presence(page_id)
 
-
 @app.post("/api/codegen")
 def codegen(req: CodegenRequest):
     repo_root = Path(__file__).resolve().parent.parent
@@ -356,7 +338,6 @@ def codegen(req: CodegenRequest):
     pr_proc = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_root, check=True)
     pr_url = pr_proc.stdout.strip().splitlines()[-1]
     return {"pr_url": pr_url}
-
 
 @app.get("/health")
 def health_check():
