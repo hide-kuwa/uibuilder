@@ -1,0 +1,43 @@
+name: Build Prompts Index
+on:
+  push:
+    branches: [ main ]
+    paths: [ "prompts/**" ]
+  workflow_dispatch: {}
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Generate PROMPTS_INDEX.md
+        run: |
+          mkdir -p scripts
+          cat > scripts/build-prompts-index.mjs <<'EOF'
+          import { readdir, readFile, writeFile, stat } from 'fs/promises';
+          import { join, extname } from 'path';
+          const ROOT = process.cwd(), DIR = join(ROOT,'prompts'), OUT = join(ROOT,'PROMPTS_INDEX.md');
+          async function walk(d){const es=await readdir(d,{withFileTypes:true});const xs=[];for(const e of es){const p=join(d,e.name);xs.push(e.isDirectory()?walk(p):p);}return (await Promise.all(xs)).flat();}
+          const files=(await walk(DIR)).filter(f=>new Set(['.md','.txt']).has(extname(f)));
+          const rows=[];
+          for(const f of files){const c=await readFile(f,'utf8');const m=await stat(f);
+            const title = (c.split(/\r?\n/)[0]||'').replace(/^#+\s*/,'') || f.split('/').pop();
+            rows.push({ path: f.replace(ROOT+'\/',''), title, bytes: c.length, mtime: m.mtime.toISOString() });
+          }
+          rows.sort((a,b)=>a.path.localeCompare(b.path));
+          let md='# Prompts Index\n\n| File | Title | Size | Modified |\n|---|---|---:|---|\n';
+          for(const r of rows){ md+=`| ${r.path} | ${r.title} | ${r.bytes} | ${r.mtime} |\n`; }
+          await writeFile(OUT, md,'utf8'); console.log('Wrote', OUT);
+          EOF
+          node scripts/build-prompts-index.mjs
+      - name: Commit index
+        run: |
+          if git diff --quiet PROMPTS_INDEX.md; then
+            echo "No changes."
+          else
+            git config user.name "github-actions"; git config user.email "actions@github.com"
+            git add PROMPTS_INDEX.md
+            git commit -m "chore: update PROMPTS_INDEX.md"
+            git push
+          fi

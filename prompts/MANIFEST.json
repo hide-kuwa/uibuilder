@@ -1,0 +1,21 @@
+{
+  "sprintOrder": [
+    "00-zustand-store.md",
+    "01-component-palette.md",
+    "02-hierarchy-tree.md",
+    "03-props-editor-auto.md",
+    "04-save-load-fastapi.md",
+    "05-page-renderer.md",
+    "06-postmessage-bridge.md",
+    "07-cf-kv-deploy.md",
+    "08-diff-apply-engine.md",
+    "09-versioning-rollback.md",
+    "10-edge-config-client.md",
+    "11-data-binding-ui-runtime.md",
+    "12-json-to-tsx-codegen.md",
+    "13-commit-and-pr.md",
+    "14-auth-rbac.md",
+    "15-websocket-collab.md",
+    "16-tests-renderer-diff.md"
+  ]
+}
