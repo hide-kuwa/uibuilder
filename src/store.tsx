@@ -5,6 +5,7 @@ export interface ComponentNode {
   type: string;
   props?: Record<string, any>;
   bindings?: Record<string, PropBinding>;
+  variants?: { hover?: { className?: string } };
   children?: ComponentNode[];
   isContainer?: boolean;
 }
@@ -19,6 +20,8 @@ export interface PropBinding {
 interface EditorState {
   tree: ComponentNode[];
   selectedComponentId: string | null;
+  hoverPreview: boolean;
+  inspectorTab: 'default' | 'hover';
 }
 
 interface EditorActions {
@@ -26,6 +29,8 @@ interface EditorActions {
   moveComponent: (dragId: string, parentId: string | null, index: number) => void;
   duplicateComponent: (id: string) => void;
   deleteComponent: (id: string) => void;
+  setHoverPreview: (v: boolean) => void;
+  setInspectorTab: (t: 'default' | 'hover') => void;
 }
 
 interface EditorContextValue {
@@ -41,6 +46,8 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
 }) => {
   const [tree, setTree] = useState<ComponentNode[]>(initialTree);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+  const [hoverPreview, setHoverPreview] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default');
 
   const selectComponent = (id: string | null) => setSelectedComponentId(id);
 
@@ -58,8 +65,8 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   };
 
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId },
-    actions: { selectComponent, moveComponent, duplicateComponent, deleteComponent },
+    state: { tree, selectedComponentId, hoverPreview, inspectorTab },
+    actions: { selectComponent, moveComponent, duplicateComponent, deleteComponent, setHoverPreview, setInspectorTab },
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
