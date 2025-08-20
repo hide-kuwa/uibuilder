@@ -1,30 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useEditorActions } from './store';
+import dashboard from '../templates/dashboard';
 
 interface ComponentMeta {
   displayName: string;
   description?: string;
 }
 
-const ComponentPalette: React.FC = () => {
+interface ComponentPaletteProps {
+  onInsert?: (displayName: string) => void;
+}
+
+const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
+  const { loadTemplate, addComponent } = useEditorActions();
   const [components, setComponents] = useState<ComponentMeta[]>([]);
   const [query, setQuery] = useState('');
-  const actions = useEditorActions();
+  const [template, setTemplate] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     fetch('/component-meta.json')
       .then((res) => res.json())
       .then((data: ComponentMeta[]) => {
-        if (!cancelled) {
-          setComponents(data);
-        }
+        if (!cancelled) setComponents(data);
       })
       .catch(() => {
-        if (!cancelled) {
-          setComponents([]);
-        }
+        if (!cancelled) setComponents([]);
       });
     return () => {
       cancelled = true;
@@ -35,9 +37,24 @@ const ComponentPalette: React.FC = () => {
     c.displayName.toLowerCase().includes(query.toLowerCase())
   );
 
+  const applyTemplate = (name: string) => {
+    if (name === 'dashboard') loadTemplate(dashboard);
+  };
+
   return (
     <div className="h-full overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-white p-2">
+      <div className="sticky top-0 z-10 bg-white p-2 space-y-2">
+        <select
+          value={template}
+          onChange={(e) => {
+            setTemplate(e.target.value);
+            applyTemplate(e.target.value);
+          }}
+          className="w-full border rounded px-2 py-1"
+        >
+          <option value="">テンプレート</option>
+          <option value="dashboard">Dashboard</option>
+        </select>
         <input
           type="text"
           value={query}
@@ -55,18 +72,26 @@ const ComponentPalette: React.FC = () => {
               className="grid grid-cols-2 gap-2 p-2"
             >
               {filtered.map((c, idx) => (
-                <Draggable key={c.displayName} draggableId={c.displayName} index={idx}>
+                <Draggable
+                  key={c.displayName}
+                  draggableId={c.displayName}
+                  index={idx}
+                >
                   {(provided) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      onClick={() => actions.addComponent(c.displayName)}
+                      onClick={() => addComponent(c.displayName)}
                       className="bg-gray-100 rounded p-2 cursor-pointer hover:bg-gray-200"
                     >
-                      <div className="text-sm font-medium">{c.displayName}</div>
+                      <div className="text-sm font-medium">
+                        {c.displayName}
+                      </div>
                       {c.description && (
-                        <div className="text-xs text-gray-500">{c.description}</div>
+                        <div className="text-xs text-gray-500">
+                          {c.description}
+                        </div>
                       )}
                     </div>
                   )}

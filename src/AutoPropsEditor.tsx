@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDataSources } from './dataSources';
-import { PropBinding } from './store';
+import { PropBinding, useEditorState, useEditorActions } from './store';
 
 interface PropMeta {
   name: string;
@@ -21,6 +21,8 @@ interface AutoPropsEditorProps {
   onChange: (nextProps: Record<string, any>) => void;
   bindings?: Record<string, PropBinding>;
   onBindingsChange?: (next: Record<string, PropBinding>) => void;
+  variants?: { hover?: { className?: string } };
+  onVariantsChange?: (v: { hover?: { className?: string } }) => void;
 }
 
 // Attempt to extract union/enum values from a type string like '"a" | "b"' or 'Enum.A | Enum.B'
@@ -53,11 +55,16 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   onChange,
   bindings = {},
   onBindingsChange,
+  variants = {},
+  onVariantsChange,
 }) => {
   const [componentMeta, setComponentMeta] = useState<ComponentMeta[]>([]);
   const [localProps, setLocalProps] = useState<Record<string, any>>({});
   const [localBindings, setLocalBindings] = useState<Record<string, PropBinding>>({});
+  const [localVariants, setLocalVariants] = useState<{ hover?: { className?: string } }>({});
   const { sources } = useDataSources();
+  const { inspectorTab } = useEditorState();
+  const { setInspectorTab } = useEditorActions();
 
   // load component meta
   useEffect(() => {
@@ -83,7 +90,8 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   useEffect(() => {
     setLocalProps(selectedProps || {});
     setLocalBindings(bindings || {});
-  }, [selectedComponentType, selectedProps, bindings]);
+    setLocalVariants(variants || {});
+  }, [selectedComponentType, selectedProps, bindings, variants]);
 
   // debounce onChange
   useEffect(() => {
@@ -101,6 +109,14 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     return () => clearTimeout(handle);
   }, [localBindings, onBindingsChange]);
 
+  useEffect(() => {
+    if (!onVariantsChange) return;
+    const handle = setTimeout(() => {
+      onVariantsChange(localVariants);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [localVariants, onVariantsChange]);
+
   const meta = useMemo(
     () => componentMeta.find((m) => m.displayName === selectedComponentType),
     [componentMeta, selectedComponentType]
@@ -117,6 +133,10 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       else next[name] = value;
       return next;
     });
+  };
+
+  const updateVariant = (value: string) => {
+    setLocalVariants((prev) => ({ ...prev, hover: { ...prev.hover, className: value } }));
   };
 
   const renderControl = (prop: PropMeta, missing: boolean) => {
@@ -240,19 +260,35 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   return (
     <div className="space-y-4 p-2">
       <div>
-        <label className="block text-sm font-medium mb-1">className</label>
-        <input
-          type="text"
+        <div className="flex border-b mb-1">
+          <button
+            className={`px-2 py-1 text-sm ${inspectorTab === 'default' ? 'border-b-2 border-blue-500' : ''}`}
+            onClick={() => setInspectorTab('default')}
+          >
+            Default
+          </button>
+          <button
+            className={`px-2 py-1 text-sm ${inspectorTab === 'hover' ? 'border-b-2 border-blue-500' : ''}`}
+            onClick={() => setInspectorTab('hover')}
+          >
+            Hover
+          </button>
+        </div>
+        <textarea
           className="w-full border border-gray-300 rounded px-2 py-1"
-          value={localProps.className ?? ''}
-          onChange={(e) => updateProp('className', e.target.value)}
+          value={inspectorTab === 'default' ? localProps.className ?? '' : localVariants.hover?.className ?? ''}
+          onChange={(e) =>
+            inspectorTab === 'default'
+              ? updateProp('className', e.target.value)
+              : updateVariant(e.target.value)
+          }
         />
       </div>
-        {meta ? (
-          meta.props
-            .filter((p) => p.name !== 'className')
-            .map((prop) => {
-              const value = localProps[prop.name];
+      {meta ? (
+        meta.props
+          .filter((p) => p.name !== 'className')
+          .map((prop) => {
+            const value = localProps[prop.name];
               const missing = prop.required && (value === undefined || value === '');
               return (
                 <div key={prop.name} className="flex items-center space-x-2">

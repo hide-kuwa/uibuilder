@@ -5,6 +5,7 @@ export interface ComponentNode {
   type: string;
   props?: Record<string, any>;
   bindings?: Record<string, PropBinding>;
+  variants?: { hover?: { className?: string } };
   children?: ComponentNode[];
   isContainer?: boolean;
 }
@@ -19,6 +20,8 @@ export interface PropBinding {
 interface EditorState {
   tree: ComponentNode[];
   selectedComponentId: string | null;
+  hoverPreview: boolean;
+  inspectorTab: 'default' | 'hover';
 }
 
 interface EditorActions {
@@ -28,6 +31,12 @@ interface EditorActions {
   addComponent: (type: string) => void;
   duplicateComponent: (id: string) => void;
   deleteComponent: (id: string) => void;
+  pushHistory: (t: ComponentNode[]) => void;
+  undo: () => void;
+  redo: () => void;
+  loadTemplate: (t: ComponentNode[]) => void;
+  setHoverPreview: (v: boolean) => void;
+  setInspectorTab: (t: 'default' | 'hover') => void;
 }
 
 interface EditorContextValue {
@@ -37,27 +46,62 @@ interface EditorContextValue {
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);
 
-export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children: ReactNode }>=({
+export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children: ReactNode }> = ({
   initialTree = [],
-  children,
+  children
 }) => {
   const [tree, setTree] = useState<ComponentNode[]>(initialTree);
+  const [history, setHistory] = useState<ComponentNode[][]>([initialTree]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+  const [hoverPreview, setHoverPreview] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default');
+
+  const pushHistory = (t: ComponentNode[]) => {
+    setTree(t);
+    setHistory(h => [...h.slice(0, historyIndex + 1), t]);
+    setHistoryIndex(i => i + 1);
+  };
+
+  const undo = () => {
+    if (historyIndex === 0) return;
+    const idx = historyIndex - 1;
+    setHistoryIndex(idx);
+    setTree(history[idx]);
+  };
+
+  const redo = () => {
+    if (historyIndex >= history.length - 1) return;
+    const idx = historyIndex + 1;
+    setHistoryIndex(idx);
+    setTree(history[idx]);
+  };
+
+  const loadTemplate = (t: ComponentNode[]) => {
+    setTree(t);
+    setHistory([t]);
+    setHistoryIndex(0);
+  };
 
   const selectComponent = (id: string | null) => setSelectedComponentId(id);
 
   const moveComponent = (dragId: string, parentId: string | null, index: number) => {
-    setTree((prev) => moveById(prev, dragId, parentId, index));
+    const t = moveNode(tree, dragId, parentId, index);
+    pushHistory(t);
   };
 
   const moveNode = (from: number[], to: number[]) => {
-    setTree((prev) => moveByPath(prev, from, to));
+    setTree(prev => moveByPath(prev, from, to));
   };
 
   const addComponent = (type: string) => {
     const id = Math.random().toString(36).slice(2, 10);
-    const node: ComponentNode = { id, type, isContainer: ['Sidebar', 'Section', 'Window'].includes(type) };
-    setTree((prev) => {
+    const node: ComponentNode = {
+      id,
+      type,
+      isContainer: ['Sidebar', 'Section', 'Window'].includes(type)
+    };
+    setTree(prev => {
       if (selectedComponentId) {
         const p = findPath(prev, selectedComponentId);
         if (p) {
@@ -70,17 +114,32 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   };
 
   const duplicateComponent = (id: string) => {
-    setTree((prev) => duplicateNode(prev, id));
+    const t = duplicateNode(tree, id);
+    pushHistory(t);
   };
 
   const deleteComponent = (id: string) => {
-    setTree((prev) => deleteNode(prev, id));
-    setSelectedComponentId((prev) => (prev === id ? null : prev));
+    const t = deleteNode(tree, id);
+    pushHistory(t);
+    setSelectedComponentId(prev => (prev === id ? null : prev));
   };
 
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId },
-    actions: { selectComponent, moveComponent, moveNode, addComponent, duplicateComponent, deleteComponent },
+    state: { tree, selectedComponentId, hoverPreview, inspectorTab },
+    actions: {
+      selectComponent,
+      moveComponent,
+      moveNode,
+      addComponent,
+      duplicateComponent,
+      deleteComponent,
+      pushHistory,
+      undo,
+      redo,
+      loadTemplate,
+      setHoverPreview,
+      setInspectorTab
+    }
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
@@ -98,21 +157,16 @@ export const useEditorActions = () => {
   return ctx.actions;
 };
 
+// ---------- ユーティリティ関数群 ----------
+
 function cloneNode(node: ComponentNode): ComponentNode {
-  return {
-    ...node,
-    children: node.children ? node.children.map(cloneNode) : undefined,
-  };
+  return { ...node, children: node.children?.map(cloneNode) };
 }
 
 function deleteNode(nodes: ComponentNode[], id: string): ComponentNode[] {
   return nodes
-    .filter((n) => n.id !== id)
-    .map((n) =>
-      n.children
-        ? { ...n, children: deleteNode(n.children, id) }
-        : n
-    );
+    .filter(n => n.id !== id)
+    .map(n => (n.children ? { ...n, children: deleteNode(n.children, id) } : n));
 }
 
 function duplicateNode(nodes: ComponentNode[], id: string): ComponentNode[] {
@@ -132,7 +186,7 @@ function duplicateNode(nodes: ComponentNode[], id: string): ComponentNode[] {
   return result;
 }
 
-function removeById(nodes: ComponentNode[], id: string): { nodes: ComponentNode[]; removed?: ComponentNode } {
+function removeNode(nodes: ComponentNode[], id: string): { nodes: ComponentNode[]; removed?: ComponentNode } {
   const result: ComponentNode[] = [];
   let removed: ComponentNode | undefined;
   for (const n of nodes) {
@@ -155,29 +209,23 @@ function removeById(nodes: ComponentNode[], id: string): { nodes: ComponentNode[
   return { nodes: result, removed };
 }
 
-function insertById(nodes: ComponentNode[], parentId: string | null, index: number, node: ComponentNode): ComponentNode[] {
+function insertNode(nodes: ComponentNode[], parentId: string | null, index: number, node: ComponentNode): ComponentNode[] {
   if (parentId === null) {
     const arr = [...nodes];
     arr.splice(index, 0, node);
     return arr;
   }
-  return nodes.map((n) => {
+  return nodes.map(n => {
     if (n.id === parentId) {
       const children = n.children ? [...n.children] : [];
       children.splice(index, 0, node);
       return { ...n, children };
     }
     if (n.children) {
-      return { ...n, children: insertById(n.children, parentId, index, node) };
+      return { ...n, children: insertNode(n.children, parentId, index, node) };
     }
     return n;
   });
-}
-
-function moveById(nodes: ComponentNode[], dragId: string, parentId: string | null, index: number): ComponentNode[] {
-  const { nodes: without, removed } = removeById(nodes, dragId);
-  if (!removed) return nodes;
-  return insertById(without, parentId, index, removed);
 }
 
 function findPath(nodes: ComponentNode[], id: string, path: number[] = []): number[] | null {
@@ -231,7 +279,11 @@ function insertAt(nodes: ComponentNode[], path: number[], node: ComponentNode): 
 }
 
 function adjust(from: number[], to: number[]): number[] {
-  if (from.length === to.length && from.slice(0, -1).every((v, i) => v === to[i]) && to[to.length - 1] > from[from.length - 1]) {
+  if (
+    from.length === to.length &&
+    from.slice(0, -1).every((v, i) => v === to[i]) &&
+    to[to.length - 1] > from[from.length - 1]
+  ) {
     const a = [...to];
     a[a.length - 1]--;
     return a;
@@ -243,4 +295,10 @@ function moveByPath(nodes: ComponentNode[], from: number[], to: number[]): Compo
   const { nodes: without, removed } = removeAt(nodes, from);
   if (!removed) return nodes;
   return insertAt(without, adjust(from, to), removed);
+}
+
+function moveNode(nodes: ComponentNode[], dragId: string, parentId: string | null, index: number): ComponentNode[] {
+  const { nodes: without, removed } = removeNode(nodes, dragId);
+  if (!removed) return nodes;
+  return insertNode(without, parentId, index, removed);
 }

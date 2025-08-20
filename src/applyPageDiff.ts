@@ -5,6 +5,7 @@ export interface PageNode {
   type: string;
   props?: Record<string, any>;
   bindings?: Record<string, PropBinding>;
+  variants?: { hover?: { className?: string } };
   children?: PageNode[];
 }
 
