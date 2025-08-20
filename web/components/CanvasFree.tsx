@@ -57,10 +57,12 @@ const NodeBox: React.FC<{
 
 const CanvasFree: React.FC = () => {
   const { tree, selectedComponentId, hoverPreview } = useEditorState()
-  const { selectComponent, setLayout, undo, redo, setHoverPreview } = useEditorActions()
+  const { selectComponent, setLayout, undo, redo, setHoverPreview, addComponent } = useEditorActions()
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const panning = useRef(false)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const [highlight, setHighlight] = useState<{ x: number; y: number } | null>(null)
 
   const handleKey = useCallback((e: KeyboardEvent) => {
     const z = e.ctrlKey || e.metaKey
@@ -81,6 +83,31 @@ const CanvasFree: React.FC = () => {
     window.addEventListener('keyup', up)
     return () => window.removeEventListener('keyup', up)
   }, [])
+
+  const clientToCanvas = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    const x = (clientX - rect.left - pan.x) / zoom
+    const y = (clientY - rect.top - pan.y) / zoom
+    return { x, y }
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const type = e.dataTransfer.getData('text/plain')
+    if (!type) return
+    const pt = clientToCanvas(e.clientX, e.clientY)
+    const id = addComponent(type)
+    setLayout(id, { x: pt.x, y: pt.y, w: 320, h: 180 })
+    setHighlight(pt)
+  }
+
+  useEffect(() => {
+    if (highlight) {
+      const t = setTimeout(() => setHighlight(null), 300)
+      return () => clearTimeout(t)
+    }
+  }, [highlight])
 
   const onWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey) {
@@ -119,8 +146,21 @@ const CanvasFree: React.FC = () => {
   return (
     <div className="h-full w-full flex flex-col">
       <Toolbar zoom={zoom} onReset={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} hover={hoverPreview} setHover={setHoverPreview} />
-      <div className="flex-1 bg-[conic-gradient(at_10px_10px,#f3f4f6_90deg,white_0_180deg,#f3f4f6_0_270deg,white_0)] bg-[length:20px_20px] overflow-hidden" onWheel={onWheel} onMouseDown={onMouseDown}>
+      <div
+        ref={canvasRef}
+        className="flex-1 bg-[conic-gradient(at_10px_10px,#f3f4f6_90deg,white_0_180deg,#f3f4f6_0_270deg,white_0)] bg-[length:20px_20px] overflow-hidden"
+        onWheel={onWheel}
+        onMouseDown={onMouseDown}
+        onDragOver={e => e.preventDefault()}
+        onDrop={onDrop}
+      >
         <div className="relative min-h-[2000px] min-w-[2000px]" style={styled}>
+          {highlight && (
+            <div
+              className="absolute pointer-events-none bg-blue-200 opacity-50"
+              style={{ left: highlight.x, top: highlight.y, width: 320, height: 180 }}
+            />
+          )}
           {tree.map(node => (
             <NodeBox
               key={node.id}
