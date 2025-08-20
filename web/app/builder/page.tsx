@@ -1,30 +1,23 @@
 'use client'
 import React from 'react'
-import Canvas from '../../components/Canvas'
+import CanvasFree from '../../components/CanvasFree'
 import Library from '../../components/Library'
 import Inspector from '../../components/Inspector'
-import PublishButton from '../../components/PublishButton'
+import { EditorProvider } from '../../components/store'
+
+const initialTree = [
+  { id: 'node1', type: 'div', props: { children: 'Box 1', className: 'bg-gray-200' }, layout: { x: 40, y: 40, w: 320, h: 180 } }
+]
 
 export default function BuilderPage() {
   return (
-    <div className="flex h-screen">
-      {/* 左パネル：コンポーネントライブラリ */}
-      <div className="w-60 border-r overflow-y-auto">
-        <Library />
+    <EditorProvider initialTree={initialTree}>
+      <div className="flex h-screen">
+        <div className="w-64 border-r overflow-y-auto"><Library /></div>
+        <div className="flex-1 overflow-hidden"><CanvasFree /></div>
+        <div className="w-80 border-l overflow-y-auto"><Inspector /></div>
       </div>
-
-      {/* 中央：キャンバス ＋ Publishボタン */}
-      <div className="flex-1 overflow-auto relative">
-        <Canvas />
-        <div className="absolute top-4 right-4 z-10">
-          <PublishButton />
-        </div>
-      </div>
-
-      {/* 右パネル：プロパティ編集 */}
-      <div className="w-80 border-l overflow-y-auto">
-        <Inspector />
-      </div>
-    </div>
+    </EditorProvider>
   )
 }
+
