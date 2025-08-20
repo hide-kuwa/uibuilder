@@ -1,56 +1,69 @@
-import React, { useEffect, useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import React, { useEffect, useState } from 'react'
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
+import { useEditorActions } from './store'
+import dashboard from '../templates/dashboard'
 
 interface ComponentMeta {
-  displayName: string;
-  description?: string;
+  displayName: string
+  description?: string
 }
 
 interface ComponentPaletteProps {
-  onInsert?: (displayName: string) => void;
+  onInsert?: (displayName: string) => void
 }
 
 const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
-  const [components, setComponents] = useState<ComponentMeta[]>([]);
-  const [query, setQuery] = useState('');
+  const { loadTemplate } = useEditorActions()
+  const [components, setComponents] = useState<ComponentMeta[]>([])
+  const [query, setQuery] = useState('')
+  const [template, setTemplate] = useState('')
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
     fetch('/component-meta.json')
-      .then((res) => res.json())
+      .then(res => res.json())
       .then((data: ComponentMeta[]) => {
-        if (!cancelled) {
-          setComponents(data);
-        }
+        if (!cancelled) setComponents(data)
       })
       .catch(() => {
-        if (!cancelled) {
-          setComponents([]);
-        }
-      });
+        if (!cancelled) setComponents([])
+      })
     return () => {
-      cancelled = true;
-    };
-  }, []);
+      cancelled = true
+    }
+  }, [])
 
-  const filtered = components.filter((c) =>
-    c.displayName.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = components.filter(c => c.displayName.toLowerCase().includes(query.toLowerCase()))
+
+  const applyTemplate = (name: string) => {
+    if (name === 'dashboard') loadTemplate(dashboard)
+  }
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-white p-2">
+      <div className="sticky top-0 z-10 bg-white p-2 space-y-2">
+        <select
+          value={template}
+          onChange={e => {
+            setTemplate(e.target.value)
+            applyTemplate(e.target.value)
+          }}
+          className="w-full border rounded px-2 py-1"
+        >
+          <option value="">テンプレート</option>
+          <option value="dashboard">Dashboard</option>
+        </select>
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="Search components..."
           className="w-full border rounded px-2 py-1"
         />
       </div>
       <DragDropContext onDragEnd={() => {}}>
         <Droppable droppableId="component-palette" isDropDisabled>
-          {(provided) => (
+          {provided => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
@@ -58,7 +71,7 @@ const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
             >
               {filtered.map((c, idx) => (
                 <Draggable key={c.displayName} draggableId={c.displayName} index={idx}>
-                  {(provided) => (
+                  {provided => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
@@ -80,7 +93,7 @@ const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
         </Droppable>
       </DragDropContext>
     </div>
-  );
-};
+  )
+}
 
-export default ComponentPalette;
+export default ComponentPalette
