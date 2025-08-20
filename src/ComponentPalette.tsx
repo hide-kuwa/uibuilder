@@ -1,37 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-
-interface ComponentMeta {
-  displayName: string;
-  description?: string;
-}
+import { library as components } from '../lib/registry';
 
 interface ComponentPaletteProps {
   onInsert?: (displayName: string) => void;
 }
 
 const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
-  const [components, setComponents] = useState<ComponentMeta[]>([]);
   const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/component-meta.json')
-      .then((res) => res.json())
-      .then((data: ComponentMeta[]) => {
-        if (!cancelled) {
-          setComponents(data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setComponents([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const filtered = components.filter((c) =>
     c.displayName.toLowerCase().includes(query.toLowerCase())

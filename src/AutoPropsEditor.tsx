@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDataSources } from './dataSources';
 import { PropBinding } from './store';
+import { library as componentMeta } from '../lib/registry';
 
 interface PropMeta {
   name: string;
@@ -8,11 +9,6 @@ interface PropMeta {
   required: boolean;
   defaultValue?: string;
   description: string;
-}
-
-interface ComponentMeta {
-  displayName: string;
-  props: PropMeta[];
 }
 
 interface AutoPropsEditorProps {
@@ -54,30 +50,9 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   bindings = {},
   onBindingsChange,
 }) => {
-  const [componentMeta, setComponentMeta] = useState<ComponentMeta[]>([]);
   const [localProps, setLocalProps] = useState<Record<string, any>>({});
   const [localBindings, setLocalBindings] = useState<Record<string, PropBinding>>({});
   const { sources } = useDataSources();
-
-  // load component meta
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/component-meta.json')
-      .then((res) => res.json())
-      .then((data: ComponentMeta[]) => {
-        if (!cancelled) {
-          setComponentMeta(data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setComponentMeta([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // keep local props in sync with selected props
   useEffect(() => {
@@ -210,6 +185,17 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
             const val = e.target.value;
             updateProp(prop.name, val === '' ? undefined : Number(val));
           }}
+        />
+      );
+    }
+
+    if (prop.type === 'string' && prop.name.toLowerCase().includes('color')) {
+      return (
+        <input
+          type="color"
+          className={common}
+          value={value ?? '#000000'}
+          onChange={(e) => updateProp(prop.name, e.target.value)}
         />
       );
     }

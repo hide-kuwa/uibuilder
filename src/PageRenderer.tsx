@@ -70,8 +70,13 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node }) => {
     }
   }
 
+  const type = node.type;
+  const Comp =
+    type[0] === type[0].toLowerCase()
+      ? type
+      : (require('../lib/registry').components as any)[type] || type;
   const children = node.children?.map((c) => <NodeRenderer key={c.id} node={c} />);
-  return React.createElement(node.type as any, props, children);
+  return React.createElement(Comp as any, props, children);
 };
 
 interface PageRendererProps {

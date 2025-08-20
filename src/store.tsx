@@ -26,6 +26,7 @@ interface EditorActions {
   moveComponent: (dragId: string, parentId: string | null, index: number) => void;
   duplicateComponent: (id: string) => void;
   deleteComponent: (id: string) => void;
+  setProp: (id: string, prop: string, value: any) => void;
 }
 
 interface EditorContextValue {
@@ -57,9 +58,13 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setSelectedComponentId((prev) => (prev === id ? null : prev));
   };
 
+  const setProp = (id: string, prop: string, value: any) => {
+    setTree((prev) => setNodeProp(prev, id, prop, value));
+  };
+
   const value: EditorContextValue = {
     state: { tree, selectedComponentId },
-    actions: { selectComponent, moveComponent, duplicateComponent, deleteComponent },
+    actions: { selectComponent, moveComponent, duplicateComponent, deleteComponent, setProp },
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
@@ -158,4 +163,17 @@ function moveNode(nodes: ComponentNode[], dragId: string, parentId: string | nul
   const { nodes: without, removed } = removeNode(nodes, dragId);
   if (!removed) return nodes;
   return insertNode(without, parentId, index, removed);
+}
+
+function setNodeProp(nodes: ComponentNode[], id: string, prop: string, value: any): ComponentNode[] {
+  return nodes.map((n) => {
+    if (n.id === id) {
+      const props = { ...(n.props || {}) }
+      if (value === undefined) delete props[prop]
+      else props[prop] = value
+      return { ...n, props }
+    }
+    if (n.children) return { ...n, children: setNodeProp(n.children, id, prop, value) }
+    return n
+  })
 }

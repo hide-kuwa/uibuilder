@@ -13,5 +13,5 @@
     "typeRoots": ["./node_modules/@types", "./.tmp/node_modules/@types"],
     "outDir": "dist"
   },
-  "include": ["scripts/**/*", "src/**/*"]
+  "include": ["scripts/**/*", "src/**/*", "lib/**/*"]
 }

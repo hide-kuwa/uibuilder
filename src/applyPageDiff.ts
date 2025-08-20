@@ -115,24 +115,40 @@ function replaceBindings(
 
 export function applyPageDiff(currentTree: PageNode, diff: PatchOp[]): PageNode {
   let tree = currentTree;
+  const pathMap = new Map<string, string>();
   for (const op of diff) {
+    const mappedPath = pathMap.get(op.path) || op.path;
+    const mappedFrom = (op as any).from ? pathMap.get((op as any).from) || (op as any).from : undefined;
     switch (op.op) {
       case 'add':
-        tree = addNode(tree, op.path, op.node);
+        tree = addNode(tree, mappedPath, op.node);
         break;
       case 'remove':
-        tree = removeNode(tree, op.path).tree;
+        tree = removeNode(tree, mappedPath).tree;
         break;
       case 'move': {
-        const res = removeNode(tree, op.from);
-        tree = addNode(res.tree, op.path, res.removed, false);
+        const fromSeg = parsePath(mappedFrom!);
+        const toSeg = parsePath(mappedPath);
+        const fromInfo = splitParent(fromSeg);
+        const toInfo = splitParent(toSeg);
+        let target = mappedPath;
+        if (
+          fromInfo.parent.join('/') === toInfo.parent.join('/') &&
+          fromInfo.index < toInfo.index
+        ) {
+          toSeg[toSeg.length - 1] = String(toInfo.index - 1);
+          target = '/' + toSeg.join('/');
+        }
+        const res = removeNode(tree, mappedFrom!);
+        tree = addNode(res.tree, target, res.removed, false);
+        pathMap.set(op.path, target);
         break;
       }
       case 'replaceProps':
-        tree = replaceProps(tree, op.path, op.props);
+        tree = replaceProps(tree, mappedPath, op.props);
         break;
       case 'replaceBindings':
-        tree = replaceBindings(tree, op.path, op.bindings);
+        tree = replaceBindings(tree, mappedPath, op.bindings);
         break;
       default: {
         const _exhaustive: never = op;
