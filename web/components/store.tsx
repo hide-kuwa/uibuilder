@@ -29,7 +29,7 @@ interface EditorActions {
   selectComponent: (id: string | null) => void
   moveComponent: (dragId: string, parentId: string | null, index: number) => void
   moveNode: (from: number[], to: number[]) => void
-  addComponent: (type: string) => void
+  addComponent: (type: string) => string
   duplicateComponent: (id: string) => void
   deleteComponent: (id: string) => void
   pushHistory: (t: ComponentNode[]) => void
@@ -104,7 +104,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     h: 180
   })
 
-  const addComponent = (type: string) => {
+  const addComponent = (type: string): string => {
     const id = Math.random().toString(36).slice(2, 10)
     const node: ComponentNode = {
       id,
@@ -115,6 +115,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setTree(prev => {
       return insertAt(prev, [prev.length], node)
     })
+    return id
   }
 
   const duplicateComponent = (id: string) => {
