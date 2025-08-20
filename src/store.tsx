@@ -1,40 +1,45 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface ComponentNode {
-  id: string
-  type: string
-  props?: Record<string, any>
-  bindings?: Record<string, PropBinding>
-  children?: ComponentNode[]
-  isContainer?: boolean
+  id: string;
+  type: string;
+  props?: Record<string, any>;
+  bindings?: Record<string, PropBinding>;
+  variants?: { hover?: { className?: string } };
+  children?: ComponentNode[];
+  isContainer?: boolean;
 }
 
 export interface PropBinding {
-  source: string
-  endpoint: string
-  path: string
-  fallback?: string
+  source: string;
+  endpoint: string;
+  path: string;
+  fallback?: string;
 }
 
 interface EditorState {
-  tree: ComponentNode[]
-  selectedComponentId: string | null
+  tree: ComponentNode[];
+  selectedComponentId: string | null;
+  hoverPreview: boolean;
+  inspectorTab: 'default' | 'hover';
 }
 
 interface EditorActions {
-  selectComponent: (id: string | null) => void
-  moveComponent: (dragId: string, parentId: string | null, index: number) => void
-  duplicateComponent: (id: string) => void
-  deleteComponent: (id: string) => void
-  pushHistory: (t: ComponentNode[]) => void
-  undo: () => void
-  redo: () => void
-  loadTemplate: (t: ComponentNode[]) => void
+  selectComponent: (id: string | null) => void;
+  moveComponent: (dragId: string, parentId: string | null, index: number) => void;
+  duplicateComponent: (id: string) => void;
+  deleteComponent: (id: string) => void;
+  pushHistory: (t: ComponentNode[]) => void;
+  undo: () => void;
+  redo: () => void;
+  loadTemplate: (t: ComponentNode[]) => void;
+  setHoverPreview: (v: boolean) => void;
+  setInspectorTab: (t: 'default' | 'hover') => void;
 }
 
 interface EditorContextValue {
-  state: EditorState
-  actions: EditorActions
+  state: EditorState;
+  actions: EditorActions;
 }
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined)
@@ -43,59 +48,72 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   initialTree = [],
   children
 }) => {
-  const [tree, setTree] = useState<ComponentNode[]>(initialTree)
-  const [history, setHistory] = useState<ComponentNode[][]>([initialTree])
-  const [historyIndex, setHistoryIndex] = useState(0)
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null)
+  const [tree, setTree] = useState<ComponentNode[]>(initialTree);
+  const [history, setHistory] = useState<ComponentNode[][]>([initialTree]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+  const [hoverPreview, setHoverPreview] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default');
 
   const pushHistory = (t: ComponentNode[]) => {
-    setTree(t)
-    setHistory(h => [...h.slice(0, historyIndex + 1), t])
-    setHistoryIndex(i => i + 1)
-  }
+    setTree(t);
+    setHistory(h => [...h.slice(0, historyIndex + 1), t]);
+    setHistoryIndex(i => i + 1);
+  };
 
   const undo = () => {
-    if (historyIndex === 0) return
-    const idx = historyIndex - 1
-    setHistoryIndex(idx)
-    setTree(history[idx])
-  }
+    if (historyIndex === 0) return;
+    const idx = historyIndex - 1;
+    setHistoryIndex(idx);
+    setTree(history[idx]);
+  };
 
   const redo = () => {
-    if (historyIndex >= history.length - 1) return
-    const idx = historyIndex + 1
-    setHistoryIndex(idx)
-    setTree(history[idx])
-  }
+    if (historyIndex >= history.length - 1) return;
+    const idx = historyIndex + 1;
+    setHistoryIndex(idx);
+    setTree(history[idx]);
+  };
 
   const loadTemplate = (t: ComponentNode[]) => {
-    setTree(t)
-    setHistory([t])
-    setHistoryIndex(0)
-  }
+    setTree(t);
+    setHistory([t]);
+    setHistoryIndex(0);
+  };
 
-  const selectComponent = (id: string | null) => setSelectedComponentId(id)
+  const selectComponent = (id: string | null) => setSelectedComponentId(id);
 
   const moveComponent = (dragId: string, parentId: string | null, index: number) => {
-    const t = moveNode(tree, dragId, parentId, index)
-    pushHistory(t)
-  }
+    const t = moveNode(tree, dragId, parentId, index);
+    pushHistory(t);
+  };
 
   const duplicateComponent = (id: string) => {
-    const t = duplicateNode(tree, id)
-    pushHistory(t)
-  }
+    const t = duplicateNode(tree, id);
+    pushHistory(t);
+  };
 
   const deleteComponent = (id: string) => {
-    const t = deleteNode(tree, id)
-    pushHistory(t)
-    setSelectedComponentId(prev => (prev === id ? null : prev))
-  }
+    const t = deleteNode(tree, id);
+    pushHistory(t);
+    setSelectedComponentId(prev => (prev === id ? null : prev));
+  };
 
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId },
-    actions: { selectComponent, moveComponent, duplicateComponent, deleteComponent, pushHistory, undo, redo, loadTemplate }
-  }
+    state: { tree, selectedComponentId, hoverPreview, inspectorTab },
+    actions: {
+      selectComponent,
+      moveComponent,
+      duplicateComponent,
+      deleteComponent,
+      pushHistory,
+      undo,
+      redo,
+      loadTemplate,
+      setHoverPreview,
+      setInspectorTab
+    }
+  };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>
 }
@@ -117,7 +135,9 @@ function cloneNode(node: ComponentNode): ComponentNode {
 }
 
 function deleteNode(nodes: ComponentNode[], id: string): ComponentNode[] {
-  return nodes.filter(n => n.id !== id).map(n => (n.children ? { ...n, children: deleteNode(n.children, id) } : n))
+  return nodes
+    .filter(n => n.id !== id)
+    .map(n => (n.children ? { ...n, children: deleteNode(n.children, id) } : n))
 }
 
 function duplicateNode(nodes: ComponentNode[], id: string): ComponentNode[] {
