@@ -30,9 +30,10 @@ async function fetchBinding(binding: PropBinding, sources: DataSource[]) {
 
 interface NodeRendererProps {
   node: ComponentNode;
+  previewHover: boolean;
 }
 
-const NodeRenderer: React.FC<NodeRendererProps> = ({ node }) => {
+const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
   const { sources } = useDataSources();
   const [dataMap, setDataMap] = useState<Record<string, any>>({});
   const [status, setStatus] = useState<Record<string, { loading: boolean; error: boolean }>>({});
@@ -54,6 +55,10 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node }) => {
   }, [node.bindings, sources]);
 
   const props: Record<string, any> = { ...(node.props || {}) };
+  if (previewHover && node.variants?.hover?.className) {
+    const base = props.className ?? '';
+    props.className = [base, node.variants.hover.className].filter(Boolean).join(' ').trim();
+  }
   if (node.bindings) {
     for (const [prop, binding] of Object.entries(node.bindings)) {
       const st = status[prop];
@@ -70,22 +75,26 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node }) => {
     }
   }
 
+  // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
   const type = node.type;
   const Comp =
-    type[0] === type[0].toLowerCase()
-      ? type
+    typeof type === 'string' && type[0] === type[0].toLowerCase()
+      ? type // div, span などネイティブ要素
       : (require('../lib/registry').components as any)[type] || type;
-  const children = node.children?.map((c) => <NodeRenderer key={c.id} node={c} />);
+
+  const children = node.children?.map((c) => (
+    <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
+  ));
   return React.createElement(Comp as any, props, children);
 };
 
 interface PageRendererProps {
   tree: ComponentNode[];
+  previewHover?: boolean;
 }
 
-const PageRenderer: React.FC<PageRendererProps> = ({ tree }) => {
-  return <>{tree.map((n) => <NodeRenderer key={n.id} node={n} />)}</>;
+const PageRenderer: React.FC<PageRendererProps> = ({ tree, previewHover = false }) => {
+  return <>{tree.map((n) => <NodeRenderer key={n.id} node={n} previewHover={previewHover} />)}</>;
 };
 
 export default PageRenderer;
-
