@@ -31,6 +31,7 @@ interface EditorActions {
   addComponent: (type: string) => void;
   duplicateComponent: (id: string) => void;
   deleteComponent: (id: string) => void;
+  setProp: (id: string, prop: string, value: any) => void;
   pushHistory: (t: ComponentNode[]) => void;
   undo: () => void;
   redo: () => void;
@@ -86,7 +87,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   const selectComponent = (id: string | null) => setSelectedComponentId(id);
 
   const moveComponent = (dragId: string, parentId: string | null, index: number) => {
-    const t = moveNode(tree, dragId, parentId, index);
+    const t = moveNodeById(tree, dragId, parentId, index);
     pushHistory(t);
   };
 
@@ -124,6 +125,10 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setSelectedComponentId(prev => (prev === id ? null : prev));
   };
 
+  const setProp = (id: string, prop: string, value: any) => {
+    setTree(prev => setNodeProp(prev, id, prop, value));
+  };
+
   const value: EditorContextValue = {
     state: { tree, selectedComponentId, hoverPreview, inspectorTab },
     actions: {
@@ -133,6 +138,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
       addComponent,
       duplicateComponent,
       deleteComponent,
+      setProp,
       pushHistory,
       undo,
       redo,
@@ -158,7 +164,6 @@ export const useEditorActions = () => {
 };
 
 // ---------- ユーティリティ関数群 ----------
-
 function cloneNode(node: ComponentNode): ComponentNode {
   return { ...node, children: node.children?.map(cloneNode) };
 }
@@ -297,8 +302,21 @@ function moveByPath(nodes: ComponentNode[], from: number[], to: number[]): Compo
   return insertAt(without, adjust(from, to), removed);
 }
 
-function moveNode(nodes: ComponentNode[], dragId: string, parentId: string | null, index: number): ComponentNode[] {
+function moveNodeById(nodes: ComponentNode[], dragId: string, parentId: string | null, index: number): ComponentNode[] {
   const { nodes: without, removed } = removeNode(nodes, dragId);
   if (!removed) return nodes;
   return insertNode(without, parentId, index, removed);
+}
+
+function setNodeProp(nodes: ComponentNode[], id: string, prop: string, value: any): ComponentNode[] {
+  return nodes.map((n) => {
+    if (n.id === id) {
+      const props = { ...(n.props || {}) };
+      if (value === undefined) delete props[prop];
+      else props[prop] = value;
+      return { ...n, props };
+    }
+    if (n.children) return { ...n, children: setNodeProp(n.children, id, prop, value) };
+    return n;
+  });
 }

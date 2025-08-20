@@ -75,10 +75,17 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     }
   }
 
+  // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
+  const type = node.type;
+  const Comp =
+    typeof type === 'string' && type[0] === type[0].toLowerCase()
+      ? type // div, span などネイティブ要素
+      : (require('../lib/registry').components as any)[type] || type;
+
   const children = node.children?.map((c) => (
     <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
   ));
-  return React.createElement(node.type as any, props, children);
+  return React.createElement(Comp as any, props, children);
 };
 
 interface PageRendererProps {
@@ -91,4 +98,3 @@ const PageRenderer: React.FC<PageRendererProps> = ({ tree, previewHover = false 
 };
 
 export default PageRenderer;
-
