@@ -1,0 +1,25 @@
+[
+  {
+    "displayName": "MyCard",
+    "props": [
+      {
+        "name": "highlighted",
+        "type": "boolean",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "tone",
+        "type": "\"info\" | \"warn\"",
+        "required": true,
+        "description": ""
+      }
+    ]
+  }
+]
