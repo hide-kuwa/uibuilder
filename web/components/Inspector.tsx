@@ -1,30 +1,61 @@
-"use client"
-import { useStore } from '../lib/store'
-import { NodeIR } from '../lib/types'
+'use client'
+import React, { useMemo } from 'react'
+import { useEditorActions, useEditorState, ComponentNode } from './store'
+import AutoPropsEditor from './AutoPropsEditor'
 
-function find(node: NodeIR, id: string): NodeIR | null {
-  if (node.id === id) return node
-  for (const c of node.children) {
-    const r = find(c, id)
-    if (r) return r
-  }
-  return null
+const NumberField: React.FC<{ label: string; value: number; onChange: (v: number) => void }> = ({ label, value, onChange }) => {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <span className="w-6">{label}</span>
+      <input
+        type="number"
+        className="border rounded px-2 py-1 w-full"
+        value={Number.isFinite(value) ? value : 0}
+        onChange={e => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+      />
+    </label>
+  )
 }
 
 export default function Inspector() {
-  const { tree, selectedId, setProps, setClassName, publish } = useStore()
-  const node = selectedId ? find(tree, selectedId) : null
-  if (!node) return <div className="p-2">選択なし</div>
+  const { tree, selectedComponentId } = useEditorState()
+  const { setLayout, setProp } = useEditorActions()
+  const node = useMemo<ComponentNode | null>(() => {
+    const stack: ComponentNode[] = [...tree]
+    while (stack.length) {
+      const n = stack.shift()!
+      if (n.id === selectedComponentId) return n
+      if (n.children) stack.push(...n.children)
+    }
+    return null
+  }, [tree, selectedComponentId])
+
+  if (!node) return <div className="p-3 text-sm text-gray-500">No selection</div>
+
+  const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+
   return (
-    <div className="p-2 space-y-2">
-      {'text' in node.props && (
-        <input className="border w-full" value={node.props.text || ''} onChange={e => setProps(node.id, { text: e.target.value })} />
-      )}
-      {'level' in node.props && (
-        <input className="border w-full" type="number" value={node.props.level || 1} onChange={e => setProps(node.id, { level: parseInt(e.target.value) })} />
-      )}
-      <input className="border w-full" value={node.props.className || ''} onChange={e => setClassName(node.id, e.target.value)} placeholder="className" />
-      <button className="bg-blue-600 text-white px-2 py-1" onClick={() => publish('1')}>Publish</button>
+    <div className="p-3 space-y-4">
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-gray-500">Position & Size</div>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="X" value={l.x} onChange={v => setLayout(node.id, { ...l, x: v })} />
+          <NumberField label="Y" value={l.y} onChange={v => setLayout(node.id, { ...l, y: v })} />
+          <NumberField label="W" value={l.w} onChange={v => setLayout(node.id, { ...l, w: Math.max(1, v) })} />
+          <NumberField label="H" value={l.h} onChange={v => setLayout(node.id, { ...l, h: Math.max(1, v) })} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-gray-500">Props</div>
+        <AutoPropsEditor
+          selectedComponentType={node.type}
+          selectedProps={node.props || {}}
+          onChange={next => {
+            Object.entries(next).forEach(([k, v]) => setProp(node.id, k, v))
+          }}
+        />
+      </div>
     </div>
   )
 }
+
