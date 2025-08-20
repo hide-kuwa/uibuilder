@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { useEditorActions } from './store';
 
 interface ComponentMeta {
   displayName: string;
   description?: string;
 }
 
-interface ComponentPaletteProps {
-  onInsert?: (displayName: string) => void;
-}
-
-const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
+const ComponentPalette: React.FC = () => {
   const [components, setComponents] = useState<ComponentMeta[]>([]);
   const [query, setQuery] = useState('');
+  const actions = useEditorActions();
 
   useEffect(() => {
     let cancelled = false;
@@ -63,7 +61,7 @@ const ComponentPalette: React.FC<ComponentPaletteProps> = ({ onInsert }) => {
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      onClick={() => onInsert?.(c.displayName)}
+                      onClick={() => actions.addComponent(c.displayName)}
                       className="bg-gray-100 rounded p-2 cursor-pointer hover:bg-gray-200"
                     >
                       <div className="text-sm font-medium">{c.displayName}</div>
