@@ -1,21 +1,23 @@
 'use client'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Rnd } from 'react-rnd'
-import { useEditorState, useEditorActions, ComponentNode, Layout } from './store'
+import { useEditorState, useEditorActions, ComponentNode, Layout, Guide } from './store'
 
 type Rect = { x: number; y: number; w: number; h: number }
 type NodeLayout = Layout
-type Guide = { orientation: 'v' | 'h'; pos: number }
+type SnapGuide = { type: 'v' | 'h'; pos: number }
 
 const GRID_SIZE = 8
 const SNAP_THRESHOLD = 6
+const RULER_SIZE = 20
 
 const snapRect = (
   rect: Rect,
   others: Rect[],
+  guideLines: Guide[],
   shift: boolean,
   mode: 'move' | 'resize'
-): { rect: Rect; guides: Guide[] } => {
+): { rect: Rect; guides: SnapGuide[] } => {
   if (shift) return { rect, guides: [] }
   let { x, y, w, h } = rect
   x = Math.round(x / GRID_SIZE) * GRID_SIZE
@@ -75,6 +77,40 @@ const snapRect = (
       }
     }
   }
+
+  for (const g of guideLines) {
+    if (g.type === 'v') {
+      const pos = g.pos
+      const candidatesX = [
+        { type: 'left', diff: pos - left, pos },
+        { type: 'right', diff: pos - right, pos },
+        { type: 'center', diff: pos - cx, pos }
+      ]
+      for (const c of candidatesX) {
+        const d = Math.abs(c.diff)
+        if (d <= threshold) {
+          if (c.type === 'left' && (!dxLeft || d < Math.abs(dxLeft.diff))) dxLeft = { diff: c.diff, pos: c.pos }
+          if (c.type === 'right' && (!dxRight || d < Math.abs(dxRight.diff))) dxRight = { diff: c.diff, pos: c.pos }
+          if (c.type === 'center' && (!dxCenter || d < Math.abs(dxCenter.diff))) dxCenter = { diff: c.diff, pos: c.pos }
+        }
+      }
+    } else {
+      const pos = g.pos
+      const candidatesY = [
+        { type: 'top', diff: pos - top, pos },
+        { type: 'bottom', diff: pos - bottom, pos },
+        { type: 'center', diff: pos - cy, pos }
+      ]
+      for (const c of candidatesY) {
+        const d = Math.abs(c.diff)
+        if (d <= threshold) {
+          if (c.type === 'top' && (!dyTop || d < Math.abs(dyTop.diff))) dyTop = { diff: c.diff, pos: c.pos }
+          if (c.type === 'bottom' && (!dyBottom || d < Math.abs(dyBottom.diff))) dyBottom = { diff: c.diff, pos: c.pos }
+          if (c.type === 'center' && (!dyCenter || d < Math.abs(dyCenter.diff))) dyCenter = { diff: c.diff, pos: c.pos }
+        }
+      }
+    }
+  }
   if (mode === 'move') {
     const diffX = [dxLeft, dxRight, dxCenter].reduce<
       { diff: number; pos: number } | null
@@ -114,10 +150,70 @@ const snapRect = (
       guideY = dyCenter.pos
     }
   }
-  const guides: Guide[] = []
-  if (guideX !== null) guides.push({ orientation: 'v', pos: guideX })
-  if (guideY !== null) guides.push({ orientation: 'h', pos: guideY })
+  const guides: SnapGuide[] = []
+  if (guideX !== null) guides.push({ type: 'v', pos: guideX })
+  if (guideY !== null) guides.push({ type: 'h', pos: guideY })
   return { rect: { x, y, w, h }, guides }
+}
+
+const Ruler: React.FC<{
+  orientation: 'h' | 'v'
+  zoom: number
+  pan: { x: number; y: number }
+  onMouseDown: (e: React.MouseEvent, type: 'h' | 'v') => void
+}> = ({ orientation, zoom, pan, onMouseDown }) => {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    canvas.width = rect.width
+    canvas.height = rect.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.fillStyle = '#64748b'
+    const length = orientation === 'h' ? canvas.width : canvas.height
+    const offset = orientation === 'h' ? pan.x * zoom : pan.y * zoom
+    const step = 10 * zoom
+    for (let i = -offset % step; i < length; i += step) {
+      const real = (i + offset) / zoom
+      const isBig = Math.round(real) % 50 === 0
+      const len = isBig ? 8 : 4
+      if (orientation === 'h') {
+        ctx.beginPath()
+        ctx.moveTo(i, RULER_SIZE)
+        ctx.lineTo(i, RULER_SIZE - len)
+        ctx.stroke()
+        if (isBig) ctx.fillText(Math.round(real).toString(), i + 2, 10)
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(RULER_SIZE, i)
+        ctx.lineTo(RULER_SIZE - len, i)
+        ctx.stroke()
+        if (isBig) {
+          ctx.save()
+          ctx.translate(2, i + 8)
+          ctx.rotate(-Math.PI / 2)
+          ctx.fillText(Math.round(real).toString(), 0, 0)
+          ctx.restore()
+        }
+      }
+    }
+  }, [orientation, zoom, pan])
+  return (
+    <canvas
+      ref={ref}
+      className="absolute bg-gray-100"
+      style={
+        orientation === 'h'
+          ? { top: 0, left: RULER_SIZE, right: 0, height: RULER_SIZE, cursor: 'ns-resize' }
+          : { top: RULER_SIZE, left: 0, bottom: 0, width: RULER_SIZE, cursor: 'ew-resize' }
+      }
+      onMouseDown={e => onMouseDown(e, orientation)}
+    />
+  )
 }
 
 const useKey = (handler: (e: KeyboardEvent) => void) => {
@@ -152,8 +248,9 @@ const NodeBox: React.FC<{
   selectedIds: string[]
   onMouseDown: (e: any, id: string) => void
   onChangeLayout: (id: string, layout: Partial<NodeLayout>) => void
-  setGuides: (g: Guide[]) => void
-}> = ({ node, siblings, selectedIds, onMouseDown, onChangeLayout, setGuides }) => {
+  setSnapGuides: (g: SnapGuide[]) => void
+  guides: Guide[]
+}> = ({ node, siblings, selectedIds, onMouseDown, onChangeLayout, setSnapGuides, guides }) => {
   if (node.hidden) return null
   const l = node.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
   const Comp: any = node.type === 'Group' ? 'div' : (node.type as any)
@@ -219,29 +316,29 @@ const NodeBox: React.FC<{
       size={{ width: current.w, height: current.h }}
       position={{ x: current.x, y: current.y }}
       onDrag={(e, d) => {
-        const { rect, guides } = snapRect({ x: d.x, y: d.y, w: l.w, h: l.h }, others, e.shiftKey, 'move')
+        const { rect, guides: sg } = snapRect({ x: d.x, y: d.y, w: l.w, h: l.h }, others, guides, e.shiftKey, 'move')
         setTemp({ ...rect, rotation: l.rotation })
-        setGuides(guides)
+        setSnapGuides(sg)
       }}
       onDragStop={(e, d) => {
-        const { rect } = snapRect(temp || { x: d.x, y: d.y, w: l.w, h: l.h }, others, e.shiftKey, 'move')
+        const { rect } = snapRect(temp || { x: d.x, y: d.y, w: l.w, h: l.h }, others, guides, e.shiftKey, 'move')
         setTemp(null)
-        setGuides([])
+        setSnapGuides([])
         onChangeLayout(node.id, rect)
       }}
       onResize={(e, __, ref, ___, pos) => {
         const raw: Rect = { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }
         const modified = applyModifiers(e as MouseEvent, raw)
-        const { rect, guides } = snapRect(modified, others, (e as MouseEvent).shiftKey, 'resize')
+        const { rect, guides: sg } = snapRect(modified, others, guides, (e as MouseEvent).shiftKey, 'resize')
         setTemp({ ...rect, rotation: l.rotation })
-        setGuides(guides)
+        setSnapGuides(sg)
       }}
       onResizeStop={(e, __, ref, ___, pos) => {
         const raw: Rect = temp || { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }
         const modified = applyModifiers(e as MouseEvent, raw)
-        const { rect } = snapRect(modified, others, (e as MouseEvent).shiftKey, 'resize')
+        const { rect } = snapRect(modified, others, guides, (e as MouseEvent).shiftKey, 'resize')
         setTemp(null)
-        setGuides([])
+        setSnapGuides([])
         onChangeLayout(node.id, rect)
       }}
       bounds="parent"
@@ -272,7 +369,8 @@ const NodeBox: React.FC<{
             selectedIds={selectedIds}
             onMouseDown={onMouseDown}
             onChangeLayout={onChangeLayout}
-            setGuides={setGuides}
+            setSnapGuides={setSnapGuides}
+            guides={guides}
           />
         ))}
       </div>
@@ -281,7 +379,7 @@ const NodeBox: React.FC<{
 }
 
 const CanvasFree: React.FC = () => {
-  const { tree, selectedIds, hoverPreview } = useEditorState()
+  const { tree, selectedIds, hoverPreview, guides } = useEditorState()
   const {
     selectComponent,
     setSelectedIds,
@@ -291,14 +389,18 @@ const CanvasFree: React.FC = () => {
     setHoverPreview,
     addComponent,
     deleteComponent,
-    duplicateComponent
+    duplicateComponent,
+    addGuide,
+    updateGuide,
+    removeGuide
   } = useEditorActions()
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const panning = useRef(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const [highlight, setHighlight] = useState<{ x: number; y: number } | null>(null)
-  const [guides, setGuides] = useState<Guide[]>([])
+  const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
+  const [dragGuide, setDragGuide] = useState<Guide | null>(null)
   const treeRef = useRef<ComponentNode[]>(tree)
   useEffect(() => { treeRef.current = tree }, [tree])
   const [selectBox, setSelectBox] = useState<Rect | null>(null)
@@ -387,6 +489,41 @@ const CanvasFree: React.FC = () => {
     const x = (clientX - rect.left - pan.x) / zoom
     const y = (clientY - rect.top - pan.y) / zoom
     return { x, y }
+  }
+
+  const startGuideFromRuler = (e: React.MouseEvent, type: 'h' | 'v') => {
+    e.preventDefault()
+    const move = (ev: MouseEvent) => {
+      const pt = clientToCanvas(ev.clientX, ev.clientY)
+      const pos = type === 'v' ? pt.x : pt.y
+      setDragGuide({ type, pos })
+    }
+    const up = (ev: MouseEvent) => {
+      const pt = clientToCanvas(ev.clientX, ev.clientY)
+      const pos = type === 'v' ? pt.x : pt.y
+      setDragGuide(null)
+      addGuide({ type, pos })
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
+  const startMoveGuide = (index: number, type: 'h' | 'v') => (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const move = (ev: MouseEvent) => {
+      const pt = clientToCanvas(ev.clientX, ev.clientY)
+      const pos = type === 'v' ? pt.x : pt.y
+      updateGuide(index, pos)
+    }
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
   }
 
   const onDrop = (e: React.DragEvent) => {
@@ -493,14 +630,21 @@ const CanvasFree: React.FC = () => {
     <div className="h-full w-full flex flex-col">
       <Toolbar zoom={zoom} onReset={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} hover={hoverPreview} setHover={setHoverPreview} />
       <div
-        ref={canvasRef}
-        className="flex-1 bg-[conic-gradient(at_10px_10px,#f3f4f6_90deg,white_0_180deg,#f3f4f6_0_270deg,white_0)] bg-[length:20px_20px] overflow-hidden"
+        className="flex-1 relative bg-[conic-gradient(at_10px_10px,#f3f4f6_90deg,white_0_180deg,#f3f4f6_0_270deg,white_0)] bg-[length:20px_20px] overflow-hidden"
         onWheel={onWheel}
-        onMouseDown={onMouseDown}
-        onDragOver={e => e.preventDefault()}
-        onDrop={onDrop}
       >
-        <div className="relative min-h-[2000px] min-w-[2000px]" style={styled}>
+        <Ruler orientation="h" zoom={zoom} pan={pan} onMouseDown={startGuideFromRuler} />
+        <Ruler orientation="v" zoom={zoom} pan={pan} onMouseDown={startGuideFromRuler} />
+        <div className="absolute top-0 left-0" style={{ width: RULER_SIZE, height: RULER_SIZE, background: '#f3f4f6' }} />
+        <div className="absolute" style={{ top: RULER_SIZE, left: RULER_SIZE, right: 0, bottom: 0 }}>
+          <div
+            ref={canvasRef}
+            className="w-full h-full"
+            onMouseDown={onMouseDown}
+            onDragOver={e => e.preventDefault()}
+            onDrop={onDrop}
+          >
+            <div className="relative min-h-[2000px] min-w-[2000px]" style={styled}>
           {highlight && (
             <div
               className="absolute pointer-events-none bg-blue-200 opacity-50"
@@ -515,15 +659,57 @@ const CanvasFree: React.FC = () => {
               selectedIds={selectedIds}
               onMouseDown={handleNodeMouseDown}
               onChangeLayout={setLayout}
-              setGuides={setGuides}
+              setSnapGuides={setSnapGuides}
+              guides={guides}
             />
           ))}
           {guides.map((g, i) => (
             <div
               key={i}
+              className="absolute group"
+              style={
+                g.type === 'v'
+                  ? { left: g.pos, top: 0, bottom: 0 }
+                  : { top: g.pos, left: 0, right: 0 }
+              }
+            >
+              <div
+                className="absolute bg-blue-500/60"
+                style={
+                  g.type === 'v'
+                    ? { left: 0, top: 0, bottom: 0, width: 1, cursor: 'col-resize' }
+                    : { top: 0, left: 0, right: 0, height: 1, cursor: 'row-resize' }
+                }
+                onMouseDown={startMoveGuide(i, g.type)}
+              />
+              <div
+                className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 bg-white border border-blue-500 text-[8px] leading-3 items-center justify-center hidden group-hover:flex cursor-pointer"
+                style={g.type === 'v' ? { top: 0, left: 0 } : { top: 0, left: 0 }}
+                onClick={e => {
+                  e.stopPropagation()
+                  removeGuide(i)
+                }}
+              >
+                ×
+              </div>
+            </div>
+          ))}
+          {dragGuide && (
+            <div
+              className="absolute pointer-events-none bg-blue-500/40"
+              style={
+                dragGuide.type === 'v'
+                  ? { left: dragGuide.pos, top: 0, bottom: 0, width: 1 }
+                  : { top: dragGuide.pos, left: 0, right: 0, height: 1 }
+              }
+            />
+          )}
+          {snapGuides.map((g, i) => (
+            <div
+              key={i}
               className="absolute pointer-events-none bg-pink-400/60"
               style={
-                g.orientation === 'v'
+                g.type === 'v'
                   ? { left: g.pos, top: 0, bottom: 0, width: 1 }
                   : { top: g.pos, left: 0, right: 0, height: 1 }
               }

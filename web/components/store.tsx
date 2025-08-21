@@ -29,12 +29,18 @@ export interface PropBinding {
   fallback?: string
 }
 
+export interface Guide {
+  type: 'h' | 'v'
+  pos: number
+}
+
 interface EditorState {
   tree: ComponentNode[]
   selectedComponentId: string | null
   selectedIds: string[]
   hoverPreview: boolean
   inspectorTab: 'default' | 'hover'
+  guides: Guide[]
 }
 
 interface EditorActions {
@@ -58,6 +64,9 @@ interface EditorActions {
   setNodeName: (id: string, name: string) => void
   setHidden: (id: string, hidden: boolean) => void
   setLocked: (id: string, locked: boolean) => void
+  addGuide: (g: Guide) => void
+  updateGuide: (index: number, pos: number) => void
+  removeGuide: (index: number) => void
 }
 
 interface EditorContextValue {
@@ -77,6 +86,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [hoverPreview, setHoverPreview] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default')
+  const [guides, setGuides] = useState<Guide[]>([])
   const selectedComponentId = selectedIds[0] || null
 
   const pushHistory = (t: ComponentNode[]) => {
@@ -238,8 +248,20 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setTree(prev => setNodeData(prev, id, { locked }))
   }
 
+  const addGuide = (g: Guide) => {
+    setGuides(prev => [...prev, g])
+  }
+
+  const updateGuide = (index: number, pos: number) => {
+    setGuides(prev => prev.map((g, i) => (i === index ? { ...g, pos } : g)))
+  }
+
+  const removeGuide = (index: number) => {
+    setGuides(prev => prev.filter((_, i) => i !== index))
+  }
+
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab },
+    state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab, guides },
     actions: {
       selectComponent,
       setSelectedIds: setSelectedIdsAction,
@@ -260,7 +282,10 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
       setProp,
       setNodeName,
       setHidden,
-      setLocked
+      setLocked,
+      addGuide,
+      updateGuide,
+      removeGuide
     }
   }
 
