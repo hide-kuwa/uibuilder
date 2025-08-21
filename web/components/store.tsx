@@ -9,6 +9,9 @@ export interface ComponentNode {
   children?: ComponentNode[]
   isContainer?: boolean
   layout?: { x: number; y: number; w: number; h: number }
+  name?: string
+  hidden?: boolean
+  locked?: boolean
 }
 
 export interface PropBinding {
@@ -44,6 +47,9 @@ interface EditorActions {
   setInspectorTab: (t: 'default' | 'hover') => void
   setLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void
   setProp: (id: string, prop: string, value: any) => void
+  setNodeName: (id: string, name: string) => void
+  setHidden: (id: string, hidden: boolean) => void
+  setLocked: (id: string, locked: boolean) => void
 }
 
 interface EditorContextValue {
@@ -208,6 +214,18 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setTree(prev => setNodeProp(prev, id, prop, value))
   }
 
+  const setNodeName = (id: string, name: string) => {
+    setTree(prev => setNodeData(prev, id, { name }))
+  }
+
+  const setHidden = (id: string, hidden: boolean) => {
+    setTree(prev => setNodeData(prev, id, { hidden }))
+  }
+
+  const setLocked = (id: string, locked: boolean) => {
+    setTree(prev => setNodeData(prev, id, { locked }))
+  }
+
   const value: EditorContextValue = {
     state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab },
     actions: {
@@ -227,7 +245,10 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
       setHoverPreview,
       setInspectorTab,
       setLayout,
-      setProp
+      setProp,
+      setNodeName,
+      setHidden,
+      setLocked
     }
   }
 
@@ -407,6 +428,18 @@ function setNodeLayout(nodes: ComponentNode[], id: string, layout: { x: number; 
       return { ...n, layout: next }
     }
     if (n.children) return { ...n, children: setNodeLayout(n.children, id, layout) }
+    return n
+  })
+}
+
+function setNodeData(
+  nodes: ComponentNode[],
+  id: string,
+  data: Partial<ComponentNode>
+): ComponentNode[] {
+  return nodes.map(n => {
+    if (n.id === id) return { ...n, ...data }
+    if (n.children) return { ...n, children: setNodeData(n.children, id, data) }
     return n
   })
 }

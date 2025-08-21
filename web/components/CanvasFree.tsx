@@ -153,12 +153,13 @@ const NodeBox: React.FC<{
   onChangeLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void
   setGuides: (g: Guide[]) => void
 }> = ({ node, siblings, selectedIds, onMouseDown, onChangeLayout, setGuides }) => {
+  if (node.hidden) return null
   const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
   const Comp: any = node.type === 'Group' ? 'div' : (node.type as any)
   const [temp, setTemp] = useState<Rect | null>(null)
   const current = temp || l
   const others = siblings
-    .filter(n => n.id !== node.id)
+    .filter(n => n.id !== node.id && !n.hidden)
     .map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })
   return (
     <Rnd
@@ -197,7 +198,8 @@ const NodeBox: React.FC<{
         onChangeLayout(node.id, rect)
       }}
       bounds="parent"
-      enableResizing
+      disableDragging={node.locked}
+      enableResizing={!node.locked}
       onMouseDown={e => {
         e.stopPropagation()
         onMouseDown(e, node.id)
@@ -360,6 +362,7 @@ const CanvasFree: React.FC = () => {
   const collectRects = (nodes: ComponentNode[], ox = 0, oy = 0): { id: string; rect: Rect }[] => {
     const res: { id: string; rect: Rect }[] = []
     nodes.forEach(n => {
+      if (n.hidden) return
       const l = n.layout || { x: 40, y: 40, w: 320, h: 180 }
       const r = { x: ox + l.x, y: oy + l.y, w: l.w, h: l.h }
       res.push({ id: n.id, rect: r })
