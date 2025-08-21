@@ -5,6 +5,9 @@ import { registry } from '../lib/registry'
 import SelectionOverlay from './canvas/SelectionOverlay'
 import Viewport from './canvas/Viewport'
 import HUDContainer from './hud/HUDContainer'
+import { ViewportProvider } from './canvas/ViewportStore'
+import GridOverlay from './canvas/GridOverlay'
+import Rulers from './canvas/Rulers'
 
 function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
@@ -28,16 +31,20 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
 export default function Canvas() {
   const { tree } = useEditorState()
   return (
-    <div className="relative h-full w-full">
-      <Viewport>
-        <div className="relative w-[2000px] h-[2000px]">
-          {tree.map(n => (
-            <NodeRenderer key={n.id} node={n} />
-          ))}
-          <SelectionOverlay />
-        </div>
-      </Viewport>
-      <HUDContainer />
-    </div>
+    <ViewportProvider>
+      <div className="relative h-full w-full">
+        <Viewport>
+          <div className="relative w-[2000px] h-[2000px]">
+            {tree.map(n => (
+              <NodeRenderer key={n.id} node={n} />
+            ))}
+            <SelectionOverlay />
+          </div>
+        </Viewport>
+        <GridOverlay />
+        <Rulers />
+        <HUDContainer />
+      </div>
+    </ViewportProvider>
   )
 }

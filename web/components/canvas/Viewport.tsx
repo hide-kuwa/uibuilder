@@ -1,10 +1,9 @@
 'use client'
 import React, { useRef, useState } from 'react'
+import { useViewport } from './ViewportStore'
 
 export default function Viewport({children}:{children:React.ReactNode}) {
-  const [scale, setScale] = useState(1)
-  const [tx, setTx] = useState(0)
-  const [ty, setTy] = useState(0)
+  const { vp, setZoom, panBy } = useViewport()
   const wrapRef = useRef<HTMLDivElement>(null)
   const [panning, setPanning] = useState(false)
   const [sx, setSx] = useState(0)
@@ -14,34 +13,33 @@ export default function Viewport({children}:{children:React.ReactNode}) {
     if (!e.ctrlKey) return
     e.preventDefault()
     const delta = -e.deltaY * 0.001
-    const next = Math.min(2, Math.max(0.25, scale * (1 + delta)))
+    const next = Math.min(4, Math.max(0.25, vp.zoom * (1 + delta)))
     const rect = wrapRef.current?.getBoundingClientRect()
     const cx = e.clientX - (rect?.left||0)
     const cy = e.clientY - (rect?.top||0)
-    setTx(cx - (cx - tx) * (next / scale))
-    setTy(cy - (cy - ty) * (next / scale))
-    setScale(next)
+    const nx = cx - (cx - vp.x) * (next / vp.zoom)
+    const ny = cy - (cy - vp.y) * (next / vp.zoom)
+    panBy(nx - vp.x, ny - vp.y)
+    setZoom(next)
   }
 
   const onMouseDown: React.MouseEventHandler = (e) => {
-    if ((e as any).buttons === 1 && (e.nativeEvent as any).buttons === 1 && (e as any).shiftKey === false && (e as any).altKey === false && (e as any).metaKey === false) {
-      if (!(e as any).nativeEvent.getModifierState('Space')) return
-      setPanning(true); setSx(e.clientX - tx); setSy(e.clientY - ty)
+    if (e.button === 1 || (e.button === 0 && (e.nativeEvent as any).getModifierState('Space'))) {
+      e.preventDefault()
+      setPanning(true); setSx(e.clientX - vp.x); setSy(e.clientY - vp.y)
     }
   }
   const onMouseMove: React.MouseEventHandler = (e) => {
     if (!panning) return
-    setTx(e.clientX - sx); setTy(e.clientY - sy)
+    const nx = e.clientX - sx
+    const ny = e.clientY - sy
+    panBy(nx - vp.x, ny - vp.y)
   }
   const onMouseUp = ()=> setPanning(false)
 
   return (
-    <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-[linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(0deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[length:8px_8px]" onWheel={onWheel} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
-      <div className="absolute left-0 top-0 h-6 w-full bg-white/80 backdrop-blur border-b text-[10px] flex items-end">
-        <div className="px-2">scale:{(scale*100)|0}%</div>
-      </div>
-      <div className="absolute top-0 left-0 w-6 h-full bg-white/80 backdrop-blur border-r" />
-      <div className="absolute inset-0" style={{ transform:`translate(${tx}px, ${ty}px) scale(${scale})`, transformOrigin:'0 0' }}>
+    <div ref={wrapRef} className="relative h-full w-full overflow-hidden" onWheel={onWheel} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
+      <div className="absolute inset-0" style={{ transform:`translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})`, transformOrigin:'0 0' }}>
         {children}
       </div>
     </div>
