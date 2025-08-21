@@ -1,9 +1,10 @@
 'use client'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Rnd } from 'react-rnd'
-import { useEditorState, useEditorActions, ComponentNode } from './store'
+import { useEditorState, useEditorActions, ComponentNode, Layout } from './store'
 
 type Rect = { x: number; y: number; w: number; h: number }
+type NodeLayout = Layout
 type Guide = { orientation: 'v' | 'h'; pos: number }
 
 const GRID_SIZE = 8
@@ -150,24 +151,76 @@ const NodeBox: React.FC<{
   siblings: ComponentNode[]
   selectedIds: string[]
   onMouseDown: (e: any, id: string) => void
-  onChangeLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void
+  onChangeLayout: (id: string, layout: Partial<NodeLayout>) => void
   setGuides: (g: Guide[]) => void
 }> = ({ node, siblings, selectedIds, onMouseDown, onChangeLayout, setGuides }) => {
   if (node.hidden) return null
-  const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+  const l = node.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
   const Comp: any = node.type === 'Group' ? 'div' : (node.type as any)
-  const [temp, setTemp] = useState<Rect | null>(null)
+  const [temp, setTemp] = useState<NodeLayout | null>(null)
   const current = temp || l
   const others = siblings
     .filter(n => n.id !== node.id && !n.hidden)
-    .map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })
+    .map(n => n.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 })
+  const rndRef = useRef<HTMLDivElement>(null)
+
+  const startRotate = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const rect = rndRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI
+    const startRotation = current.rotation
+    const base = { ...current }
+    const move = (ev: MouseEvent) => {
+      const ang = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI
+      let rotation = startRotation + ang - startAngle
+      rotation = (rotation + 360) % 360
+      if (ev.shiftKey) rotation = Math.round(rotation / 15) * 15
+      setTemp({ ...base, rotation })
+    }
+    const up = (ev: MouseEvent) => {
+      const ang = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI
+      let rotation = startRotation + ang - startAngle
+      rotation = (rotation + 360) % 360
+      if (ev.shiftKey) rotation = Math.round(rotation / 15) * 15
+      setTemp(null)
+      onChangeLayout(node.id, { rotation })
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
+  const applyModifiers = (
+    e: MouseEvent | React.MouseEvent,
+    rect: Rect,
+  ): Rect => {
+    let { x, y, w, h } = rect
+    if (e.shiftKey) {
+      const ratio = l.w / l.h
+      if (w / h > ratio) w = h * ratio
+      else h = w / ratio
+    }
+    if (e.altKey) {
+      const cx = l.x + l.w / 2
+      const cy = l.y + l.h / 2
+      x = cx - w / 2
+      y = cy - h / 2
+    }
+    return { x, y, w, h }
+  }
+
   return (
     <Rnd
+      ref={rndRef}
       size={{ width: current.w, height: current.h }}
       position={{ x: current.x, y: current.y }}
       onDrag={(e, d) => {
         const { rect, guides } = snapRect({ x: d.x, y: d.y, w: l.w, h: l.h }, others, e.shiftKey, 'move')
-        setTemp(rect)
+        setTemp({ ...rect, rotation: l.rotation })
         setGuides(guides)
       }}
       onDragStop={(e, d) => {
@@ -177,22 +230,16 @@ const NodeBox: React.FC<{
         onChangeLayout(node.id, rect)
       }}
       onResize={(e, __, ref, ___, pos) => {
-        const { rect, guides } = snapRect(
-          { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight },
-          others,
-          e.shiftKey,
-          'resize'
-        )
-        setTemp(rect)
+        const raw: Rect = { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }
+        const modified = applyModifiers(e as MouseEvent, raw)
+        const { rect, guides } = snapRect(modified, others, (e as MouseEvent).shiftKey, 'resize')
+        setTemp({ ...rect, rotation: l.rotation })
         setGuides(guides)
       }}
       onResizeStop={(e, __, ref, ___, pos) => {
-        const { rect } = snapRect(
-          temp || { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight },
-          others,
-          e.shiftKey,
-          'resize'
-        )
+        const raw: Rect = temp || { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }
+        const modified = applyModifiers(e as MouseEvent, raw)
+        const { rect } = snapRect(modified, others, (e as MouseEvent).shiftKey, 'resize')
         setTemp(null)
         setGuides([])
         onChangeLayout(node.id, rect)
@@ -206,12 +253,21 @@ const NodeBox: React.FC<{
       }}
       className={selectedIds.includes(node.id) ? 'outline outline-2 outline-blue-500' : ''}
     >
-      <div className="relative w-full h-full">
+      {selectedIds.includes(node.id) && (
+        <div
+          className="absolute -top-5 -right-5 w-4 h-4 rounded-full border border-blue-500 bg-white cursor-pointer"
+          onMouseDown={startRotate}
+        />
+      )}
+      <div
+        className="relative w-full h-full"
+        style={{ transform: `rotate(${current.rotation}deg)`, transformOrigin: 'center' }}
+      >
         {React.createElement(Comp, node.props || {})}
         {node.children?.map(child => (
           <NodeBox
             key={child.id}
-            node={{ ...child, layout: child.layout || { x: 40, y: 40, w: 320, h: 180 } }}
+            node={{ ...child, layout: child.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 } }}
             siblings={node.children!}
             selectedIds={selectedIds}
             onMouseDown={onMouseDown}
@@ -267,7 +323,7 @@ const CanvasFree: React.FC = () => {
           selectedIds.forEach(id => {
             const node = find(treeRef.current, id)
             if (!node) return
-            const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+            const l = node.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
             let { x, y } = l
             if (e.key === 'ArrowUp') y -= step
             if (e.key === 'ArrowDown') y += step
@@ -297,7 +353,7 @@ const CanvasFree: React.FC = () => {
               }
               const newNode = findCopy(treeRef.current)
               if (newNode) {
-                const l = newNode.layout || { x: 40, y: 40, w: 320, h: 180 }
+                const l = newNode.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
                 setLayout(newNode.id, { ...l, x: l.x + 10, y: l.y + 10 })
                 selectComponent(newNode.id)
               }
@@ -339,7 +395,7 @@ const CanvasFree: React.FC = () => {
     if (!type) return
     const pt = clientToCanvas(e.clientX, e.clientY)
     const id = addComponent(type)
-    setLayout(id, { x: pt.x, y: pt.y, w: 320, h: 180 })
+    setLayout(id, { x: pt.x, y: pt.y, w: 320, h: 180, rotation: 0 })
     setHighlight(pt)
   }
 
@@ -363,7 +419,7 @@ const CanvasFree: React.FC = () => {
     const res: { id: string; rect: Rect }[] = []
     nodes.forEach(n => {
       if (n.hidden) return
-      const l = n.layout || { x: 40, y: 40, w: 320, h: 180 }
+      const l = n.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
       const r = { x: ox + l.x, y: oy + l.y, w: l.w, h: l.h }
       res.push({ id: n.id, rect: r })
       if (n.children) res.push(...collectRects(n.children, r.x, r.y))
@@ -454,7 +510,7 @@ const CanvasFree: React.FC = () => {
           {tree.map(node => (
             <NodeBox
               key={node.id}
-              node={{ ...node, layout: node.layout || { x: 40, y: 40, w: 320, h: 180 } }}
+              node={{ ...node, layout: node.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 } }}
               siblings={tree}
               selectedIds={selectedIds}
               onMouseDown={handleNodeMouseDown}

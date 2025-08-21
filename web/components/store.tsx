@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
+export interface Layout {
+  x: number
+  y: number
+  w: number
+  h: number
+  rotation: number
+}
+
 export interface ComponentNode {
   id: string
   type: string
@@ -8,7 +16,7 @@ export interface ComponentNode {
   variants?: { hover?: { className?: string } }
   children?: ComponentNode[]
   isContainer?: boolean
-  layout?: { x: number; y: number; w: number; h: number }
+  layout?: Layout
   name?: string
   hidden?: boolean
   locked?: boolean
@@ -45,7 +53,7 @@ interface EditorActions {
   loadTemplate: (t: ComponentNode[]) => void
   setHoverPreview: (v: boolean) => void
   setInspectorTab: (t: 'default' | 'hover') => void
-  setLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void
+  setLayout: (id: string, layout: Partial<Layout>) => void
   setProp: (id: string, prop: string, value: any) => void
   setNodeName: (id: string, name: string) => void
   setHidden: (id: string, hidden: boolean) => void
@@ -109,11 +117,12 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setTree(prev => moveByPath(prev, from, to))
   }
 
-  const defaultLayout = (): { x: number; y: number; w: number; h: number } => ({
+  const defaultLayout = (): Layout => ({
     x: 40,
     y: 40,
     w: 320,
-    h: 180
+    h: 180,
+    rotation: 0
   })
 
   const addComponent = (type: string): string => {
@@ -157,13 +166,13 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     const parentPath = paths[0].slice(0, -1)
     if (!paths.every(p => p.slice(0, -1).every((v, i) => v === parentPath[i]))) return
     const nodes = paths.map(p => getNode(tree, p)!)
-    const rects = nodes.map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })
+    const rects = nodes.map(n => n.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 })
     const minX = Math.min(...rects.map(r => r.x))
     const minY = Math.min(...rects.map(r => r.y))
     const maxX = Math.max(...rects.map(r => r.x + r.w))
     const maxY = Math.max(...rects.map(r => r.y + r.h))
     const adjusted = nodes.map(n => {
-      const l = n.layout || { x: 40, y: 40, w: 320, h: 180 }
+      const l = n.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
       return { ...n, layout: { ...l, x: l.x - minX, y: l.y - minY } }
     })
     let t = tree
@@ -179,7 +188,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
       id: groupId,
       type: 'Group',
       isContainer: true,
-      layout: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
+      layout: { x: minX, y: minY, w: maxX - minX, h: maxY - minY, rotation: 0 },
       children: adjusted
     }
     t = insertAt(t, [...parentPath, insertIndex], groupNode)
@@ -192,21 +201,24 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     if (!path) return
     const node = getNode(tree, path)
     if (!node || !node.children) return
-    const groupLayout = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+    const groupLayout = node.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
     const parentPath = path.slice(0, -1)
     const index = path[path.length - 1]
     const { nodes: without } = removeAt(tree, path)
     let t = without
     node.children.forEach((child, i) => {
-      const l = child.layout || { x: 40, y: 40, w: 320, h: 180 }
-      const adjusted = { ...child, layout: { ...l, x: l.x + groupLayout.x, y: l.y + groupLayout.y } }
+      const l = child.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
+      const adjusted = {
+        ...child,
+        layout: { ...l, x: l.x + groupLayout.x, y: l.y + groupLayout.y, rotation: l.rotation ?? 0 }
+      }
       t = insertAt(t, [...parentPath, index + i], adjusted)
     })
     pushHistory(t)
     setSelectedIds(node.children.map(c => c.id))
   }
 
-  const setLayout = (id: string, layout: { x: number; y: number; w: number; h: number }) => {
+  const setLayout = (id: string, layout: Partial<Layout>) => {
     setTree(prev => setNodeLayout(prev, id, layout))
   }
 
@@ -284,7 +296,7 @@ function duplicateNode(nodes: ComponentNode[], id: string): ComponentNode[] {
       result.push(n)
       const copy = cloneNode(n)
       copy.id = `${n.id}_copy_${Math.random().toString(36).slice(2, 8)}`
-      if (!copy.layout) copy.layout = { x: 40, y: 40, w: 320, h: 180 }
+      if (!copy.layout) copy.layout = { x: 40, y: 40, w: 320, h: 180, rotation: 0 }
       result.push(copy)
     } else if (n.children) {
       result.push({ ...n, children: duplicateNode(n.children, id) })
@@ -421,10 +433,10 @@ function setNodeProp(nodes: ComponentNode[], id: string, prop: string, value: an
   })
 }
 
-function setNodeLayout(nodes: ComponentNode[], id: string, layout: { x: number; y: number; w: number; h: number }): ComponentNode[] {
+function setNodeLayout(nodes: ComponentNode[], id: string, layout: Partial<Layout>): ComponentNode[] {
   return nodes.map(n => {
     if (n.id === id) {
-      const next = { ...(n.layout || { x: 40, y: 40, w: 320, h: 180 }), ...layout }
+      const next = { ...(n.layout || { x: 40, y: 40, w: 320, h: 180, rotation: 0 }), ...layout }
       return { ...n, layout: next }
     }
     if (n.children) return { ...n, children: setNodeLayout(n.children, id, layout) }
