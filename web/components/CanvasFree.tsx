@@ -6,6 +6,9 @@ import { useEditorState, useEditorActions, ComponentNode } from './store'
 type Rect = { x: number; y: number; w: number; h: number }
 type Guide = { orientation: 'v' | 'h'; pos: number }
 
+const GRID_SIZE = 8
+const SNAP_THRESHOLD = 6
+
 const snapRect = (
   rect: Rect,
   others: Rect[],
@@ -14,11 +17,11 @@ const snapRect = (
 ): { rect: Rect; guides: Guide[] } => {
   if (shift) return { rect, guides: [] }
   let { x, y, w, h } = rect
-  x = Math.round(x / 8) * 8
-  y = Math.round(y / 8) * 8
-  w = Math.round(w / 8) * 8
-  h = Math.round(h / 8) * 8
-  const threshold = 6
+  x = Math.round(x / GRID_SIZE) * GRID_SIZE
+  y = Math.round(y / GRID_SIZE) * GRID_SIZE
+  w = Math.round(w / GRID_SIZE) * GRID_SIZE
+  h = Math.round(h / GRID_SIZE) * GRID_SIZE
+  const threshold = SNAP_THRESHOLD
   let guideX: number | null = null
   let guideY: number | null = null
   let dxLeft: { diff: number; pos: number } | null = null
@@ -72,8 +75,12 @@ const snapRect = (
     }
   }
   if (mode === 'move') {
-    const diffX = dxLeft || dxRight || dxCenter
-    const diffY = dyTop || dyBottom || dyCenter
+    const diffX = [dxLeft, dxRight, dxCenter].reduce<
+      { diff: number; pos: number } | null
+    >((best, cur) => (cur && (!best || Math.abs(cur.diff) < Math.abs(best.diff)) ? cur : best), null)
+    const diffY = [dyTop, dyBottom, dyCenter].reduce<
+      { diff: number; pos: number } | null
+    >((best, cur) => (cur && (!best || Math.abs(cur.diff) < Math.abs(best.diff)) ? cur : best), null)
     if (diffX) {
       x += diffX.diff
       guideX = diffX.pos
