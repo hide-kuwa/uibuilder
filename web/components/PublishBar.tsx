@@ -43,6 +43,7 @@ export default function PublishBar({ pageId = 'home' }: Props) {
         return
       }
       alert('Published')
+      window.dispatchEvent(new CustomEvent('exp:tick', { detail: { type: 'publish' } }))
       if (autoDeploy) {
         const res2 = await fetch(`${BASE}/api/pages/${pageId}/deploy`, {
           method: 'POST',

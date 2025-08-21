@@ -9,6 +9,8 @@ import logging
 import hashlib
 import subprocess
 import tempfile
+import random
+import time
 from pathlib import Path
 
 import httpx
@@ -311,6 +313,21 @@ async def page_ws(websocket: WebSocket, page_id: str):
         room.discard(websocket)
         presence_map.get(page_id, set()).discard(user_id)
         await broadcast_presence(page_id)
+
+@app.get("/api/notifications")
+def list_notifications():
+    return [{"id": str(uuid4()), "source":"slack","channel":"general","text":"ダミー通知","ts": int(time.time())}]
+
+@app.websocket("/ws/notifications")
+async def ws_notifications(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            await asyncio.sleep(random.randint(5,10))
+            msg = {"id": str(uuid4()), "source":"slack", "channel":"general", "text":"新しいメッセージが届きました", "ts": int(time.time())}
+            await ws.send_json(msg)
+    except Exception:
+        pass
 
 @app.post("/api/codegen")
 def codegen(req: CodegenRequest):
