@@ -2,7 +2,7 @@
   "name": "uibuilder-web",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run gen:meta --prefix .. && next dev",
     "build": "next build",
     "start": "next start"
   },

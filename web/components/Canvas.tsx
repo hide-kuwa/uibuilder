@@ -1,16 +1,23 @@
-"use client"
-import { NodeIR } from '../lib/types'
+'use client'
+import React from 'react'
+import { useEditorState, useEditorActions, ComponentNode } from './store'
 import { registry } from '../lib/registry'
-import { useStore } from '../lib/store'
+import SelectionOverlay from './canvas/SelectionOverlay'
+import Viewport from './canvas/Viewport'
 
-function Renderer({ node }: { node: NodeIR }) {
-  const { selectedId, select } = useStore()
-  const Comp = registry[node.type] || ((p: any) => <div {...p}>{p.children}</div>)
+function NodeRenderer({ node }: { node: ComponentNode }) {
+  const { selectComponent } = useEditorActions()
+  const Comp = (registry as any)[node.type] || ((p:any)=><div {...p}>{p.children}</div>)
+  const style = node.props?.style || {}
   return (
-    <div className={node.id === selectedId ? 'outline outline-blue-500' : ''} onClick={e => { e.stopPropagation(); select(node.id) }}>
+    <div
+      data-node-id={node.id}
+      style={{ position: 'absolute', ...style }}
+      onMouseDown={e => { e.stopPropagation(); selectComponent(node.id) }}
+    >
       <Comp {...node.props}>
-        {node.children.map(child => (
-          <Renderer key={child.id} node={child} />
+        {node.children?.map(child => (
+          <NodeRenderer key={child.id} node={child} />
         ))}
       </Comp>
     </div>
@@ -18,6 +25,15 @@ function Renderer({ node }: { node: NodeIR }) {
 }
 
 export default function Canvas() {
-  const tree = useStore(s => s.tree)
-  return <div className="p-4"><Renderer node={tree} /></div>
+  const { tree } = useEditorState()
+  return (
+    <Viewport>
+      <div className="relative w-[2000px] h-[2000px]">
+        {tree.map(n => (
+          <NodeRenderer key={n.id} node={n} />
+        ))}
+        <SelectionOverlay />
+      </div>
+    </Viewport>
+  )
 }
