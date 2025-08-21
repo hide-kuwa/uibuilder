@@ -3,4 +3,7 @@ export type NodeIR = {
   type: string
   props: Record<string, any>
   children: NodeIR[]
+  name?: string
+  hidden?: boolean
+  locked?: boolean
 }
