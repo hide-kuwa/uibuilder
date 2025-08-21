@@ -7,8 +7,8 @@ import LoginModal from './Auth/LoginModal'
 const PAGE_ID = 'home'
 
 const Toolbar: React.FC = () => {
-  const { tree } = useEditorState()
-  const { loadTemplate } = useEditorActions()
+  const { tree, dirty } = useEditorState()
+  const { loadTemplate, undo, redo, clearDraft } = useEditorActions() as any
   const [loginOpen, setLoginOpen] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -22,6 +22,7 @@ const Toolbar: React.FC = () => {
       json: { id:'root', type:'div', children: tree }
     }
     await apiFetch(`/api/pages/${PAGE_ID}/publish`, { method:'POST', json: payload })
+    clearDraft()
     show('Published ✅')
   }
 
@@ -50,9 +51,13 @@ const Toolbar: React.FC = () => {
           <button className="px-3 py-1 rounded border" onClick={()=>setLoginOpen(true)}>Login</button>
           <button className="px-3 py-1 rounded border" onClick={logout}>Logout</button>
           <div className="mx-2 w-px h-6 bg-gray-200" />
+          <button className="px-3 py-1 rounded border" onClick={undo}>Undo</button>
+          <button className="px-3 py-1 rounded border" onClick={redo}>Redo</button>
+          <div className="mx-2 w-px h-6 bg-gray-200" />
           <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={publish}>Publish</button>
           <button className="px-3 py-1 rounded bg-emerald-600 text-white" onClick={deploy}>Deploy</button>
           <button className="px-3 py-1 rounded border" onClick={loadLatest}>Load (Edge)</button>
+          {dirty && <span className="ml-2 text-xs text-orange-600">● Unsaved</span>}
           {msg && <span className="text-sm text-gray-600 ml-2">{msg}</span>}
         </div>
       </div>

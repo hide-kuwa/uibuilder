@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react'
 
 export interface Layout {
   x: number
@@ -41,6 +41,7 @@ interface EditorState {
   hoverPreview: boolean
   inspectorTab: 'default' | 'hover'
   guides: Guide[]
+  dirty: boolean
 }
 
 interface EditorActions {
@@ -67,6 +68,7 @@ interface EditorActions {
   addGuide: (g: Guide) => void
   updateGuide: (index: number, pos: number) => void
   removeGuide: (index: number) => void
+  clearDraft: () => void
 }
 
 interface EditorContextValue {
@@ -87,7 +89,10 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   const [hoverPreview, setHoverPreview] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default')
   const [guides, setGuides] = useState<Guide[]>([])
+  const [dirty, setDirty] = useState(false)
   const selectedComponentId = selectedIds[0] || null
+
+  const first = useRef(true)
 
   const pushHistory = (t: ComponentNode[]) => {
     setTree(t)
@@ -113,6 +118,7 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setTree(t)
     setHistory([t])
     setHistoryIndex(0)
+    setDirty(false)
   }
 
   const selectComponent = (id: string | null) => setSelectedIds(id ? [id] : [])
@@ -260,8 +266,30 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setGuides(prev => prev.filter((_, i) => i !== index))
   }
 
+  const clearDraft = () => {
+    localStorage.removeItem('uibuilder.draft')
+    setDirty(false)
+  }
+
+  useEffect(()=>{
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('uibuilder.draft') : null
+    if(raw){
+      try{ const t = JSON.parse(raw); if(Array.isArray(t)) { loadTemplate(t); setDirty(true) } }catch{}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[])
+
+  useEffect(()=>{
+    if(first.current){ first.current=false; return }
+    const id = setTimeout(()=>{
+      localStorage.setItem('uibuilder.draft', JSON.stringify(tree))
+      setDirty(true)
+    },500)
+    return ()=> clearTimeout(id)
+  },[tree])
+
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab, guides },
+    state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab, guides, dirty },
     actions: {
       selectComponent,
       setSelectedIds: setSelectedIdsAction,
@@ -285,7 +313,8 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
       setLocked,
       addGuide,
       updateGuide,
-      removeGuide
+      removeGuide,
+      clearDraft
     }
   }
 
