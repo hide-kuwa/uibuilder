@@ -147,16 +147,19 @@ const Toolbar: React.FC<{
 
 const NodeBox: React.FC<{
   node: ComponentNode
-  selected: boolean
-  onSelect: () => void
-  onChangeLayout: (layout: { x: number; y: number; w: number; h: number }) => void
-  others: Rect[]
+  siblings: ComponentNode[]
+  selectedIds: string[]
+  onMouseDown: (e: any, id: string) => void
+  onChangeLayout: (id: string, layout: { x: number; y: number; w: number; h: number }) => void
   setGuides: (g: Guide[]) => void
-}> = ({ node, selected, onSelect, onChangeLayout, others, setGuides }) => {
+}> = ({ node, siblings, selectedIds, onMouseDown, onChangeLayout, setGuides }) => {
   const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
-  const Comp: any = node.type
+  const Comp: any = node.type === 'Group' ? 'div' : (node.type as any)
   const [temp, setTemp] = useState<Rect | null>(null)
   const current = temp || l
+  const others = siblings
+    .filter(n => n.id !== node.id)
+    .map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })
   return (
     <Rnd
       size={{ width: current.w, height: current.h }}
@@ -170,7 +173,7 @@ const NodeBox: React.FC<{
         const { rect } = snapRect(temp || { x: d.x, y: d.y, w: l.w, h: l.h }, others, e.shiftKey, 'move')
         setTemp(null)
         setGuides([])
-        onChangeLayout(rect)
+        onChangeLayout(node.id, rect)
       }}
       onResize={(e, __, ref, ___, pos) => {
         const { rect, guides } = snapRect(
@@ -191,22 +194,39 @@ const NodeBox: React.FC<{
         )
         setTemp(null)
         setGuides([])
-        onChangeLayout(rect)
+        onChangeLayout(node.id, rect)
       }}
       bounds="parent"
       enableResizing
-      onMouseDown={onSelect}
-      className={selected ? 'outline outline-2 outline-blue-500' : ''}
+      onMouseDown={e => {
+        e.stopPropagation()
+        onMouseDown(e, node.id)
+      }}
+      className={selectedIds.includes(node.id) ? 'outline outline-2 outline-blue-500' : ''}
     >
-      {React.createElement(Comp, node.props || {})}
+      <div className="relative w-full h-full">
+        {React.createElement(Comp, node.props || {})}
+        {node.children?.map(child => (
+          <NodeBox
+            key={child.id}
+            node={{ ...child, layout: child.layout || { x: 40, y: 40, w: 320, h: 180 } }}
+            siblings={node.children!}
+            selectedIds={selectedIds}
+            onMouseDown={onMouseDown}
+            onChangeLayout={onChangeLayout}
+            setGuides={setGuides}
+          />
+        ))}
+      </div>
     </Rnd>
   )
 }
 
 const CanvasFree: React.FC = () => {
-  const { tree, selectedComponentId, hoverPreview } = useEditorState()
+  const { tree, selectedIds, hoverPreview } = useEditorState()
   const {
     selectComponent,
+    setSelectedIds,
     setLayout,
     undo,
     redo,
@@ -223,11 +243,12 @@ const CanvasFree: React.FC = () => {
   const [guides, setGuides] = useState<Guide[]>([])
   const treeRef = useRef<ComponentNode[]>(tree)
   useEffect(() => { treeRef.current = tree }, [tree])
+  const [selectBox, setSelectBox] = useState<Rect | null>(null)
 
   const handleKey = useCallback(
     (e: KeyboardEvent) => {
       const z = e.ctrlKey || e.metaKey
-      if (selectedComponentId) {
+      if (selectedIds.length) {
         const step = e.shiftKey ? 10 : 1
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
           e.preventDefault()
@@ -241,41 +262,45 @@ const CanvasFree: React.FC = () => {
             }
             return null
           }
-          const node = find(treeRef.current, selectedComponentId)
-          if (!node) return
-          const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
-          let { x, y } = l
-          if (e.key === 'ArrowUp') y -= step
-          if (e.key === 'ArrowDown') y += step
-          if (e.key === 'ArrowLeft') x -= step
-          if (e.key === 'ArrowRight') x += step
-          setLayout(selectedComponentId, { ...l, x, y })
+          selectedIds.forEach(id => {
+            const node = find(treeRef.current, id)
+            if (!node) return
+            const l = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+            let { x, y } = l
+            if (e.key === 'ArrowUp') y -= step
+            if (e.key === 'ArrowDown') y += step
+            if (e.key === 'ArrowLeft') x -= step
+            if (e.key === 'ArrowRight') x += step
+            setLayout(id, { ...l, x, y })
+          })
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
-          deleteComponent(selectedComponentId)
+          deleteComponent(selectedIds)
         } else if (z && e.key.toLowerCase() === 'd') {
           e.preventDefault()
-          const id = selectedComponentId
-          duplicateComponent(id)
-          setTimeout(() => {
-            const prefix = `${id}_copy_`
-            const findCopy = (nodes: ComponentNode[]): ComponentNode | null => {
-              for (const n of nodes) {
-                if (n.id.startsWith(prefix)) return n
-                if (n.children) {
-                  const r = findCopy(n.children)
-                  if (r) return r
+          const id = selectedIds[0]
+          if (id) {
+            duplicateComponent(id)
+            setTimeout(() => {
+              const prefix = `${id}_copy_`
+              const findCopy = (nodes: ComponentNode[]): ComponentNode | null => {
+                for (const n of nodes) {
+                  if (n.id.startsWith(prefix)) return n
+                  if (n.children) {
+                    const r = findCopy(n.children)
+                    if (r) return r
+                  }
                 }
+                return null
               }
-              return null
-            }
-            const newNode = findCopy(treeRef.current)
-            if (newNode) {
-              const l = newNode.layout || { x: 40, y: 40, w: 320, h: 180 }
-              setLayout(newNode.id, { ...l, x: l.x + 10, y: l.y + 10 })
-              selectComponent(newNode.id)
-            }
-          }, 0)
+              const newNode = findCopy(treeRef.current)
+              if (newNode) {
+                const l = newNode.layout || { x: 40, y: 40, w: 320, h: 180 }
+                setLayout(newNode.id, { ...l, x: l.x + 10, y: l.y + 10 })
+                selectComponent(newNode.id)
+              }
+            }, 0)
+          }
         }
       }
       if (z && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -288,7 +313,7 @@ const CanvasFree: React.FC = () => {
         panning.current = true
       }
     },
-    [selectedComponentId, undo, redo, setLayout, deleteComponent, duplicateComponent, selectComponent]
+    [selectedIds, undo, redo, setLayout, deleteComponent, duplicateComponent, selectComponent]
   )
 
   useKey(handleKey)
@@ -331,6 +356,18 @@ const CanvasFree: React.FC = () => {
     }
   }
 
+  const intersects = (a: Rect, b: Rect) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y)
+  const collectRects = (nodes: ComponentNode[], ox = 0, oy = 0): { id: string; rect: Rect }[] => {
+    const res: { id: string; rect: Rect }[] = []
+    nodes.forEach(n => {
+      const l = n.layout || { x: 40, y: 40, w: 320, h: 180 }
+      const r = { x: ox + l.x, y: oy + l.y, w: l.w, h: l.h }
+      res.push({ id: n.id, rect: r })
+      if (n.children) res.push(...collectRects(n.children, r.x, r.y))
+    })
+    return res
+  }
+
   const onMouseDown = (e: React.MouseEvent) => {
     if (panning.current) {
       const sx = e.clientX
@@ -348,7 +385,43 @@ const CanvasFree: React.FC = () => {
       window.addEventListener('mousemove', move)
       window.addEventListener('mouseup', up)
     } else {
-      selectComponent(null)
+      const start = clientToCanvas(e.clientX, e.clientY)
+      let box: Rect = { x: start.x, y: start.y, w: 0, h: 0 }
+      let moved = false
+      const move = (ev: MouseEvent) => {
+        const pt = clientToCanvas(ev.clientX, ev.clientY)
+        box = {
+          x: Math.min(start.x, pt.x),
+          y: Math.min(start.y, pt.y),
+          w: Math.abs(pt.x - start.x),
+          h: Math.abs(pt.y - start.y)
+        }
+        setSelectBox(box)
+        moved = true
+      }
+      const up = () => {
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', up)
+        setSelectBox(null)
+        if (!moved) {
+          setSelectedIds([])
+        } else {
+          const rects = collectRects(treeRef.current)
+          const ids = rects.filter(r => intersects(box, r.rect)).map(r => r.id)
+          setSelectedIds(ids)
+        }
+      }
+      window.addEventListener('mousemove', move)
+      window.addEventListener('mouseup', up)
+    }
+  }
+
+  const handleNodeMouseDown = (e: React.MouseEvent, id: string) => {
+    if (e.shiftKey) {
+      if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter(v => v !== id))
+      else setSelectedIds([...selectedIds, id])
+    } else {
+      selectComponent(id)
     }
   }
 
@@ -379,12 +452,10 @@ const CanvasFree: React.FC = () => {
             <NodeBox
               key={node.id}
               node={{ ...node, layout: node.layout || { x: 40, y: 40, w: 320, h: 180 } }}
-              selected={selectedComponentId === node.id}
-              onSelect={() => selectComponent(node.id)}
-              onChangeLayout={layout => setLayout(node.id, layout)}
-              others={tree
-                .filter(n => n.id !== node.id)
-                .map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })}
+              siblings={tree}
+              selectedIds={selectedIds}
+              onMouseDown={handleNodeMouseDown}
+              onChangeLayout={setLayout}
               setGuides={setGuides}
             />
           ))}
@@ -399,6 +470,12 @@ const CanvasFree: React.FC = () => {
               }
             />
           ))}
+          {selectBox && (
+            <div
+              className="absolute pointer-events-none border-2 border-blue-400/60 bg-blue-200/10"
+              style={{ left: selectBox.x, top: selectBox.y, width: selectBox.w, height: selectBox.h }}
+            />
+          )}
         </div>
       </div>
     </div>

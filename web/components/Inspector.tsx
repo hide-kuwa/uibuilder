@@ -18,8 +18,8 @@ const NumberField: React.FC<{ label: string; value: number; onChange: (v: number
 }
 
 export default function Inspector() {
-  const { tree, selectedComponentId } = useEditorState()
-  const { setLayout, setProp } = useEditorActions()
+  const { tree, selectedIds, selectedComponentId } = useEditorState()
+  const { setLayout, setProp, groupSelected, ungroup } = useEditorActions()
   const node = useMemo<ComponentNode | null>(() => {
     const stack: ComponentNode[] = [...tree]
     while (stack.length) {
@@ -36,6 +36,16 @@ export default function Inspector() {
 
   return (
     <div className="p-3 space-y-4">
+      <div className="flex gap-2">
+        {selectedIds.length > 1 && (
+          <button className="px-2 py-1 border rounded text-sm" onClick={groupSelected}>Group</button>
+        )}
+        {selectedIds.length === 1 && node.type === 'Group' && (
+          <button className="px-2 py-1 border rounded text-sm" onClick={() => ungroup(node.id)}>
+            Ungroup
+          </button>
+        )}
+      </div>
       <div className="space-y-2">
         <div className="text-xs font-semibold text-gray-500">Position & Size</div>
         <div className="grid grid-cols-2 gap-2">

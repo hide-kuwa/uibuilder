@@ -21,17 +21,21 @@ export interface PropBinding {
 interface EditorState {
   tree: ComponentNode[]
   selectedComponentId: string | null
+  selectedIds: string[]
   hoverPreview: boolean
   inspectorTab: 'default' | 'hover'
 }
 
 interface EditorActions {
   selectComponent: (id: string | null) => void
+  setSelectedIds: (ids: string[]) => void
   moveComponent: (dragId: string, parentId: string | null, index: number) => void
   moveNode: (from: number[], to: number[]) => void
   addComponent: (type: string) => string
   duplicateComponent: (id: string) => void
-  deleteComponent: (id: string) => void
+  deleteComponent: (id: string | string[]) => void
+  groupSelected: () => void
+  ungroup: (groupId: string) => void
   pushHistory: (t: ComponentNode[]) => void
   undo: () => void
   redo: () => void
@@ -56,9 +60,10 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   const [tree, setTree] = useState<ComponentNode[]>(initialTree)
   const [history, setHistory] = useState<ComponentNode[][]>([initialTree])
   const [historyIndex, setHistoryIndex] = useState(0)
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [hoverPreview, setHoverPreview] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<'default' | 'hover'>('default')
+  const selectedComponentId = selectedIds[0] || null
 
   const pushHistory = (t: ComponentNode[]) => {
     setTree(t)
@@ -86,7 +91,8 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     setHistoryIndex(0)
   }
 
-  const selectComponent = (id: string | null) => setSelectedComponentId(id)
+  const selectComponent = (id: string | null) => setSelectedIds(id ? [id] : [])
+  const setSelectedIdsAction = (ids: string[]) => setSelectedIds(ids)
 
   const moveComponent = (dragId: string, parentId: string | null, index: number) => {
     const t = moveNodeById(tree, dragId, parentId, index)
@@ -123,10 +129,75 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
     pushHistory(t)
   }
 
-  const deleteComponent = (id: string) => {
-    const t = deleteNode(tree, id)
+  const deleteComponent = (id: string | string[]) => {
+    if (Array.isArray(id)) {
+      let t = tree
+      for (const i of id) t = deleteNode(t, i)
+      pushHistory(t)
+      setSelectedIds([])
+    } else {
+      const t = deleteNode(tree, id)
+      pushHistory(t)
+      setSelectedIds(prev => prev.filter(v => v !== id))
+    }
+  }
+
+  const groupSelected = () => {
+    if (selectedIds.length < 2) return
+    const paths = selectedIds
+      .map(id => findPath(tree, id))
+      .filter((p): p is number[] => !!p)
+    if (paths.length !== selectedIds.length) return
+    const parentPath = paths[0].slice(0, -1)
+    if (!paths.every(p => p.slice(0, -1).every((v, i) => v === parentPath[i]))) return
+    const nodes = paths.map(p => getNode(tree, p)!)
+    const rects = nodes.map(n => n.layout || { x: 40, y: 40, w: 320, h: 180 })
+    const minX = Math.min(...rects.map(r => r.x))
+    const minY = Math.min(...rects.map(r => r.y))
+    const maxX = Math.max(...rects.map(r => r.x + r.w))
+    const maxY = Math.max(...rects.map(r => r.y + r.h))
+    const adjusted = nodes.map(n => {
+      const l = n.layout || { x: 40, y: 40, w: 320, h: 180 }
+      return { ...n, layout: { ...l, x: l.x - minX, y: l.y - minY } }
+    })
+    let t = tree
+    paths
+      .sort((a, b) => b[b.length - 1] - a[a.length - 1])
+      .forEach(p => {
+        const res = removeAt(t, p)
+        t = res.nodes
+      })
+    const insertIndex = Math.min(...paths.map(p => p[p.length - 1]))
+    const groupId = Math.random().toString(36).slice(2, 10)
+    const groupNode: ComponentNode = {
+      id: groupId,
+      type: 'Group',
+      isContainer: true,
+      layout: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
+      children: adjusted
+    }
+    t = insertAt(t, [...parentPath, insertIndex], groupNode)
     pushHistory(t)
-    setSelectedComponentId(prev => (prev === id ? null : prev))
+    setSelectedIds([groupId])
+  }
+
+  const ungroup = (groupId: string) => {
+    const path = findPath(tree, groupId)
+    if (!path) return
+    const node = getNode(tree, path)
+    if (!node || !node.children) return
+    const groupLayout = node.layout || { x: 40, y: 40, w: 320, h: 180 }
+    const parentPath = path.slice(0, -1)
+    const index = path[path.length - 1]
+    const { nodes: without } = removeAt(tree, path)
+    let t = without
+    node.children.forEach((child, i) => {
+      const l = child.layout || { x: 40, y: 40, w: 320, h: 180 }
+      const adjusted = { ...child, layout: { ...l, x: l.x + groupLayout.x, y: l.y + groupLayout.y } }
+      t = insertAt(t, [...parentPath, index + i], adjusted)
+    })
+    pushHistory(t)
+    setSelectedIds(node.children.map(c => c.id))
   }
 
   const setLayout = (id: string, layout: { x: number; y: number; w: number; h: number }) => {
@@ -138,14 +209,17 @@ export const EditorProvider: React.FC<{ initialTree?: ComponentNode[]; children:
   }
 
   const value: EditorContextValue = {
-    state: { tree, selectedComponentId, hoverPreview, inspectorTab },
+    state: { tree, selectedComponentId, selectedIds, hoverPreview, inspectorTab },
     actions: {
       selectComponent,
+      setSelectedIds: setSelectedIdsAction,
       moveComponent,
       moveNode,
       addComponent,
       duplicateComponent,
       deleteComponent,
+      groupSelected,
+      ungroup,
       pushHistory,
       undo,
       redo,
