@@ -1,8 +1,37 @@
+export type LayoutMode = 'free' | 'auto';
+export type Axis = 'horizontal' | 'vertical';
+export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
+
 export interface ComponentNode {
   id: string;
   type: string; // 'Frame' | 'Rect' | 'Text' | 'Button' etc
   name?: string;
-  props?: Record<string, any>; // x,y,w,h,rotation,style etc
+  props?: {
+    x?: number;
+    y?: number;
+    w?: number;
+    h?: number;
+    rotation?: number;
+    layout?: LayoutMode;
+    axis?: Axis;
+    gap?: number;
+    padding?: number | { top: number; right: number; bottom: number; left: number };
+    alignItems?: 'start' | 'center' | 'end' | 'stretch';
+    justifyContent?:
+      | 'start'
+      | 'center'
+      | 'end'
+      | 'space-between'
+      | 'space-around'
+      | 'space-evenly';
+    wrap?: boolean;
+    widthMode?: SizeMode;
+    heightMode?: SizeMode;
+    minW?: number;
+    minH?: number;
+    maxW?: number;
+    maxH?: number;
+  };
   bindings?: Record<string, PropBinding>;
   variants?: {
     hover?: { className?: string };
