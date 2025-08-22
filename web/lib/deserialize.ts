@@ -11,5 +11,7 @@ export function deserialize(data: any): EditorState {
     guides: [],
     ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
     lastCommandId: undefined,
+    review: { status: 'DRAFT', requireApprovedToShare: false },
+    comments: { threads: {}, users: {} },
   };
 }

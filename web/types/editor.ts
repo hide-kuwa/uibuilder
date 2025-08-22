@@ -2,6 +2,44 @@ export type LayoutMode = 'free' | 'auto';
 export type Axis = 'horizontal' | 'vertical';
 export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
 
+// v5 review & comments types
+export type ReviewStatus = 'DRAFT' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED';
+export type ThreadStatus = 'OPEN' | 'RESOLVED' | 'REOPENED' | 'DRAFT';
+export type AnchorKind = 'PIN' | 'RECT' | 'NODE';
+
+export interface CommentUser {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface CommentMessage {
+  id: string;
+  userId: string;
+  createdAt: number;
+  text: string;
+  mentions?: string[];
+  reactions?: Record<'+1' | 'heart', string[]>;
+}
+
+export interface Anchor {
+  kind: AnchorKind;
+  nodeId?: string;
+  x?: number;
+  y?: number;
+  rect?: { x: number; y: number; w: number; h: number };
+  transform?: number[];
+}
+
+export interface CommentThread {
+  id: string;
+  status: ThreadStatus;
+  anchor: Anchor;
+  messages: CommentMessage[];
+  resolvedBy?: string;
+  resolvedAt?: number;
+}
+
 export interface Guide {
   id: string;
   axis: 'x' | 'y';
@@ -76,6 +114,16 @@ export interface EditorState {
     showOutline?: boolean;
   };
   lastCommandId?: string;
+  review: {
+    status: ReviewStatus;
+    requireApprovedToShare: boolean;
+  };
+  comments: {
+    threads: Record<string, CommentThread>;
+    users: Record<string, CommentUser>;
+    draft?: { anchor?: Anchor; text?: string };
+    filter?: { status?: ThreadStatus[]; onlySelection?: boolean };
+  };
 }
 
 export interface ComponentDefinition {
