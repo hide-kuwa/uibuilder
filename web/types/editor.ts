@@ -2,6 +2,14 @@ export type LayoutMode = 'free' | 'auto';
 export type Axis = 'horizontal' | 'vertical';
 export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
 
+export interface Guide {
+  id: string;
+  axis: 'x' | 'y';
+  pos: number;
+  locked?: boolean;
+  label?: string;
+}
+
 export interface ComponentNode {
   id: string;
   type: string; // 'Frame' | 'Rect' | 'Text' | 'Instance' etc
@@ -60,6 +68,14 @@ export interface EditorState {
   camera: { x: number; y: number; zoom: number };
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDefinition>;
+  guides: Guide[];
+  ui?: {
+    showRulers?: boolean;
+    showGuides?: boolean;
+    showSmartGuides?: boolean;
+    showOutline?: boolean;
+  };
+  lastCommandId?: string;
 }
 
 export interface ComponentDefinition {

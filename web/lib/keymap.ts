@@ -11,7 +11,15 @@ export type Command =
   | 'removeAutoLayout'
   | 'createComponent'
   | 'detachInstance'
-  | 'swapInstance';
+  | 'swapInstance'
+  | 'commandPalette'
+  | 'align.left'
+  | 'align.center.h'
+  | 'distribute.h'
+  | 'order.front'
+  | 'view.toggleRulers'
+  | 'view.toggleGuides'
+  | 'view.toggleOutline';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -28,12 +36,20 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyK') return 'createComponent';
     if (e.code === 'KeyB') return 'detachInstance';
     if (e.code === 'KeyS') return 'swapInstance';
+    if (e.code === 'KeyH') return 'distribute.h';
   }
   if (mod) {
     if (e.code === 'KeyD') return 'duplicate';
     if (e.code === 'KeyZ' && e.shiftKey) return 'redo';
     if (e.code === 'KeyZ') return 'undo';
     if (e.code === 'KeyA' && e.shiftKey) return 'removeAutoLayout';
+    if (e.code === 'KeyK') return 'commandPalette';
+    if (e.code === 'KeyL' && e.shiftKey) return 'align.left';
+    if (e.code === 'KeyH' && e.shiftKey) return 'align.center.h';
+    if (e.code === 'BracketRight' && e.shiftKey) return 'order.front';
+    if (e.code === 'KeyR') return 'view.toggleRulers';
+    if (e.code === 'Semicolon') return 'view.toggleGuides';
+    if (e.code === 'KeyY') return 'view.toggleOutline';
   }
   if (e.code === 'KeyA' && e.shiftKey) return 'makeAutoLayout';
   return map[e.code];
