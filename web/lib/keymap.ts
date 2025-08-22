@@ -19,7 +19,8 @@ export type Command =
   | 'order.front'
   | 'view.toggleRulers'
   | 'view.toggleGuides'
-  | 'view.toggleOutline';
+  | 'view.toggleOutline'
+  | 'export';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -50,6 +51,7 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyR') return 'view.toggleRulers';
     if (e.code === 'Semicolon') return 'view.toggleGuides';
     if (e.code === 'KeyY') return 'view.toggleOutline';
+    if (e.code === 'KeyE' && e.shiftKey) return 'export';
   }
   if (e.code === 'KeyA' && e.shiftKey) return 'makeAutoLayout';
   return map[e.code];

@@ -52,4 +52,10 @@ export const COMMANDS: Command[] = [
     shortcut: 'Ctrl+Y',
     run: () => useEditorStore.getState().toggleOutline(),
   },
+  {
+    id: 'export',
+    label: 'Export',
+    shortcut: 'Ctrl+Shift+E',
+    run: () => window.dispatchEvent(new CustomEvent('uibuilder:export')),
+  },
 ];
