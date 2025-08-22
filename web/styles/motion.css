@@ -1,0 +1,10 @@
+@layer utilities {
+  .u-fade-in   { opacity: 0; animation: fadeIn var(--motion-fast) var(--easing-standard) forwards; }
+  .u-fade-out  { opacity: 1; animation: fadeOut var(--motion-fast) var(--easing-standard) forwards; }
+  .u-press     { transform: scale(var(--press-scale)); transition: transform var(--motion-fast) var(--easing-standard); }
+  .u-hover     { transition: background var(--motion-fast) var(--easing-standard),
+                          box-shadow var(--motion-fast) var(--easing-standard),
+                          opacity var(--motion-fast) var(--easing-standard); }
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeOut{ from{opacity:1} to{opacity:0} }

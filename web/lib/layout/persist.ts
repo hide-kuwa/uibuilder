@@ -2,6 +2,7 @@ export interface LayoutState {
   left: { width: number; collapsed: boolean };
   right: { width: number; collapsed: boolean };
   status: { height: number; visible: boolean };
+  rightSections?: Record<string, boolean>;
   lastResetAt?: number;
 }
 
@@ -17,6 +18,7 @@ const DEFAULT_STATE: LayoutState = {
   left: { width: LEFT_PANE_DEFAULT_WIDTH, collapsed: false },
   right: { width: RIGHT_PANE_DEFAULT_WIDTH, collapsed: false },
   status: { height: STATUS_BAR_HEIGHT, visible: true },
+  rightSections: {},
 };
 
 export function loadLayout(): LayoutState {
