@@ -6,7 +6,9 @@ export type Command =
   | 'delete'
   | 'duplicate'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'makeAutoLayout'
+  | 'removeAutoLayout';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -23,6 +25,8 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyD') return 'duplicate';
     if (e.code === 'KeyZ' && e.shiftKey) return 'redo';
     if (e.code === 'KeyZ') return 'undo';
+    if (e.code === 'KeyA' && e.shiftKey) return 'removeAutoLayout';
   }
+  if (e.code === 'KeyA' && e.shiftKey) return 'makeAutoLayout';
   return map[e.code];
 }

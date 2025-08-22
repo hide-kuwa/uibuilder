@@ -8,6 +8,7 @@ export default function RightInspector() {
     s.tree.find((n) => n.id === s.selectedIds[0])
   );
   const update = useEditorStore((s) => s.updateNode);
+  const setLayout = useEditorStore((s) => s.setLayoutProps);
   const [form, setForm] = useState({
     x: node?.props?.x || 0,
     y: node?.props?.y || 0,
@@ -37,6 +38,36 @@ export default function RightInspector() {
           />
         </label>
       ))}
+      <div className="mt-2 space-y-1">
+        <label className="block text-xs">
+          Layout:
+          <select
+            className="w-full bg-gray-700 ml-1 p-1 text-white"
+            value={node?.props?.layout || 'free'}
+            onChange={(e) =>
+              setLayout(selected, { layout: e.target.value as any })
+            }
+          >
+            <option value="free">Free</option>
+            <option value="auto">Auto</option>
+          </select>
+        </label>
+        {node?.props?.layout === 'auto' && (
+          <label className="block text-xs">
+            Direction:
+            <select
+              className="w-full bg-gray-700 ml-1 p-1 text-white"
+              value={node?.props?.axis || 'vertical'}
+              onChange={(e) =>
+                setLayout(selected, { axis: e.target.value as any })
+              }
+            >
+              <option value="horizontal">Row</option>
+              <option value="vertical">Column</option>
+            </select>
+          </label>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { produceWithPatches } from 'immer';
-import type { EditorState, ComponentNode } from '@/types/editor';
+import type {
+  EditorState,
+  ComponentNode,
+  SizeMode,
+} from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
 
@@ -15,6 +19,19 @@ interface EditorActions {
   remove: (ids?: string[]) => void;
   undo: () => void;
   redo: () => void;
+  makeAutoLayout: (frameId?: string) => void;
+  removeAutoLayout: (frameId?: string) => void;
+  reorderChild: (parentId: string, from: number, to: number) => void;
+  setLayoutProps: (
+    id: string,
+    patch: Partial<NonNullable<ComponentNode['props']>>
+  ) => void;
+  setSizeMode: (
+    id: string,
+    axis: 'w' | 'h',
+    mode: SizeMode,
+    value?: number
+  ) => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -110,6 +127,61 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             draft.selectedIds = [];
           });
         },
+        makeAutoLayout(frameId) {
+          apply((draft) => {
+            const target = frameId
+              ? findNode(draft.tree, frameId)
+              : findNode(draft.tree, draft.selectedIds[0]);
+            if (target) {
+              target.props = target.props || {};
+              target.props.layout = 'auto';
+              if (!target.props.axis) target.props.axis = 'vertical';
+            }
+          });
+        },
+        removeAutoLayout(frameId) {
+          apply((draft) => {
+            const target = frameId
+              ? findNode(draft.tree, frameId)
+              : findNode(draft.tree, draft.selectedIds[0]);
+            if (target && target.props) {
+              target.props.layout = 'free';
+            }
+          });
+        },
+        reorderChild(parentId, from, to) {
+          apply((draft) => {
+            const parent = parentId
+              ? findNode(draft.tree, parentId)
+              : ({ children: draft.tree } as ComponentNode);
+            if (parent && parent.children) {
+              const c = parent.children.splice(from, 1)[0];
+              parent.children.splice(to, 0, c);
+            }
+          });
+        },
+        setLayoutProps(id, patch) {
+          apply((draft) => {
+            const node = findNode(draft.tree, id);
+            if (node) {
+              node.props = { ...(node.props || {}), ...patch };
+            }
+          });
+        },
+        setSizeMode(id, axis, mode, value) {
+          apply((draft) => {
+            const node = findNode(draft.tree, id);
+            if (!node) return;
+            node.props = node.props || {};
+            if (axis === 'w') {
+              node.props.widthMode = mode;
+              if (mode === 'FIXED' && value !== undefined) node.props.w = value;
+            } else {
+              node.props.heightMode = mode;
+              if (mode === 'FIXED' && value !== undefined) node.props.h = value;
+            }
+          });
+        },
         undo() {
           set((state) => undoStack(state));
         },
@@ -121,7 +193,20 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     {
       name: 'uibuilder:editor',
       storage: createJSONStorage(() => idbStorage),
-      version: 3,
+      version: 4,
+      migrate: (persisted, version) => {
+        if (version < 4 && persisted) {
+          const setLayout = (nodes: ComponentNode[]) => {
+            nodes.forEach((n) => {
+              n.props = n.props || {};
+              if (!n.props.layout) n.props.layout = 'free';
+              if (n.children) setLayout(n.children);
+            });
+          };
+          setLayout((persisted as EditorState).tree);
+        }
+        return persisted;
+      },
     }
   )
 );
