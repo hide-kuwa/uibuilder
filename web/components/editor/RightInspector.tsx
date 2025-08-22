@@ -7,8 +7,10 @@ export default function RightInspector() {
   const node = useEditorStore((s) =>
     s.tree.find((n) => n.id === s.selectedIds[0])
   );
+  const components = useEditorStore((s) => s.components);
   const update = useEditorStore((s) => s.updateNode);
   const setLayout = useEditorStore((s) => s.setLayoutProps);
+  const setVariant = useEditorStore((s) => s.setInstanceVariant);
   const [form, setForm] = useState({
     x: node?.props?.x || 0,
     y: node?.props?.y || 0,
@@ -25,6 +27,10 @@ export default function RightInspector() {
     update(selected, { props: next });
   };
 
+  const comp = node && (node as any).type === 'Instance'
+    ? components[(node as any).componentId]
+    : null;
+
   return (
     <div className="bg-gray-800 p-2 space-y-2 overflow-y-auto">
       {(['x', 'y', 'w', 'h', 'rotation'] as const).map((k) => (
@@ -38,6 +44,29 @@ export default function RightInspector() {
           />
         </label>
       ))}
+      {comp && comp.axes && (
+        <div className="mt-2 space-y-1">
+          <h3 className="text-xs font-bold">Variants</h3>
+          {Object.entries(comp.axes).map(([axis, vals]) => (
+            <label key={axis} className="block text-xs">
+              {axis}:
+              <select
+                className="w-full bg-gray-700 ml-1 p-1 text-white"
+                value={(node as any).variant?.[axis] || vals[0]}
+                onChange={(e) =>
+                  setVariant(selected, axis, e.target.value)
+                }
+              >
+                {vals.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      )}
       <div className="mt-2 space-y-1">
         <label className="block text-xs">
           Layout:

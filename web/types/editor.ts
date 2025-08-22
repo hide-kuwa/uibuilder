@@ -4,7 +4,7 @@ export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
 
 export interface ComponentNode {
   id: string;
-  type: string; // 'Frame' | 'Rect' | 'Text' | 'Button' etc
+  type: string; // 'Frame' | 'Rect' | 'Text' | 'Instance' etc
   name?: string;
   props?: {
     x?: number;
@@ -31,6 +31,9 @@ export interface ComponentNode {
     minH?: number;
     maxW?: number;
     maxH?: number;
+    className?: string;
+    text?: string; // for Text nodes
+    visible?: boolean;
   };
   bindings?: Record<string, PropBinding>;
   variants?: {
@@ -56,4 +59,24 @@ export interface EditorState {
   hoverId: string | null;
   camera: { x: number; y: number; zoom: number };
   meta: { version: number; updatedAt: number };
+  components: Record<string, ComponentDefinition>;
+}
+
+export interface ComponentDefinition {
+  id: string;
+  name: string;
+  root: ComponentNode;
+  axes?: Record<string, string[]>;
+  rules?: Array<{
+    when: Record<string, string>;
+    node: string;
+    patch: Partial<ComponentNode>;
+  }>;
+}
+
+export interface InstanceNode extends ComponentNode {
+  type: 'Instance';
+  componentId: string;
+  variant?: Record<string, string>;
+  overrides?: Record<string, Partial<ComponentNode>>;
 }

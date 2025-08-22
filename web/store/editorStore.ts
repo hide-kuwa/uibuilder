@@ -4,10 +4,14 @@ import { produceWithPatches } from 'immer';
 import type {
   EditorState,
   ComponentNode,
+  ComponentDefinition,
+  InstanceNode,
   SizeMode,
 } from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
+import { resolveVariant } from '@/lib/variantResolver';
+import { applyOverrides } from '@/lib/overrideMerge';
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -32,6 +36,28 @@ interface EditorActions {
     mode: SizeMode,
     value?: number
   ) => void;
+  // Components
+  createComponentFromSelection: (name?: string) => void;
+  deleteComponent: (componentId: string) => void;
+  renameComponent: (componentId: string, name: string) => void;
+  createInstance: (componentId: string, pos?: { x: number; y: number }) => void;
+  detachInstance: (nodeId: string) => void;
+  swapInstance: (nodeId: string, nextComponentId: string) => void;
+  // Variants
+  defineVariantAxis: (componentId: string, axis: string, values: string[]) => void;
+  setVariantRule: (
+    componentId: string,
+    rule: { when: Record<string, string>; node: string; patch: Partial<ComponentNode> }
+  ) => void;
+  removeVariantRule: (componentId: string, index: number) => void;
+  setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
+  // Overrides
+  setInstanceOverride: (
+    nodeId: string,
+    targetId: string,
+    patch: Partial<ComponentNode>
+  ) => void;
+  resetInstanceOverride: (nodeId: string, targetId?: string) => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -39,6 +65,22 @@ function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
     if (n.id === id) return n;
     if (n.children) {
       const c = findNode(n.children, id);
+      if (c) return c;
+    }
+  }
+  return null;
+}
+
+function findNodeWithParent(
+  nodes: ComponentNode[],
+  id: string,
+  parent: ComponentNode | null = null
+): { node: ComponentNode; parent: ComponentNode | null; index: number } | null {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.id === id) return { node: n, parent, index: i };
+    if (n.children) {
+      const c = findNodeWithParent(n.children, id, n);
       if (c) return c;
     }
   }
@@ -60,6 +102,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         hoverId: null,
         camera: { x: 0, y: 0, zoom: 1 },
         meta: { version: 1, updatedAt: Date.now() },
+        components: {},
         select(ids) {
           set((state) => ({
             selectedIds: typeof ids === 'function' ? ids(state.selectedIds) : ids,
@@ -182,6 +225,138 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             }
           });
         },
+        createComponentFromSelection(name) {
+          apply((draft) => {
+            const sel = draft.selectedIds[0];
+            const res = findNodeWithParent(draft.tree, sel);
+            if (!res) return;
+            const { node, parent, index } = res;
+            const compId = Math.random().toString(36).slice(2);
+            draft.components[compId] = {
+              id: compId,
+              name: name || node.name || 'Component',
+              root: node,
+            } as ComponentDefinition;
+            const instId = Math.random().toString(36).slice(2);
+            const instance: InstanceNode = {
+              id: instId,
+              type: 'Instance',
+              componentId: compId,
+              props: { ...node.props },
+            };
+            if (parent && parent.children) parent.children[index] = instance;
+            else draft.tree[index] = instance;
+            draft.selectedIds = [instId];
+          });
+        },
+        deleteComponent(componentId) {
+          apply((draft) => {
+            delete draft.components[componentId];
+          });
+        },
+        renameComponent(componentId, name) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (c) c.name = name;
+          });
+        },
+        createInstance(componentId, pos) {
+          apply((draft) => {
+            if (!draft.components[componentId]) return;
+            const id = Math.random().toString(36).slice(2);
+            const inst: InstanceNode = {
+              id,
+              type: 'Instance',
+              componentId,
+              variant: {},
+              overrides: {},
+              props: { x: pos?.x || 0, y: pos?.y || 0 },
+            };
+            draft.tree.push(inst);
+            draft.selectedIds = [id];
+          });
+        },
+        detachInstance(nodeId) {
+          apply((draft) => {
+            const res = findNodeWithParent(draft.tree, nodeId);
+            if (!res) return;
+            const inst = res.node as InstanceNode;
+            const def = draft.components[inst.componentId];
+            if (!def) return;
+            let resolved = resolveVariant(def, inst.variant);
+            if (inst.overrides) {
+              resolved = applyOverrides(resolved, inst.overrides);
+            }
+            if (res.parent && res.parent.children)
+              res.parent.children[res.index] = resolved;
+            else draft.tree[res.index] = resolved;
+          });
+        },
+        swapInstance(nodeId, nextComponentId) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.componentId = nextComponentId;
+            const def = draft.components[nextComponentId];
+            if (def?.axes) {
+              inst.variant = inst.variant || {};
+              // remove axes not in new component
+              Object.keys(inst.variant).forEach((k) => {
+                if (!def.axes || !def.axes[k]) delete inst.variant![k];
+              });
+              Object.entries(def.axes).forEach(([k, vals]) => {
+                if (!inst.variant![k]) inst.variant![k] = vals[0];
+              });
+            }
+          });
+        },
+        defineVariantAxis(componentId, axis, values) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (!c) return;
+            c.axes = c.axes || {};
+            c.axes[axis] = values;
+          });
+        },
+        setVariantRule(componentId, rule) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (!c) return;
+            c.rules = c.rules || [];
+            c.rules.push(rule);
+          });
+        },
+        removeVariantRule(componentId, index) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (c?.rules) c.rules.splice(index, 1);
+          });
+        },
+        setInstanceVariant(nodeId, axis, value) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.variant = inst.variant || {};
+            inst.variant[axis] = value;
+          });
+        },
+        setInstanceOverride(nodeId, targetId, patch) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.overrides = inst.overrides || {};
+            const prev = inst.overrides[targetId] || {};
+            inst.overrides[targetId] = { ...prev, ...patch };
+          });
+        },
+        resetInstanceOverride(nodeId, targetId) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst || !inst.overrides) return;
+            if (targetId) delete inst.overrides[targetId];
+            else inst.overrides = {};
+          });
+        },
         undo() {
           set((state) => undoStack(state));
         },
@@ -193,9 +368,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     {
       name: 'uibuilder:editor',
       storage: createJSONStorage(() => idbStorage),
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
-        if (version < 4 && persisted) {
+        if (!persisted) return persisted;
+        const state = persisted as EditorState;
+        if (version < 4) {
           const setLayout = (nodes: ComponentNode[]) => {
             nodes.forEach((n) => {
               n.props = n.props || {};
@@ -203,9 +380,20 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               if (n.children) setLayout(n.children);
             });
           };
-          setLayout((persisted as EditorState).tree);
+          setLayout(state.tree);
         }
-        return persisted;
+        if (version < 5) {
+          if (!state.components) state.components = {} as any;
+          const ensureVisible = (nodes: ComponentNode[]) => {
+            nodes.forEach((n) => {
+              if (!n.props) n.props = {};
+              if (n.props.visible === undefined) n.props.visible = true;
+              if (n.children) ensureVisible(n.children);
+            });
+          };
+          ensureVisible(state.tree);
+        }
+        return state;
       },
     }
   )
