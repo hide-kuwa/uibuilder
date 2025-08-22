@@ -1,0 +1,11 @@
+export const TOP_BAR_HEIGHT = 48;
+export const LEFT_PANE_DEFAULT_WIDTH = 240;
+export const LEFT_PANE_MIN_WIDTH = 200;
+export const LEFT_PANE_MAX_WIDTH = 420;
+export const RIGHT_PANE_DEFAULT_WIDTH = 320;
+export const RIGHT_PANE_MIN_WIDTH = 260;
+export const RIGHT_PANE_MAX_WIDTH = 520;
+export const STATUS_BAR_HEIGHT = 28;
+export const SPLITTER_WIDTH = 6;
+export const ZOOM_BUTTON_SIZE = 28;
+export const ZOOM_PERCENT_WIDTH = 56;
