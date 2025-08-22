@@ -6,6 +6,7 @@ import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
+import ZoomControls from './ZoomControls';
 
 function NodeView({
   node,
@@ -108,6 +109,7 @@ export default function CanvasStage() {
       ))}
       {selected.length === 1 && <SelectionBox />}
       {selected.length === 1 && <ResizeHandles />}
+      <div className="absolute top-2 right-2"><ZoomControls /></div>
     </div>
   );
 }

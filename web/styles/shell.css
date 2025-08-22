@@ -1,0 +1,4 @@
+.splitter {
+  cursor: col-resize;
+  user-select: none;
+}
