@@ -8,6 +8,7 @@ const shortcuts: [string, string][] = [
   ['T', 'Text'],
   ['Cmd/Ctrl + D', 'Duplicate'],
   ['Delete', 'Remove'],
+  ['Cmd/Ctrl + Shift + E', 'Export'],
 ];
 
 export default function ShortcutHelp() {

@@ -4,12 +4,15 @@ import CanvasStage from './CanvasStage';
 import RightInspector from './RightInspector';
 import CommandPalette from './CommandPalette';
 import ContextMenu from './ContextMenu';
+import ExportDialog from './ExportDialog';
+import ShareButton from './ShareButton';
 import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
 import { COMMANDS } from '@/lib/commands';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -27,16 +30,25 @@ export default function EditorShell() {
       }
     };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const openListener = () => setExportOpen(true);
+    window.addEventListener('uibuilder:export', openListener as any);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('uibuilder:export', openListener as any);
+    };
   }, []);
 
   return (
     <div className="grid grid-cols-[280px_1fr_320px] h-screen text-white">
       <LeftPanel />
-      <CanvasStage />
+      <div className="relative">
+        <div className="absolute top-2 right-2 z-10"><ShareButton /></div>
+        <CanvasStage />
+      </div>
       <RightInspector />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
+      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
