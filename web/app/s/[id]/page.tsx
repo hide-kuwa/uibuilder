@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { deserialize } from '@/lib/deserialize';
 import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
+import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 
 function renderNode(node: ComponentNode, components: Record<string, any>): JSX.Element {
   if (node.type === 'Instance') {
@@ -36,15 +37,18 @@ function renderNode(node: ComponentNode, components: Record<string, any>): JSX.E
 
 export default function SharedPreview() {
   const params = useParams<{ id: string }>();
+  const search = useSearchParams();
   const [data, setData] = useState<any>();
   useEffect(() => {
     fetch(`/api/share?id=${params.id}`).then((r) => r.json()).then(setData);
   }, [params.id]);
   if (!data) return null;
   const state = deserialize(data);
+  const showComments = search.get('comments') === '1';
   return (
     <div className="relative w-full h-full">
       {state.tree.map((n) => renderNode(n, state.components))}
+      {showComments && <AnnotationsOverlay />}
     </div>
   );
 }

@@ -8,6 +8,9 @@ import type {
   InstanceNode,
   SizeMode,
   Guide,
+  ReviewStatus,
+  Anchor,
+  CommentThread,
 } from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
@@ -70,6 +73,27 @@ interface EditorActions {
     patch: Partial<ComponentNode>
   ) => void;
   resetInstanceOverride: (nodeId: string, targetId?: string) => void;
+  // v5 comments and review
+  startPinAnnotation: () => void;
+  startRectAnnotation: () => void;
+  placeAnnotationAt: (pt: { x: number; y: number }) => void;
+  cancelAnnotation: () => void;
+  createThread: (anchor: Anchor, text: string) => void;
+  replyThread: (threadId: string, text: string) => void;
+  resolveThread: (threadId: string, byUserId: string) => void;
+  reopenThread: (threadId: string) => void;
+  addReaction: (threadId: string, msgId: string, kind: '+1' | 'heart') => void;
+  removeReaction: (
+    threadId: string,
+    msgId: string,
+    kind: '+1' | 'heart',
+    userId: string
+  ) => void;
+  setCommentsFilter: (
+    filter: Partial<EditorState['comments']['filter']>
+  ) => void;
+  setReviewStatus: (s: ReviewStatus) => void;
+  toggleRequireApprovedToShare: () => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -118,6 +142,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         guides: [],
         ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
         lastCommandId: undefined,
+        review: { status: 'DRAFT', requireApprovedToShare: false },
+        comments: { threads: {}, users: {} },
         select(ids) {
           set((state) => ({
             selectedIds: typeof ids === 'function' ? ids(state.selectedIds) : ids,
@@ -417,6 +443,123 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             if (targetId) delete inst.overrides[targetId];
             else inst.overrides = {};
           });
+        },
+        // --- v5 comments & review ---
+        startPinAnnotation() {
+          set((state) => ({
+            comments: { ...state.comments, draft: { anchor: { kind: 'PIN' } } },
+          }));
+        },
+        startRectAnnotation() {
+          set((state) => ({
+            comments: { ...state.comments, draft: { anchor: { kind: 'RECT', rect: { x: 0, y: 0, w: 0, h: 0 } } } },
+          }));
+        },
+        placeAnnotationAt(pt) {
+          set((state) => {
+            const draft = state.comments.draft;
+            if (draft?.anchor) {
+              draft.anchor.x = pt.x;
+              draft.anchor.y = pt.y;
+            }
+            return { comments: { ...state.comments, draft } };
+          });
+        },
+        cancelAnnotation() {
+          set((state) => ({ comments: { ...state.comments, draft: undefined } }));
+        },
+        createThread(anchor, text) {
+          set((state) => {
+            const id = Math.random().toString(36).slice(2);
+            const msgId = Math.random().toString(36).slice(2);
+            const thread: CommentThread = {
+              id,
+              status: 'OPEN',
+              anchor,
+              messages: [
+                { id: msgId, userId: 'local', createdAt: Date.now(), text },
+              ],
+            };
+            return {
+              comments: {
+                ...state.comments,
+                threads: { ...state.comments.threads, [id]: thread },
+                draft: undefined,
+              },
+            };
+          });
+        },
+        replyThread(threadId, text) {
+          set((state) => {
+            const thread = state.comments.threads[threadId];
+            if (!thread) return { comments: state.comments } as any;
+            const msgId = Math.random().toString(36).slice(2);
+            thread.messages.push({
+              id: msgId,
+              userId: 'local',
+              createdAt: Date.now(),
+              text,
+            });
+            return { comments: { ...state.comments } };
+          });
+        },
+        resolveThread(threadId, byUserId) {
+          set((state) => {
+            const thread = state.comments.threads[threadId];
+            if (thread) {
+              thread.status = 'RESOLVED';
+              thread.resolvedBy = byUserId;
+              thread.resolvedAt = Date.now();
+            }
+            return { comments: { ...state.comments } };
+          });
+        },
+        reopenThread(threadId) {
+          set((state) => {
+            const thread = state.comments.threads[threadId];
+            if (thread) thread.status = 'REOPENED';
+            return { comments: { ...state.comments } };
+          });
+        },
+        addReaction(threadId, msgId, kind) {
+          set((state) => {
+            const msg = state.comments.threads[threadId]?.messages.find(
+              (m) => m.id === msgId
+            );
+            if (msg) {
+              msg.reactions = msg.reactions || { '+1': [], heart: [] };
+              const arr = msg.reactions[kind];
+              if (!arr.includes('local')) arr.push('local');
+            }
+            return { comments: { ...state.comments } };
+          });
+        },
+        removeReaction(threadId, msgId, kind, userId) {
+          set((state) => {
+            const msg = state.comments.threads[threadId]?.messages.find(
+              (m) => m.id === msgId
+            );
+            if (msg?.reactions?.[kind]) {
+              msg.reactions[kind] = msg.reactions[kind].filter((u) => u !== userId);
+            }
+            return { comments: { ...state.comments } };
+          });
+        },
+        setCommentsFilter(filter) {
+          set((state) => ({
+            comments: { ...state.comments, filter: { ...state.comments.filter, ...filter } },
+          }));
+        },
+        setReviewStatus(s) {
+          set((state) => ({ review: { ...state.review, status: s } }));
+        },
+        toggleRequireApprovedToShare() {
+          set((state) => ({
+            review: {
+              ...state.review,
+              requireApprovedToShare: !state.review.requireApprovedToShare,
+            },
+          }));
         },
         undo() {
           set((state) => undoStack(state));

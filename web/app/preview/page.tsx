@@ -4,6 +4,7 @@ import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import { DEVICE_PRESETS } from '@/lib/devicePresets';
+import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 import { useSearchParams } from 'next/navigation';
 import '@/styles/preview.css';
 
@@ -46,6 +47,7 @@ export default function PreviewPage() {
   const zoom = parseFloat(params.get('zoom') || '1');
   const showBorder = params.get('border') === '1';
   const showSafe = params.get('safe') === '1';
+  const showComments = params.get('comments') === '1';
   const preset = DEVICE_PRESETS[device];
   const style: React.CSSProperties = {
     width: preset.width,
@@ -74,6 +76,7 @@ export default function PreviewPage() {
       <div style={style}>
         {safe}
         {tree.map((n) => renderNode(n, components))}
+        {showComments && <AnnotationsOverlay />}
       </div>
     </div>
   );

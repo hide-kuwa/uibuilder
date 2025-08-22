@@ -20,7 +20,11 @@ export type Command =
   | 'view.toggleRulers'
   | 'view.toggleGuides'
   | 'view.toggleOutline'
-  | 'export';
+  | 'export'
+  | 'annotation.pin'
+  | 'annotation.rect'
+  | 'comment.submit'
+  | 'review.inReview';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -48,11 +52,15 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyL' && e.shiftKey) return 'align.left';
     if (e.code === 'KeyH' && e.shiftKey) return 'align.center.h';
     if (e.code === 'BracketRight' && e.shiftKey) return 'order.front';
+    if (e.code === 'KeyR' && e.shiftKey) return 'review.inReview';
     if (e.code === 'KeyR') return 'view.toggleRulers';
     if (e.code === 'Semicolon') return 'view.toggleGuides';
     if (e.code === 'KeyY') return 'view.toggleOutline';
     if (e.code === 'KeyE' && e.shiftKey) return 'export';
+    if (e.code === 'Enter') return 'comment.submit';
   }
   if (e.code === 'KeyA' && e.shiftKey) return 'makeAutoLayout';
+  if (e.code === 'KeyC' && e.shiftKey) return 'annotation.rect';
+  if (e.code === 'KeyC') return 'annotation.pin';
   return map[e.code];
 }
