@@ -1,0 +1,72 @@
+:root {
+  --color-bg-canvas: 220 7% 10%;
+  --color-bg-panel: 220 7% 12%;
+  --color-bg-muted: 220 6% 16%;
+  --color-bg-elevated: 220 6% 18%;
+  --color-fg-default: 220 15% 92%;
+  --color-fg-muted: 220 10% 70%;
+  --color-fg-inverted: 220 10% 8%;
+  --color-border-default: 220 10% 20%;
+  --color-border-muted: 220 8% 18%;
+  --color-accent-default: 210 90% 60%;
+  --color-accent-fg: 0 0% 100%;
+  --color-state-success: 150 60% 40%;
+  --color-state-warn: 40 90% 55%;
+  --color-state-danger: 4 85% 58%;
+  --color-state-info: 210 90% 60%;
+  --color-overlay-scrim: 0 0% 0% / 0.5;
+  --color-overlay-focus-ring: 210 90% 60% / 0.6;
+
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+  --shadow-md: 0 4px 10px 0 hsl(0 0% 0% / 0.25);
+  --shadow-lg: 0 8px 24px 0 hsl(0 0% 0% / 0.3);
+
+  --font-ui: Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+[data-theme='dark'] {
+  --color-bg-canvas: 220 7% 10%;
+  --color-bg-panel: 220 7% 12%;
+  --color-bg-muted: 220 6% 16%;
+  --color-bg-elevated: 220 6% 18%;
+  --color-fg-default: 220 15% 92%;
+  --color-fg-muted: 220 10% 70%;
+  --color-fg-inverted: 220 10% 8%;
+  --color-border-default: 220 10% 20%;
+  --color-border-muted: 220 8% 18%;
+  --color-accent-default: 210 90% 60%;
+  --color-accent-fg: 0 0% 100%;
+  --color-state-success: 150 60% 40%;
+  --color-state-warn: 40 90% 55%;
+  --color-state-danger: 4 85% 58%;
+  --color-state-info: 210 90% 60%;
+  --color-overlay-scrim: 0 0% 0% / 0.5;
+  --color-overlay-focus-ring: 210 90% 60% / 0.6;
+}
+
+@layer base {
+  body {
+    background: hsl(var(--color-bg-canvas));
+    color: hsl(var(--color-fg-default));
+    font-family: var(--font-ui);
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--color-overlay-focus-ring));
+  }
+}

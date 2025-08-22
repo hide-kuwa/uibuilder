@@ -3,15 +3,21 @@ import './globals.css'
 import React, { ReactNode } from 'react'
 import { HUDProvider } from '../components/hud/hudStore'
 import PerfHUD from '@/components/dev/PerfHUD'
+import { ThemeProvider, ThemeScript } from '../lib/theme/ThemeProvider'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <ThemeScript />
+      </head>
       <body>
-        <HUDProvider>
-          {children}
-          {process.env.NODE_ENV !== 'production' && <PerfHUD />}
-        </HUDProvider>
+        <ThemeProvider>
+          <HUDProvider>
+            {children}
+            {process.env.NODE_ENV !== 'production' && <PerfHUD />}
+          </HUDProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
