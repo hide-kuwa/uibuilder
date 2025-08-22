@@ -11,6 +11,7 @@ import type {
   ReviewStatus,
   Anchor,
   CommentThread,
+  Camera,
 } from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
@@ -58,6 +59,10 @@ interface EditorActions {
   toggleGuides: () => void;
   toggleOutline: () => void;
   setLastCommand: (id: string) => void;
+  setCamera: (cam: Partial<Camera>) => void;
+  tweenCamera: (cam: Camera, opts?: { duration?: number }) => void;
+  getViewportRect: () => { x: number; y: number; w: number; h: number };
+  getSelectionBounds: () => { x: number; y: number; w: number; h: number } | null;
   // Variants
   defineVariantAxis: (componentId: string, axis: string, values: string[]) => void;
   setVariantRule: (
@@ -396,6 +401,40 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
+        },
+        setCamera(cam) {
+          set((state) => ({ camera: { ...state.camera, ...cam } }));
+        },
+        tweenCamera(cam) {
+          set({ camera: cam });
+        },
+        getViewportRect() {
+          const { camera } = get();
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          return { x: camera.x, y: camera.y, w: w / camera.zoom, h: h / camera.zoom };
+        },
+        getSelectionBounds() {
+          const { selectedIds, tree } = get();
+          if (!selectedIds.length) return null;
+          const boxes = selectedIds
+            .map((id) => {
+              const n = findNode(tree, id);
+              if (n?.props)
+                return {
+                  x: n.props.x || 0,
+                  y: n.props.y || 0,
+                  w: n.props.w || 0,
+                  h: n.props.h || 0,
+                };
+              return null;
+            })
+            .filter(Boolean) as Array<{ x: number; y: number; w: number; h: number }>;
+          const x1 = Math.min(...boxes.map((b) => b.x));
+          const y1 = Math.min(...boxes.map((b) => b.y));
+          const x2 = Math.max(...boxes.map((b) => b.x + b.w));
+          const y2 = Math.max(...boxes.map((b) => b.y + b.h));
+          return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
         },
         defineVariantAxis(componentId, axis, values) {
           apply((draft) => {

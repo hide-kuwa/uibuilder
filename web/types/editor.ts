@@ -2,6 +2,12 @@ export type LayoutMode = 'free' | 'auto';
 export type Axis = 'horizontal' | 'vertical';
 export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
 
+export interface Camera {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
 // v5 review & comments types
 export type ReviewStatus = 'DRAFT' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED';
 export type ThreadStatus = 'OPEN' | 'RESOLVED' | 'REOPENED' | 'DRAFT';
@@ -103,7 +109,7 @@ export interface EditorState {
   tree: ComponentNode[];
   selectedIds: string[];
   hoverId: string | null;
-  camera: { x: number; y: number; zoom: number };
+  camera: Camera;
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDefinition>;
   guides: Guide[];

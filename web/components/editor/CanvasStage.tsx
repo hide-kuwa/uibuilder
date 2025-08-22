@@ -7,6 +7,8 @@ import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import ZoomControls from './ZoomControls';
+import { keyRouter } from '@/lib/input/keyRouter';
+import { wheelRouter } from '@/lib/input/wheelRouter';
 
 function NodeView({
   node,
@@ -103,7 +105,12 @@ export default function CanvasStage() {
   const selected = useEditorStore((s) => s.selectedIds);
   const components = useEditorStore((s) => s.components);
   return (
-    <div className="relative bg-gray-900 overflow-hidden">
+    <div
+      className="relative bg-gray-900 overflow-hidden"
+      tabIndex={0}
+      onKeyDown={keyRouter}
+      onWheel={wheelRouter}
+    >
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />
       ))}
