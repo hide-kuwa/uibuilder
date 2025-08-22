@@ -8,7 +8,10 @@ export type Command =
   | 'undo'
   | 'redo'
   | 'makeAutoLayout'
-  | 'removeAutoLayout';
+  | 'removeAutoLayout'
+  | 'createComponent'
+  | 'detachInstance'
+  | 'swapInstance';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -21,6 +24,11 @@ const map: Record<string, Command> = {
 
 export function getCommand(e: KeyboardEvent): Command | undefined {
   const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.altKey) {
+    if (e.code === 'KeyK') return 'createComponent';
+    if (e.code === 'KeyB') return 'detachInstance';
+    if (e.code === 'KeyS') return 'swapInstance';
+  }
   if (mod) {
     if (e.code === 'KeyD') return 'duplicate';
     if (e.code === 'KeyZ' && e.shiftKey) return 'redo';
