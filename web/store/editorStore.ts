@@ -7,6 +7,7 @@ import type {
   ComponentDefinition,
   InstanceNode,
   SizeMode,
+  Guide,
 } from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
@@ -43,6 +44,17 @@ interface EditorActions {
   createInstance: (componentId: string, pos?: { x: number; y: number }) => void;
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
+  // v3 additions
+  align: (kind: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV') => void;
+  distribute: (kind: 'h' | 'v', space?: number) => void;
+  reorder: (kind: 'front' | 'back' | 'forward' | 'backward') => void;
+  addGuide: (g: Omit<Guide, 'id'>) => void;
+  moveGuide: (id: string, pos: number) => void;
+  removeGuide: (id: string) => void;
+  toggleRulers: () => void;
+  toggleGuides: () => void;
+  toggleOutline: () => void;
+  setLastCommand: (id: string) => void;
   // Variants
   defineVariantAxis: (componentId: string, axis: string, values: string[]) => void;
   setVariantRule: (
@@ -103,6 +115,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         camera: { x: 0, y: 0, zoom: 1 },
         meta: { version: 1, updatedAt: Date.now() },
         components: {},
+        guides: [],
+        ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
+        lastCommandId: undefined,
         select(ids) {
           set((state) => ({
             selectedIds: typeof ids === 'function' ? ids(state.selectedIds) : ids,
@@ -309,6 +324,52 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               });
             }
           });
+        },
+        align(kind) {
+          // TODO: implement alignment logic
+        },
+        distribute(kind, space) {
+          // TODO: implement distribution logic
+        },
+        reorder(kind) {
+          // TODO: implement reorder logic
+        },
+        addGuide(g) {
+          apply((draft) => {
+            draft.guides.push({ id: Math.random().toString(36).slice(2), ...g });
+          });
+        },
+        moveGuide(id, pos) {
+          apply((draft) => {
+            const guide = draft.guides.find((gg) => gg.id === id);
+            if (guide) guide.pos = pos;
+          });
+        },
+        removeGuide(id) {
+          apply((draft) => {
+            draft.guides = draft.guides.filter((g) => g.id !== id);
+          });
+        },
+        toggleRulers() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showRulers = !draft.ui.showRulers;
+          });
+        },
+        toggleGuides() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showGuides = !draft.ui.showGuides;
+          });
+        },
+        toggleOutline() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showOutline = !draft.ui.showOutline;
+          });
+        },
+        setLastCommand(id) {
+          set({ lastCommandId: id });
         },
         defineVariantAxis(componentId, axis, values) {
           apply((draft) => {
