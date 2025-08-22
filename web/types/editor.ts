@@ -144,3 +144,79 @@ export interface InstanceNode extends ComponentNode {
   variant?: Record<string, string>;
   overrides?: Record<string, Partial<ComponentNode>>;
 }
+
+// v6 data binding and action types
+
+export type DataSourceKind = 'rest' | 'graphql' | 'mock';
+
+export interface DataEndpoint {
+  id: string;
+  name: string;
+  kind: DataSourceKind;
+  baseUrl?: string;
+  path?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+  query?: Record<string, string | number | boolean>;
+  body?: any;
+  graphQL?: { endpoint: string; query: string; variables?: Record<string, any> };
+  mock?: { data: any };
+  ttlSec?: number;
+  transform?: string;
+  enabled?: boolean;
+}
+
+export interface BindingExpr {
+  expr: string;
+  sourceId?: string;
+  fallback?: any;
+}
+
+export type EventName =
+  | 'onClick'
+  | 'onChange'
+  | 'onMount'
+  | 'onUnmount'
+  | 'onSubmit'
+  | 'onKeyDown'
+  | 'onKeyUp';
+
+export type ActionKind =
+  | 'navigate'
+  | 'openUrl'
+  | 'setState'
+  | 'emit'
+  | 'callApi'
+  | 'showToast'
+  | 'openModal';
+
+export interface ActionSpec {
+  id: string;
+  kind: ActionKind;
+  if?: string;
+  params?: Record<string, any>;
+}
+
+export interface NodeEvents {
+  [K in EventName]?: ActionSpec[];
+}
+
+// extend ComponentNode with new bindings and events
+export interface ComponentNode {
+  bindings?: Record<string, BindingExpr>;
+  events?: NodeEvents;
+}
+
+export interface VariablesState {
+  [key: string]: any;
+}
+
+export interface DataState {
+  endpoints: Record<string, DataEndpoint>;
+  cache: Record<string, { data: any; at: number }>;
+}
+
+export interface EditorState {
+  data?: DataState;
+  vars?: VariablesState;
+}
