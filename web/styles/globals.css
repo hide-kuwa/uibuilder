@@ -1,3 +1,5 @@
+@import './motion.css';
+
 :root {
   --color-bg-canvas: 220 7% 10%;
   --color-bg-panel: 220 7% 12%;
@@ -37,6 +39,23 @@
 
   --font-ui: Inter, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 300ms;
+  --easing-standard: cubic-bezier(.2,0,.2,1);
+  --easing-decel: cubic-bezier(0,0,.2,1);
+  --easing-accel: cubic-bezier(.4,0,1,1);
+  --press-scale: .985;
+  --hover-lift: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+    --motion-slow: 1ms;
+  }
 }
 
 [data-theme='dark'] {

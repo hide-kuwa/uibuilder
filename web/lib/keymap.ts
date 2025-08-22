@@ -24,7 +24,15 @@ export type Command =
   | 'annotation.pin'
   | 'annotation.rect'
   | 'comment.submit'
-  | 'review.inReview';
+  | 'review.inReview'
+  | 'nudge.up'
+  | 'nudge.down'
+  | 'nudge.left'
+  | 'nudge.right'
+  | 'nudge.big.up'
+  | 'nudge.big.down'
+  | 'nudge.big.left'
+  | 'nudge.big.right';
 
 const map: Record<string, Command> = {
   KeyV: 'select',
@@ -58,6 +66,12 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyY') return 'view.toggleOutline';
     if (e.code === 'KeyE' && e.shiftKey) return 'export';
     if (e.code === 'Enter') return 'comment.submit';
+  }
+  if (!mod) {
+    if (e.code === 'ArrowUp') return e.shiftKey ? 'nudge.big.up' : 'nudge.up';
+    if (e.code === 'ArrowDown') return e.shiftKey ? 'nudge.big.down' : 'nudge.down';
+    if (e.code === 'ArrowLeft') return e.shiftKey ? 'nudge.big.left' : 'nudge.left';
+    if (e.code === 'ArrowRight') return e.shiftKey ? 'nudge.big.right' : 'nudge.right';
   }
   if (e.code === 'KeyA' && e.shiftKey) return 'makeAutoLayout';
   if (e.code === 'KeyC' && e.shiftKey) return 'annotation.rect';
