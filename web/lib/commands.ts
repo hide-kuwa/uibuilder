@@ -7,6 +7,7 @@ export interface Command {
 }
 
 import { useEditorStore } from '@/store/editorStore';
+import * as zoom from '@/lib/zoom';
 
 export const COMMANDS: Command[] = [
   {
@@ -58,4 +59,42 @@ export const COMMANDS: Command[] = [
     shortcut: 'Ctrl+Shift+E',
     run: () => window.dispatchEvent(new CustomEvent('uibuilder:export')),
   },
+  {
+    id: 'zoom.in',
+    label: 'Zoom In',
+    shortcut: 'Ctrl++',
+    run: () => zoom.zoomBy(1.1),
+  },
+  {
+    id: 'zoom.out',
+    label: 'Zoom Out',
+    shortcut: 'Ctrl+-',
+    run: () => zoom.zoomBy(0.9),
+  },
+  {
+    id: 'zoom.fitAll',
+    label: 'Fit All',
+    shortcut: 'Shift+1',
+    run: () => zoom.fitAll(),
+  },
+  {
+    id: 'zoom.fitSelection',
+    label: 'Fit Selection',
+    shortcut: 'Shift+2',
+    run: () => zoom.fitSelection(),
+  },
+  {
+    id: 'zoom.to100',
+    label: 'Zoom to 100%',
+    shortcut: '1',
+    run: () => zoom.animateZoomTo(1),
+  },
 ];
+
+export function runCommand(id: string): boolean {
+  const cmd = COMMANDS.find((c) => c.id === id);
+  if (!cmd) return false;
+  cmd.run();
+  useEditorStore.getState().setLastCommand(id);
+  return true;
+}
