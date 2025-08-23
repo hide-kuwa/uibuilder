@@ -23,19 +23,21 @@ function segToCmd(prev: PathPoint, curr: PathPoint, prevSmooth: boolean) {
 }
 
 function pathToD(node: PathNode) {
-  const pts = node.points;
-  if (!pts.length) return "";
-  const cmds = [`M${pts[0].x} ${pts[0].y}`];
-  for (let i = 1; i < pts.length; i++) {
-    cmds.push(segToCmd(pts[i - 1], pts[i], areMirrored(pts[i - 1])));
-  }
-  if (node.closed) {
+  const paths = node.subpaths && node.subpaths.length ? node.subpaths : [node.points];
+  const parts: string[] = [];
+  paths.forEach((pts) => {
+    if (!pts.length) return;
+    const cmds = [`M${pts[0].x} ${pts[0].y}`];
+    for (let i = 1; i < pts.length; i++) {
+      cmds.push(segToCmd(pts[i - 1], pts[i], areMirrored(pts[i - 1])));
+    }
     const last = pts[pts.length - 1];
     const first = pts[0];
     cmds.push(segToCmd(last, first, areMirrored(last)));
     cmds.push("Z");
-  }
-  return cmds.join(" ");
+    parts.push(cmds.join(" "));
+  });
+  return parts.join(" ");
 }
 
 export default function SVGLayer() {
@@ -64,22 +66,26 @@ export default function SVGLayer() {
                 strokeOpacity: props.strokeOpacity ?? 1,
               }
             : {};
-        return (
-          <path
-            key={p.id}
-            d={pathToD(p)}
-            fill={props.fill || "none"}
-            fillOpacity={props.fillOpacity ?? 1}
-            fillRule={props.fillRule || "nonzero"}
-            className="pointer-events-auto"
-            onPointerDown={(e) => {
-              selectPath(p.id);
-              e.stopPropagation();
-            }}
-            {...strokeProps}
-          />
-        );
-      })}
+          return (
+            <path
+              key={p.id}
+              d={pathToD(p)}
+              fill={props.fill || "none"}
+              fillOpacity={props.fillOpacity ?? 1}
+              fillRule={
+                p.subpaths && p.subpaths.length
+                  ? props.fillRule || "evenodd"
+                  : props.fillRule || "nonzero"
+              }
+              className="pointer-events-auto"
+              onPointerDown={(e) => {
+                selectPath(p.id);
+                e.stopPropagation();
+              }}
+              {...strokeProps}
+            />
+          );
+        })}
     </svg>
   );
 }

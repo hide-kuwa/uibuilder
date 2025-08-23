@@ -22,6 +22,11 @@ import { resolveVariant } from "@/lib/variantResolver";
 import { applyOverrides } from "@/lib/overrideMerge";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
 import { reflectHandle } from "@/lib/vector/bezier";
+import { flattenPath } from "@/lib/vector/flatten";
+import {
+  booleanCombine as combinePolys,
+  BooleanOp,
+} from "@/lib/vector/boolean";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -73,6 +78,11 @@ interface EditorActions {
   toggleLayoutGrid: () => void;
   togglePixelGrid: () => void;
   toggleSnapToPixel: () => void;
+  booleanCombine: (
+    op: BooleanOp,
+    ids: string[],
+    opts?: { replace?: boolean; flatness?: number; simplify?: number },
+  ) => string;
   setLastCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (
@@ -502,6 +512,46 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             draft.prefs = draft.prefs || {};
             draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
           });
+        },
+        booleanCombine(op, ids, opts) {
+          const flat = opts?.flatness ?? 0.5;
+          const replace = opts?.replace ?? false;
+          const list = ids.length ? ids : get().selectedIds;
+          if (list.length < 2) return "";
+          let acc = flattenPath(
+            findNode(get().tree, list[0]) as PathNode,
+            flat,
+          );
+          let rings: ReturnType<typeof combinePolys> = acc.map((pl) => ({
+            points: pl.points,
+            outer: true,
+          }));
+          for (let i = 1; i < list.length; i++) {
+            const nodeB = findNode(get().tree, list[i]) as PathNode;
+            if (!nodeB) continue;
+            const polyB = flattenPath(nodeB, flat);
+            rings = combinePolys(op, acc, polyB);
+            acc = rings.map((r) => ({ points: r.points, closed: true }));
+          }
+          if (!rings.length) return "";
+          const newId = uuid();
+          const subpaths = rings.map((r) =>
+            r.points.map((pt) => ({ id: uuid(), x: pt.x, y: pt.y, corner: true })),
+          );
+          apply((draft) => {
+            draft.tree.push({
+              id: newId,
+              type: "Path",
+              closed: true,
+              points: subpaths[0] || [],
+              subpaths,
+              props: { fillRule: "evenodd" },
+            });
+            if (replace) {
+              draft.tree = draft.tree.filter((n) => !list.includes(n.id));
+            }
+          });
+          return newId;
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
