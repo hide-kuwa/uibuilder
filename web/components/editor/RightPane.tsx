@@ -8,6 +8,7 @@ export default function RightPane() {
     s.tree.find((n): n is PathNode => n.id === selected && n.type === "Path"),
   );
   const setProps = useEditorStore((s) => s.setPathProps);
+  const toggleMask = useEditorStore((s) => s.toggleMask);
   if (!path) return <div className="bg-gray-800" />;
   const props = path.props || {};
   const parseDash = (v: string) => {
@@ -21,6 +22,17 @@ export default function RightPane() {
   return (
     <div className="bg-gray-800 p-2 space-y-2 text-xs">
       <div className="font-bold">Vector › Style</div>
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={path.isMask || false}
+          onChange={() => toggleMask(path.id)}
+        />
+        Use as Mask
+      </label>
+      <div className="text-[10px] text-gray-400">
+        Applies to subsequent siblings until another mask appears.
+      </div>
       <label className="block">
         Fill:
         <input

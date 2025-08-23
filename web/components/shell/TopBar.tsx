@@ -10,6 +10,8 @@ export default function TopBar() {
     const togglePixelGrid = useEditorStore((s) => s.togglePixelGrid);
     const toggleSnapToPixel = useEditorStore((s) => s.toggleSnapToPixel);
     const selection = useEditorStore((s) => s.selectedIds);
+    const tree = useEditorStore((s) => s.tree);
+    const toggleMask = useEditorStore((s) => s.toggleMask);
     const combine = useEditorStore((s) => s.booleanCombine);
     const [replace, setReplace] = useState(false);
     const [toast, setToast] = useState(false);
@@ -33,6 +35,20 @@ export default function TopBar() {
         <div className="flex items-center gap-4">
           <button>Group</button>
           <button>Align</button>
+          <button
+            disabled={selection.length === 0}
+            className={(() => {
+              const id = selection[selection.length - 1];
+              const node = tree.find((n) => n.id === id) as any;
+              return node?.isMask ? "bg-blue-600" : undefined;
+            })()}
+            onClick={() => {
+              const id = selection[selection.length - 1];
+              if (id) toggleMask(id);
+            }}
+          >
+            Mask
+          </button>
           <button
             disabled={selection.length < 2}
             onClick={() => run('UNION')}

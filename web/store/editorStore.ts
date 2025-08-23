@@ -165,6 +165,7 @@ interface EditorActions {
   ) => void;
   addPointOnSegment: (pathId: string, segIndex: number, t: number) => void;
   toggleCorner: (id: string) => void;
+  toggleMask: (nodeId: string, enabled?: boolean) => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -1011,6 +1012,16 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               if (n.type === "Path") update(n.points);
             });
             draft.vector?.draft && update(draft.vector.draft.points);
+          });
+        },
+        toggleMask(nodeId, enabled) {
+          apply((draft) => {
+            const node = findNode(draft.tree, nodeId);
+            if (node) {
+              const next =
+                enabled === undefined ? !(node as any).isMask : enabled;
+              (node as any).isMask = next;
+            }
           });
         },
         undo() {
