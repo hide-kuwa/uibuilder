@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { produceWithPatches } from 'immer';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { produceWithPatches } from "immer";
 import type {
   EditorState,
   ComponentNode,
@@ -15,18 +15,23 @@ import type {
   PathNode,
   PathPoint,
   PathProps,
-} from '@/types/editor';
-import { idbStorage } from '@/lib/idb';
-import { push, undo as undoStack, redo as redoStack } from './undoRedo';
-import { resolveVariant } from '@/lib/variantResolver';
-import { applyOverrides } from '@/lib/overrideMerge';
-import { MIN_ZOOM, MAX_ZOOM } from '@/lib/layout/constants';
-import { reflectHandle } from '@/lib/vector/bezier';
+} from "@/types/editor";
+import { idbStorage } from "@/lib/idb";
+import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
+import { resolveVariant } from "@/lib/variantResolver";
+import { applyOverrides } from "@/lib/overrideMerge";
+import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
+import { reflectHandle } from "@/lib/vector/bezier";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
   updateNode: (id: string, patch: Partial<ComponentNode>) => void;
-  moveNode: (id: string, dx: number, dy: number, opts?: { snap?: boolean }) => void;
+  moveNode: (
+    id: string,
+    dx: number,
+    dy: number,
+    opts?: { snap?: boolean },
+  ) => void;
   resizeNode: (id: string, next: { w?: number; h?: number }) => void;
   rotateNode: (id: string, deg: number) => void;
   duplicate: (ids?: string[]) => void;
@@ -38,13 +43,13 @@ interface EditorActions {
   reorderChild: (parentId: string, from: number, to: number) => void;
   setLayoutProps: (
     id: string,
-    patch: Partial<NonNullable<ComponentNode['props']>>
+    patch: Partial<NonNullable<ComponentNode["props"]>>,
   ) => void;
   setSizeMode: (
     id: string,
-    axis: 'w' | 'h',
+    axis: "w" | "h",
     mode: SizeMode,
-    value?: number
+    value?: number,
   ) => void;
   // Components
   createComponentFromSelection: (name?: string) => void;
@@ -54,10 +59,12 @@ interface EditorActions {
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
   // v3 additions
-  align: (kind: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV') => void;
-  distribute: (kind: 'h' | 'v', space?: number) => void;
-  reorder: (kind: 'front' | 'back' | 'forward' | 'backward') => void;
-  addGuide: (g: Omit<Guide, 'id'>) => void;
+  align: (
+    kind: "left" | "right" | "top" | "bottom" | "centerH" | "centerV",
+  ) => void;
+  distribute: (kind: "h" | "v", space?: number) => void;
+  reorder: (kind: "front" | "back" | "forward" | "backward") => void;
+  addGuide: (g: Omit<Guide, "id">) => void;
   moveGuide: (id: string, pos: number) => void;
   removeGuide: (id: string) => void;
   toggleRulers: () => void;
@@ -68,14 +75,30 @@ interface EditorActions {
   toggleSnapToPixel: () => void;
   setLastCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
-  tweenCamera: (cam: Camera | Partial<Camera>, opts?: { duration?: number }) => void;
+  tweenCamera: (
+    cam: Camera | Partial<Camera>,
+    opts?: { duration?: number },
+  ) => void;
   getViewportRect: () => { x: number; y: number; w: number; h: number };
-  getSelectionBounds: () => { x: number; y: number; w: number; h: number } | null;
+  getSelectionBounds: () => {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null;
   // Variants
-  defineVariantAxis: (componentId: string, axis: string, values: string[]) => void;
+  defineVariantAxis: (
+    componentId: string,
+    axis: string,
+    values: string[],
+  ) => void;
   setVariantRule: (
     componentId: string,
-    rule: { when: Record<string, string>; node: string; patch: Partial<ComponentNode> }
+    rule: {
+      when: Record<string, string>;
+      node: string;
+      patch: Partial<ComponentNode>;
+    },
   ) => void;
   removeVariantRule: (componentId: string, index: number) => void;
   setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
@@ -83,7 +106,7 @@ interface EditorActions {
   setInstanceOverride: (
     nodeId: string,
     targetId: string,
-    patch: Partial<ComponentNode>
+    patch: Partial<ComponentNode>,
   ) => void;
   resetInstanceOverride: (nodeId: string, targetId?: string) => void;
   // v5 comments and review
@@ -95,34 +118,40 @@ interface EditorActions {
   replyThread: (threadId: string, text: string) => void;
   resolveThread: (threadId: string, byUserId: string) => void;
   reopenThread: (threadId: string) => void;
-  addReaction: (threadId: string, msgId: string, kind: '+1' | 'heart') => void;
+  addReaction: (threadId: string, msgId: string, kind: "+1" | "heart") => void;
   removeReaction: (
     threadId: string,
     msgId: string,
-    kind: '+1' | 'heart',
-    userId: string
+    kind: "+1" | "heart",
+    userId: string,
   ) => void;
   setCommentsFilter: (
-    filter: Partial<EditorState['comments']['filter']>
+    filter: Partial<EditorState["comments"]["filter"]>,
   ) => void;
   setReviewStatus: (s: ReviewStatus) => void;
   toggleRequireApprovedToShare: () => void;
   // Vector
   addPath: (path: PathNode) => void;
-  updatePathProps: (id: string, patch: Partial<PathProps>) => void;
+  setPathProps: (id: string, patch: Partial<PathProps>) => void;
   selectPath: (id: string | null, pointIds?: string[]) => void;
   setPoints: (id: string, pts: PathPoint[]) => void;
   startPen: () => void;
-  placePoint: (pt: { x: number; y: number; in?: { x: number; y: number }; out?: { x: number; y: number }; corner?: boolean }) => void;
+  placePoint: (pt: {
+    x: number;
+    y: number;
+    in?: { x: number; y: number };
+    out?: { x: number; y: number };
+    corner?: boolean;
+  }) => void;
   deleteLast: () => void;
   closePath: () => void;
   cancelPen: () => void;
   movePoint: (id: string, to: { x: number; y: number }) => void;
   moveHandle: (
     id: string,
-    kind: 'in' | 'out',
+    kind: "in" | "out",
     to: { x: number; y: number },
-    opts?: { break?: boolean }
+    opts?: { break?: boolean },
   ) => void;
   addPointOnSegment: (pathId: string, segIndex: number, t: number) => void;
   toggleCorner: (id: string) => void;
@@ -142,7 +171,7 @@ function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
 function findNodeWithParent(
   nodes: ComponentNode[],
   id: string,
-  parent: ComponentNode | null = null
+  parent: ComponentNode | null = null,
 ): { node: ComponentNode; parent: ComponentNode | null; index: number } | null {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
@@ -156,12 +185,16 @@ function findNodeWithParent(
 }
 
 function uuid() {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 }
 
-function lerp(a: { x: number; y: number }, b: { x: number; y: number }, t: number) {
+function lerp(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  t: number,
+) {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
@@ -188,15 +221,20 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showGuides: true,
           showSmartGuides: true,
           showOutline: false,
-          activeTool: 'select',
+          activeTool: "select",
         },
-        prefs: { showLayoutGrid: false, showPixelGrid: false, snapToPixel: true },
+        prefs: {
+          showLayoutGrid: false,
+          showPixelGrid: false,
+          snapToPixel: true,
+        },
         lastCommandId: undefined,
-        review: { status: 'DRAFT', requireApprovedToShare: false },
+        review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         select(ids) {
           set((state) => ({
-            selectedIds: typeof ids === 'function' ? ids(state.selectedIds) : ids,
+            selectedIds:
+              typeof ids === "function" ? ids(state.selectedIds) : ids,
           }));
         },
         updateNode(id, patch) {
@@ -268,8 +306,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               : findNode(draft.tree, draft.selectedIds[0]);
             if (target) {
               target.props = target.props || {};
-              target.props.layout = 'auto';
-              if (!target.props.axis) target.props.axis = 'vertical';
+              target.props.layout = "auto";
+              if (!target.props.axis) target.props.axis = "vertical";
             }
           });
         },
@@ -279,7 +317,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               ? findNode(draft.tree, frameId)
               : findNode(draft.tree, draft.selectedIds[0]);
             if (target && target.props) {
-              target.props.layout = 'free';
+              target.props.layout = "free";
             }
           });
         },
@@ -307,12 +345,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const node = findNode(draft.tree, id);
             if (!node) return;
             node.props = node.props || {};
-            if (axis === 'w') {
+            if (axis === "w") {
               node.props.widthMode = mode;
-              if (mode === 'FIXED' && value !== undefined) node.props.w = value;
+              if (mode === "FIXED" && value !== undefined) node.props.w = value;
             } else {
               node.props.heightMode = mode;
-              if (mode === 'FIXED' && value !== undefined) node.props.h = value;
+              if (mode === "FIXED" && value !== undefined) node.props.h = value;
             }
           });
         },
@@ -325,13 +363,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const compId = Math.random().toString(36).slice(2);
             draft.components[compId] = {
               id: compId,
-              name: name || node.name || 'Component',
+              name: name || node.name || "Component",
               root: node,
             } as ComponentDefinition;
             const instId = Math.random().toString(36).slice(2);
             const instance: InstanceNode = {
               id: instId,
-              type: 'Instance',
+              type: "Instance",
               componentId: compId,
               props: { ...node.props },
             };
@@ -357,7 +395,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const id = Math.random().toString(36).slice(2);
             const inst: InstanceNode = {
               id,
-              type: 'Instance',
+              type: "Instance",
               componentId,
               variant: {},
               overrides: {},
@@ -412,7 +450,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         addGuide(g) {
           apply((draft) => {
-            draft.guides.push({ id: Math.random().toString(36).slice(2), ...g });
+            draft.guides.push({
+              id: Math.random().toString(36).slice(2),
+              ...g,
+            });
           });
         },
         moveGuide(id, pos) {
@@ -486,7 +527,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           const { camera } = get();
           const w = window.innerWidth;
           const h = window.innerHeight;
-          return { x: camera.x, y: camera.y, w: w / camera.zoom, h: h / camera.zoom };
+          return {
+            x: camera.x,
+            y: camera.y,
+            w: w / camera.zoom,
+            h: h / camera.zoom,
+          };
         },
         getSelectionBounds() {
           const { selectedIds, tree } = get();
@@ -503,7 +549,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
                 };
               return null;
             })
-            .filter(Boolean) as Array<{ x: number; y: number; w: number; h: number }>;
+            .filter(Boolean) as Array<{
+            x: number;
+            y: number;
+            w: number;
+            h: number;
+          }>;
           const x1 = Math.min(...boxes.map((b) => b.x));
           const y1 = Math.min(...boxes.map((b) => b.y));
           const x2 = Math.max(...boxes.map((b) => b.x + b.w));
@@ -560,12 +611,17 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         // --- v5 comments & review ---
         startPinAnnotation() {
           set((state) => ({
-            comments: { ...state.comments, draft: { anchor: { kind: 'PIN' } } },
+            comments: { ...state.comments, draft: { anchor: { kind: "PIN" } } },
           }));
         },
         startRectAnnotation() {
           set((state) => ({
-            comments: { ...state.comments, draft: { anchor: { kind: 'RECT', rect: { x: 0, y: 0, w: 0, h: 0 } } } },
+            comments: {
+              ...state.comments,
+              draft: {
+                anchor: { kind: "RECT", rect: { x: 0, y: 0, w: 0, h: 0 } },
+              },
+            },
           }));
         },
         placeAnnotationAt(pt) {
@@ -579,7 +635,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           });
         },
         cancelAnnotation() {
-          set((state) => ({ comments: { ...state.comments, draft: undefined } }));
+          set((state) => ({
+            comments: { ...state.comments, draft: undefined },
+          }));
         },
         createThread(anchor, text) {
           set((state) => {
@@ -587,10 +645,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const msgId = Math.random().toString(36).slice(2);
             const thread: CommentThread = {
               id,
-              status: 'OPEN',
+              status: "OPEN",
               anchor,
               messages: [
-                { id: msgId, userId: 'local', createdAt: Date.now(), text },
+                { id: msgId, userId: "local", createdAt: Date.now(), text },
               ],
             };
             return {
@@ -609,7 +667,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const msgId = Math.random().toString(36).slice(2);
             thread.messages.push({
               id: msgId,
-              userId: 'local',
+              userId: "local",
               createdAt: Date.now(),
               text,
             });
@@ -620,7 +678,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           set((state) => {
             const thread = state.comments.threads[threadId];
             if (thread) {
-              thread.status = 'RESOLVED';
+              thread.status = "RESOLVED";
               thread.resolvedBy = byUserId;
               thread.resolvedAt = Date.now();
             }
@@ -630,19 +688,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         reopenThread(threadId) {
           set((state) => {
             const thread = state.comments.threads[threadId];
-            if (thread) thread.status = 'REOPENED';
+            if (thread) thread.status = "REOPENED";
             return { comments: { ...state.comments } };
           });
         },
         addReaction(threadId, msgId, kind) {
           set((state) => {
             const msg = state.comments.threads[threadId]?.messages.find(
-              (m) => m.id === msgId
+              (m) => m.id === msgId,
             );
             if (msg) {
-              msg.reactions = msg.reactions || { '+1': [], heart: [] };
+              msg.reactions = msg.reactions || { "+1": [], heart: [] };
               const arr = msg.reactions[kind];
-              if (!arr.includes('local')) arr.push('local');
+              if (!arr.includes("local")) arr.push("local");
             }
             return { comments: { ...state.comments } };
           });
@@ -650,17 +708,22 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         removeReaction(threadId, msgId, kind, userId) {
           set((state) => {
             const msg = state.comments.threads[threadId]?.messages.find(
-              (m) => m.id === msgId
+              (m) => m.id === msgId,
             );
             if (msg?.reactions?.[kind]) {
-              msg.reactions[kind] = msg.reactions[kind].filter((u) => u !== userId);
+              msg.reactions[kind] = msg.reactions[kind].filter(
+                (u) => u !== userId,
+              );
             }
             return { comments: { ...state.comments } };
           });
         },
         setCommentsFilter(filter) {
           set((state) => ({
-            comments: { ...state.comments, filter: { ...state.comments.filter, ...filter } },
+            comments: {
+              ...state.comments,
+              filter: { ...state.comments.filter, ...filter },
+            },
           }));
         },
         setReviewStatus(s) {
@@ -676,15 +739,42 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         addPath(path) {
           apply((draft) => {
+            path.props = {
+              strokeCap: "butt",
+              strokeJoin: "miter",
+              miterLimit: 4,
+              fillRule: "nonzero",
+              ...path.props,
+            };
+            if (path.props.dash && path.props.dash.length === 0)
+              path.props.dash = undefined;
             draft.tree.push(path);
           });
         },
-        updatePathProps(id, patch) {
+        setPathProps(id, patch) {
           apply((draft) => {
             const node = findNode(draft.tree, id) as PathNode | null;
-            if (node && node.type === 'Path') {
-              node.props = { ...(node.props || {}), ...patch };
+            if (!node || node.type !== "Path") return;
+            node.props = { ...(node.props || {}) };
+            for (const key of Object.keys(patch) as (keyof PathProps)[]) {
+              const val = patch[key];
+              if (key === "dash") {
+                const arr =
+                  val && val.length ? val.filter((n) => n > 0) : undefined;
+                if (arr && arr.length) node.props[key] = arr as any;
+                else delete node.props[key];
+                continue;
+              }
+              if (val === undefined || val === null) delete node.props[key];
+              else node.props[key] = val as any;
             }
+            if (node.props.miterLimit === undefined) node.props.miterLimit = 4;
+            if (node.props.fillRule === undefined)
+              node.props.fillRule = "nonzero";
+            if (node.props.strokeCap === undefined)
+              node.props.strokeCap = "butt";
+            if (node.props.strokeJoin === undefined)
+              node.props.strokeJoin = "miter";
           });
         },
         selectPath(id, pointIds) {
@@ -696,14 +786,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         setPoints(id, pts) {
           apply((draft) => {
             const node = findNode(draft.tree, id) as PathNode | null;
-            if (node && node.type === 'Path') {
+            if (node && node.type === "Path") {
               node.points = pts;
             }
           });
         },
         startPen() {
           set((state) => ({
-            ui: { ...(state.ui || {}), activeTool: 'pen' },
+            ui: { ...(state.ui || {}), activeTool: "pen" },
             vector: { ...(state.vector || {}), draft: undefined },
           }));
         },
@@ -742,7 +832,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             if (!d) return;
             if (d.points.length < 2) {
               draft.vector!.draft = undefined;
-              draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+              draft.ui = { ...(draft.ui || {}), activeTool: "select" };
               return;
             }
             const pts = d.points;
@@ -760,19 +850,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             }
             draft.tree.push({
               id: d.pathId,
-              type: 'Path',
+              type: "Path",
               closed,
               points: pts,
-              props: { stroke: '#ffffff', fill: 'none', strokeWidth: 1 },
+              props: { stroke: "#ffffff", fill: "none", strokeWidth: 1 },
             });
             draft.selectedIds = [d.pathId];
             draft.vector = { selection: { pathId: d.pathId } };
-            draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+            draft.ui = { ...(draft.ui || {}), activeTool: "select" };
           });
         },
         cancelPen() {
           set((state) => ({
-            ui: { ...(state.ui || {}), activeTool: 'select' },
+            ui: { ...(state.ui || {}), activeTool: "select" },
             vector: { ...(state.vector || {}), draft: undefined },
           }));
         },
@@ -796,7 +886,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               }
             };
             draft.tree.forEach((n) => {
-              if (n.type === 'Path') update(n.points);
+              if (n.type === "Path") update(n.points);
             });
             draft.vector?.draft && update(draft.vector.draft.points);
           });
@@ -809,13 +899,16 @@ export const useEditorStore = create<EditorState & EditorActions>()(
                 (p as any)[kind] = { x: to.x, y: to.y };
                 if (opts?.break) p.corner = true;
                 if (!opts?.break && !p.corner) {
-                  const other = kind === 'in' ? 'out' : 'in';
-                  (p as any)[other] = reflectHandle({ x: p.x, y: p.y }, { x: to.x, y: to.y });
+                  const other = kind === "in" ? "out" : "in";
+                  (p as any)[other] = reflectHandle(
+                    { x: p.x, y: p.y },
+                    { x: to.x, y: to.y },
+                  );
                 }
               }
             };
             draft.tree.forEach((n) => {
-              if (n.type === 'Path') update(n.points);
+              if (n.type === "Path") update(n.points);
             });
             draft.vector?.draft && update(draft.vector.draft.points);
           });
@@ -823,7 +916,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         addPointOnSegment(pathId, segIndex, t) {
           apply((draft) => {
             const node = findNode(draft.tree, pathId) as PathNode | null;
-            if (!node || node.type !== 'Path') return;
+            if (!node || node.type !== "Path") return;
             const pts = node.points;
             const a = pts[segIndex];
             const b = pts[(segIndex + 1) % pts.length];
@@ -865,7 +958,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               }
             };
             draft.tree.forEach((n) => {
-              if (n.type === 'Path') update(n.points);
+              if (n.type === "Path") update(n.points);
             });
             draft.vector?.draft && update(draft.vector.draft.points);
           });
@@ -879,9 +972,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       };
     },
     {
-      name: 'uibuilder:editor',
+      name: "uibuilder:editor",
       storage: createJSONStorage(() => idbStorage),
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         if (!persisted) return persisted;
         const state = persisted as EditorState;
@@ -889,7 +982,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           const setLayout = (nodes: ComponentNode[]) => {
             nodes.forEach((n) => {
               n.props = n.props || {};
-              if (!n.props.layout) n.props.layout = 'free';
+              if (!n.props.layout) n.props.layout = "free";
               if (n.children) setLayout(n.children);
             });
           };
@@ -906,8 +999,29 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           };
           ensureVisible(state.tree);
         }
+        if (version < 6) {
+          const migratePath = (nodes: ComponentNode[]) => {
+            nodes.forEach((n) => {
+              if (n.type === "Path") {
+                n.props = n.props || {};
+                if (n.props.miterLimit === undefined) n.props.miterLimit = 4;
+                if (n.props.fillRule === undefined)
+                  n.props.fillRule = "nonzero";
+                if (n.props.strokeCap === undefined) n.props.strokeCap = "butt";
+                if (n.props.strokeJoin === undefined)
+                  n.props.strokeJoin = "miter";
+                if (n.props.dash && n.props.dash.length) {
+                  n.props.dash = n.props.dash.filter((d) => d > 0);
+                  if (n.props.dash.length === 0) n.props.dash = undefined;
+                }
+              }
+              if (n.children) migratePath(n.children);
+            });
+          };
+          migratePath(state.tree);
+        }
         return state;
       },
-    }
-  )
+    },
+  ),
 );

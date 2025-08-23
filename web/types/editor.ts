@@ -1,26 +1,16 @@
-export type LayoutMode = 'free' | 'auto';
-export type Axis = 'horizontal' | 'vertical';
-export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
+export type LayoutMode = "free" | "auto";
+export type Axis = "horizontal" | "vertical";
+export type SizeMode = "HUG" | "FIXED" | "FILL";
 
-export type ConstraintH =
-  | 'LEFT'
-  | 'RIGHT'
-  | 'LEFT_RIGHT'
-  | 'CENTER'
-  | 'SCALE';
-export type ConstraintV =
-  | 'TOP'
-  | 'BOTTOM'
-  | 'TOP_BOTTOM'
-  | 'CENTER'
-  | 'SCALE';
+export type ConstraintH = "LEFT" | "RIGHT" | "LEFT_RIGHT" | "CENTER" | "SCALE";
+export type ConstraintV = "TOP" | "BOTTOM" | "TOP_BOTTOM" | "CENTER" | "SCALE";
 
 export interface Constraints {
   horizontal: ConstraintH;
   vertical: ConstraintV;
 }
 
-export type GridKind = 'COLUMNS' | 'ROWS' | 'GRID';
+export type GridKind = "COLUMNS" | "ROWS" | "GRID";
 
 export interface LayoutGridBase {
   id: string;
@@ -31,25 +21,25 @@ export interface LayoutGridBase {
 }
 
 export interface ColumnsGrid extends LayoutGridBase {
-  kind: 'COLUMNS';
+  kind: "COLUMNS";
   count: number;
-  type: 'stretch' | 'center' | 'left' | 'right';
+  type: "stretch" | "center" | "left" | "right";
   gutter: number;
   margin?: number;
   offset?: number;
 }
 
 export interface RowsGrid extends LayoutGridBase {
-  kind: 'ROWS';
+  kind: "ROWS";
   count: number;
-  type: 'stretch' | 'center' | 'top' | 'bottom';
+  type: "stretch" | "center" | "top" | "bottom";
   gutter: number;
   margin?: number;
   offset?: number;
 }
 
 export interface SquareGrid extends LayoutGridBase {
-  kind: 'GRID';
+  kind: "GRID";
   size: number;
   offset?: number;
 }
@@ -63,9 +53,13 @@ export interface Camera {
 }
 
 // v5 review & comments types
-export type ReviewStatus = 'DRAFT' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED';
-export type ThreadStatus = 'OPEN' | 'RESOLVED' | 'REOPENED' | 'DRAFT';
-export type AnchorKind = 'PIN' | 'RECT' | 'NODE';
+export type ReviewStatus =
+  | "DRAFT"
+  | "IN_REVIEW"
+  | "CHANGES_REQUESTED"
+  | "APPROVED";
+export type ThreadStatus = "OPEN" | "RESOLVED" | "REOPENED" | "DRAFT";
+export type AnchorKind = "PIN" | "RECT" | "NODE";
 
 export interface CommentUser {
   id: string;
@@ -79,7 +73,7 @@ export interface CommentMessage {
   createdAt: number;
   text: string;
   mentions?: string[];
-  reactions?: Record<'+1' | 'heart', string[]>;
+  reactions?: Record<"+1" | "heart", string[]>;
 }
 
 export interface Anchor {
@@ -102,7 +96,7 @@ export interface CommentThread {
 
 export interface Guide {
   id: string;
-  axis: 'x' | 'y';
+  axis: "x" | "y";
   pos: number;
   locked?: boolean;
   label?: string;
@@ -117,17 +111,29 @@ export interface PathPoint {
   corner?: boolean;
 }
 
+export type Cap = "butt" | "round" | "square";
+export type Join = "miter" | "round" | "bevel";
+export type FillRule = "nonzero" | "evenodd";
+
 export interface PathProps {
   fill?: string;
+  fillOpacity?: number;
+  fillRule?: FillRule;
   stroke?: string;
+  strokeOpacity?: number;
   strokeWidth?: number;
+  strokeCap?: Cap;
+  strokeJoin?: Join;
+  miterLimit?: number; // 1..∞, default 4
+  dash?: number[]; // e.g. [8,4,2]
+  dashOffset?: number; // px
 }
 
 export interface PathNode extends ComponentNode {
-  type: 'Path';
+  type: "Path";
   closed: boolean;
   points: PathPoint[];
-  props?: ComponentNode['props'] & PathProps;
+  props?: ComponentNode["props"] & PathProps;
 }
 
 export interface ComponentNode {
@@ -143,15 +149,17 @@ export interface ComponentNode {
     layout?: LayoutMode;
     axis?: Axis;
     gap?: number;
-    padding?: number | { top: number; right: number; bottom: number; left: number };
-    alignItems?: 'start' | 'center' | 'end' | 'stretch';
+    padding?:
+      | number
+      | { top: number; right: number; bottom: number; left: number };
+    alignItems?: "start" | "center" | "end" | "stretch";
     justifyContent?:
-      | 'start'
-      | 'center'
-      | 'end'
-      | 'space-between'
-      | 'space-around'
-      | 'space-evenly';
+      | "start"
+      | "center"
+      | "end"
+      | "space-between"
+      | "space-around"
+      | "space-evenly";
     wrap?: boolean;
     widthMode?: SizeMode;
     heightMode?: SizeMode;
@@ -200,7 +208,7 @@ export interface EditorState {
     showGuides?: boolean;
     showSmartGuides?: boolean;
     showOutline?: boolean;
-    activeTool?: 'select' | 'pen';
+    activeTool?: "select" | "pen";
   };
   prefs?: {
     showLayoutGrid?: boolean;
@@ -233,7 +241,7 @@ export interface ComponentDefinition {
 }
 
 export interface InstanceNode extends ComponentNode {
-  type: 'Instance';
+  type: "Instance";
   componentId: string;
   variant?: Record<string, string>;
   overrides?: Record<string, Partial<ComponentNode>>;
@@ -241,7 +249,7 @@ export interface InstanceNode extends ComponentNode {
 
 // v6 data binding and action types
 
-export type DataSourceKind = 'rest' | 'graphql' | 'mock';
+export type DataSourceKind = "rest" | "graphql" | "mock";
 
 export interface DataEndpoint {
   id: string;
@@ -249,11 +257,15 @@ export interface DataEndpoint {
   kind: DataSourceKind;
   baseUrl?: string;
   path?: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   headers?: Record<string, string>;
   query?: Record<string, string | number | boolean>;
   body?: any;
-  graphQL?: { endpoint: string; query: string; variables?: Record<string, any> };
+  graphQL?: {
+    endpoint: string;
+    query: string;
+    variables?: Record<string, any>;
+  };
   mock?: { data: any };
   ttlSec?: number;
   transform?: string;
@@ -267,22 +279,22 @@ export interface BindingExpr {
 }
 
 export type EventName =
-  | 'onClick'
-  | 'onChange'
-  | 'onMount'
-  | 'onUnmount'
-  | 'onSubmit'
-  | 'onKeyDown'
-  | 'onKeyUp';
+  | "onClick"
+  | "onChange"
+  | "onMount"
+  | "onUnmount"
+  | "onSubmit"
+  | "onKeyDown"
+  | "onKeyUp";
 
 export type ActionKind =
-  | 'navigate'
-  | 'openUrl'
-  | 'setState'
-  | 'emit'
-  | 'callApi'
-  | 'showToast'
-  | 'openModal';
+  | "navigate"
+  | "openUrl"
+  | "setState"
+  | "emit"
+  | "callApi"
+  | "showToast"
+  | "openModal";
 
 export interface ActionSpec {
   id: string;
