@@ -24,6 +24,60 @@ export function objectFit(
   return { x, y, w, h };
 }
 
+export function computeDrawRect(
+  frame: { w: number; h: number },
+  natural: { w: number; h: number },
+  fit:
+    | 'fill'
+    | 'contain'
+    | 'cover'
+    | 'none'
+    | 'scale-down',
+  position: { x: number; y: number },
+  crop?: { x: number; y: number; w: number; h: number },
+): FitRect {
+  if (crop) {
+    const scaleX = frame.w / crop.w;
+    const scaleY = frame.h / crop.h;
+    return {
+      x: -crop.x * scaleX,
+      y: -crop.y * scaleY,
+      w: natural.w * scaleX,
+      h: natural.h * scaleY,
+    };
+  }
+  let w = natural.w;
+  let h = natural.h;
+  let x = 0;
+  let y = 0;
+  let scale = 1;
+  switch (fit) {
+    case 'fill':
+      w = frame.w;
+      h = frame.h;
+      break;
+    case 'none':
+      x = (frame.w - w) * position.x;
+      y = (frame.h - h) * position.y;
+      return { x, y, w, h };
+    case 'cover':
+      scale = Math.max(frame.w / natural.w, frame.h / natural.h);
+      break;
+    case 'scale-down':
+      scale = Math.min(1, Math.min(frame.w / natural.w, frame.h / natural.h));
+      break;
+    case 'contain':
+    default:
+      scale = Math.min(frame.w / natural.w, frame.h / natural.h);
+      break;
+  }
+  w = natural.w * scale;
+  h = natural.h * scale;
+  x = (frame.w - w) * position.x;
+  y = (frame.h - h) * position.y;
+  return { x, y, w, h };
+}
+
 export function normalizeCrop(
   crop: { x: number; y: number; w: number; h: number },
   natural: { w: number; h: number },
