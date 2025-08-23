@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { loadImage } from '@/lib/assets';
-import { cssFilter } from '@/lib/image/filters';
+import { normalizeAdjustments, toCssFilter } from '@/lib/image/filters';
 import type { ImageNode, AssetMeta } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
 
@@ -23,10 +23,12 @@ export default function ImageView({ node, meta }: { node: ImageNode; meta: Asset
   const pos = node.props.position || { x: 0.5, y: 0.5 };
   if (!url) return null;
   const crop = node.props.crop;
+  const adj = normalizeAdjustments(node.props.adjustments);
   const styleCommon: CSSProperties = {
-    filter: cssFilter(node.props.adjustments),
-    mixBlendMode: node.props.blend,
-    opacity: node.props.adjustments?.opacity,
+    filter: toCssFilter(node.props.adjustments),
+    mixBlendMode: node.props.blend || 'normal',
+    opacity: adj.opacity,
+    willChange: 'filter',
   };
   if (crop) {
     const scaleX = (node.props.w || meta.w) / crop.w;

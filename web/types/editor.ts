@@ -155,23 +155,37 @@ export interface AssetMeta {
   createdAt: number;
 }
 
+export type BlendMode =
+  | 'normal'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-burn'
+  | 'color-dodge'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion';
+
 export interface ImageAdjustments {
-  brightness?: number;
-  contrast?: number;
-  saturation?: number;
-  hue?: number;
-  blur?: number;
-  opacity?: number;
+  brightness?: number; // 0..2, default 1
+  contrast?: number; // 0..2, default 1
+  saturation?: number; // 0..2, default 1
+  hue?: number; // -180..180 deg, default 0
+  blur?: number; // 0..50 px, default 0
+  opacity?: number; // 0..1, default 1
 }
 
 export interface ImageProps extends ComponentNode["props"] {
   assetId: string;
-  fit?: "contain" | "cover" | "fill";
+  fit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down';
   position?: { x: number; y: number };
   isMask?: boolean;
   crop?: { x: number; y: number; w: number; h: number };
   adjustments?: ImageAdjustments;
-  blend?: string;
+  blend?: BlendMode; // default 'normal'
 }
 
 export interface ImageNode extends ComponentNode {
