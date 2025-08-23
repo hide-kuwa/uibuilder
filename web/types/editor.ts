@@ -112,6 +112,9 @@ export interface PathPoint {
   id: string;
   x: number;
   y: number;
+  in?: { x: number; y: number };
+  out?: { x: number; y: number };
+  corner?: boolean;
 }
 
 export interface PathProps {

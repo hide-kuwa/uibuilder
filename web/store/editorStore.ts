@@ -21,6 +21,7 @@ import { push, undo as undoStack, redo as redoStack } from './undoRedo';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import { MIN_ZOOM, MAX_ZOOM } from '@/lib/layout/constants';
+import { reflectHandle } from '@/lib/vector/bezier';
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -112,10 +113,19 @@ interface EditorActions {
   selectPath: (id: string | null, pointIds?: string[]) => void;
   setPoints: (id: string, pts: PathPoint[]) => void;
   startPen: () => void;
-  placePoint: (pt: { x: number; y: number }) => void;
+  placePoint: (pt: { x: number; y: number; in?: { x: number; y: number }; out?: { x: number; y: number }; corner?: boolean }) => void;
   deleteLast: () => void;
   closePath: () => void;
   cancelPen: () => void;
+  movePoint: (id: string, to: { x: number; y: number }) => void;
+  moveHandle: (
+    id: string,
+    kind: 'in' | 'out',
+    to: { x: number; y: number },
+    opts?: { break?: boolean }
+  ) => void;
+  addPointOnSegment: (pathId: string, segIndex: number, t: number) => void;
+  toggleCorner: (id: string) => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -149,6 +159,10 @@ function uuid() {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
+}
+
+function lerp(a: { x: number; y: number }, b: { x: number; y: number }, t: number) {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
 export const useEditorStore = create<EditorState & EditorActions>()(
@@ -702,7 +716,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             const d = draft.vector.draft;
             const last = d.points[d.points.length - 1];
             if (!last || last.x !== pt.x || last.y !== pt.y) {
-              d.points.push({ id: uuid(), x: pt.x, y: pt.y });
+              d.points.push({
+                id: uuid(),
+                x: pt.x,
+                y: pt.y,
+                in: pt.in,
+                out: pt.out,
+                corner: pt.corner,
+              });
             }
           });
         },
@@ -754,6 +775,100 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             ui: { ...(state.ui || {}), activeTool: 'select' },
             vector: { ...(state.vector || {}), draft: undefined },
           }));
+        },
+        movePoint(id, to) {
+          apply((draft) => {
+            const update = (pts: PathPoint[]) => {
+              const p = pts.find((q) => q.id === id);
+              if (p) {
+                const dx = to.x - p.x;
+                const dy = to.y - p.y;
+                p.x = to.x;
+                p.y = to.y;
+                if (p.in) {
+                  p.in.x += dx;
+                  p.in.y += dy;
+                }
+                if (p.out) {
+                  p.out.x += dx;
+                  p.out.y += dy;
+                }
+              }
+            };
+            draft.tree.forEach((n) => {
+              if (n.type === 'Path') update(n.points);
+            });
+            draft.vector?.draft && update(draft.vector.draft.points);
+          });
+        },
+        moveHandle(id, kind, to, opts) {
+          apply((draft) => {
+            const update = (pts: PathPoint[]) => {
+              const p = pts.find((q) => q.id === id);
+              if (p) {
+                (p as any)[kind] = { x: to.x, y: to.y };
+                if (opts?.break) p.corner = true;
+                if (!opts?.break && !p.corner) {
+                  const other = kind === 'in' ? 'out' : 'in';
+                  (p as any)[other] = reflectHandle({ x: p.x, y: p.y }, { x: to.x, y: to.y });
+                }
+              }
+            };
+            draft.tree.forEach((n) => {
+              if (n.type === 'Path') update(n.points);
+            });
+            draft.vector?.draft && update(draft.vector.draft.points);
+          });
+        },
+        addPointOnSegment(pathId, segIndex, t) {
+          apply((draft) => {
+            const node = findNode(draft.tree, pathId) as PathNode | null;
+            if (!node || node.type !== 'Path') return;
+            const pts = node.points;
+            const a = pts[segIndex];
+            const b = pts[(segIndex + 1) % pts.length];
+            const p0 = a;
+            const p1 = a.out || a;
+            const p2 = b.in || b;
+            const p3 = b;
+            const a1 = lerp(p0, p1, t);
+            const b1 = lerp(p1, p2, t);
+            const c1 = lerp(p2, p3, t);
+            const d1 = lerp(a1, b1, t);
+            const e1 = lerp(b1, c1, t);
+            const f1 = lerp(d1, e1, t);
+            a.out = a1;
+            b.in = c1;
+            const newPt: PathPoint = {
+              id: uuid(),
+              x: f1.x,
+              y: f1.y,
+              in: d1,
+              out: e1,
+            };
+            pts.splice(segIndex + 1, 0, newPt);
+          });
+        },
+        toggleCorner(id) {
+          apply((draft) => {
+            const update = (pts: PathPoint[]) => {
+              const p = pts.find((q) => q.id === id);
+              if (p) {
+                p.corner = !p.corner;
+                if (!p.corner) {
+                  if (p.out && !p.in) p.in = reflectHandle(p, p.out);
+                  else if (p.in && !p.out) p.out = reflectHandle(p, p.in);
+                  else if (p.in && p.out) {
+                    p.in = reflectHandle(p, p.out);
+                  }
+                }
+              }
+            };
+            draft.tree.forEach((n) => {
+              if (n.type === 'Path') update(n.points);
+            });
+            draft.vector?.draft && update(draft.vector.draft.points);
+          });
         },
         undo() {
           set((state) => undoStack(state));
