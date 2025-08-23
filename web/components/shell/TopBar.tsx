@@ -70,6 +70,9 @@ export default function TopBar() {
       </div>
         <div className="flex items-center gap-4">
           <button>Group</button>
+          <button onClick={() => window.dispatchEvent(new CustomEvent('uibuilder:export'))}>
+            Export
+          </button>
           <button onClick={() => fileInput.current?.click()}>Place Image</button>
           <input
             ref={fileInput}
