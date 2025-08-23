@@ -1,6 +1,18 @@
 "use client";
+import { useEffect, useRef } from "react";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode, PathPoint } from "@/types/editor";
+import type {
+  ComponentNode,
+  FrameNode,
+  ImageNode,
+  PathNode,
+  PathPoint,
+} from "@/types/editor";
+import {
+  ensureMaskDefs,
+  buildMaskElement,
+  makeMaskId,
+} from "@/lib/vector/mask";
 
 function areMirrored(pt: PathPoint) {
   return (
@@ -41,13 +53,39 @@ function pathToD(node: PathNode) {
 }
 
 export default function SVGLayer() {
-  const paths = useEditorStore((s) =>
-    s.tree.filter((n): n is PathNode => n.type === "Path"),
-  );
+  const tree = useEditorStore((s) => s.tree);
   const selectPath = useEditorStore((s) => s.selectPath);
-  return (
-    <svg className="absolute inset-0 pointer-events-none">
-      {paths.map((p) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Build mask <defs> on every change to the tree
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const defs = ensureMaskDefs(svg);
+    defs.innerHTML = "";
+    const masks: Array<PathNode | FrameNode | ImageNode> = [];
+    const collect = (nodes: ComponentNode[]) => {
+      nodes.forEach((n) => {
+        if ((n as any).isMask) masks.push(n as any);
+        if (n.children) collect(n.children);
+      });
+    };
+    collect(tree);
+    masks.forEach((m) => {
+      defs.appendChild(buildMaskElement(svg.ownerDocument, m));
+    });
+  }, [tree]);
+
+  const renderNodes = (nodes: ComponentNode[]): JSX.Element[] => {
+    const els: JSX.Element[] = [];
+    let activeMask: string | null = null;
+    nodes.forEach((n) => {
+      if ((n as any).isMask) {
+        activeMask = makeMaskId(n.id);
+        return; // mask nodes are not rendered themselves
+      }
+      if (n.type === "Path") {
+        const p = n as PathNode;
         const props = p.props || {};
         const strokeWidth = props.strokeWidth ?? 0;
         const strokeProps =
@@ -66,26 +104,56 @@ export default function SVGLayer() {
                 strokeOpacity: props.strokeOpacity ?? 1,
               }
             : {};
-          return (
-            <path
-              key={p.id}
-              d={pathToD(p)}
-              fill={props.fill || "none"}
-              fillOpacity={props.fillOpacity ?? 1}
-              fillRule={
-                p.subpaths && p.subpaths.length
-                  ? props.fillRule || "evenodd"
-                  : props.fillRule || "nonzero"
-              }
-              className="pointer-events-auto"
-              onPointerDown={(e) => {
-                selectPath(p.id);
-                e.stopPropagation();
-              }}
-              {...strokeProps}
-            />
+        const pathEl = (
+          <path
+            key={p.id}
+            d={pathToD(p)}
+            fill={props.fill || "none"}
+            fillOpacity={props.fillOpacity ?? 1}
+            fillRule={
+              p.subpaths && p.subpaths.length
+                ? props.fillRule || "evenodd"
+                : props.fillRule || "nonzero"
+            }
+            className="pointer-events-auto"
+            onPointerDown={(e) => {
+              selectPath(p.id);
+              e.stopPropagation();
+            }}
+            {...strokeProps}
+          />
+        );
+        if (activeMask) {
+          els.push(
+            <g key={`g-${p.id}`} mask={`url(#${activeMask})`}>
+              {pathEl}
+            </g>,
           );
-        })}
+        } else {
+          els.push(pathEl);
+        }
+      } else if (n.children) {
+        const childEls = renderNodes(n.children);
+        if (childEls.length) {
+          if (activeMask) {
+            els.push(
+              <g key={n.id} mask={`url(#${activeMask})`}>
+                {childEls}
+              </g>,
+            );
+          } else {
+            els.push(<g key={n.id}>{childEls}</g>);
+          }
+        }
+      }
+    });
+    return els;
+  };
+
+  return (
+    <svg ref={svgRef} className="absolute inset-0 pointer-events-none">
+      {renderNodes(tree)}
     </svg>
   );
 }
+

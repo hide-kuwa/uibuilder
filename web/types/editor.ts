@@ -131,11 +131,26 @@ export interface PathProps {
 
 export interface PathNode extends ComponentNode {
   type: "Path";
+  /** When true, this node acts as a mask for subsequent siblings */
+  isMask?: boolean;
   closed: boolean;
   points: PathPoint[];
   subpaths?: PathPoint[][];
   props?: ComponentNode["props"] & PathProps;
 }
+
+export interface FrameNode extends ComponentNode {
+  type: "Frame";
+  /** Frame can also be used as a mask, clipping by its bounds */
+  isMask?: boolean;
+}
+
+export interface ImageNode extends ComponentNode {
+  type: "Image";
+  props: ComponentNode["props"] & { isMask?: boolean; assetId?: string };
+}
+
+export type MaskTarget = "vector" | "frame" | "image";
 
 export interface ComponentNode {
   id: string;
