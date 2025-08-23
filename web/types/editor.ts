@@ -160,6 +160,7 @@ export interface ImageProps extends ComponentNode["props"] {
   fit?: "contain" | "cover" | "fill";
   position?: { x: number; y: number };
   isMask?: boolean;
+  crop?: { x: number; y: number; w: number; h: number };
 }
 
 export interface ImageNode extends ComponentNode {

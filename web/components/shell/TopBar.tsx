@@ -12,8 +12,11 @@ export default function TopBar() {
     const toggleSnapToPixel = useEditorStore((s) => s.toggleSnapToPixel);
     const selection = useEditorStore((s) => s.selectedIds);
     const tree = useEditorStore((s) => s.tree);
-    const toggleMask = useEditorStore((s) => s.toggleMask);
-    const combine = useEditorStore((s) => s.booleanCombine);
+  const toggleMask = useEditorStore((s) => s.toggleMask);
+  const combine = useEditorStore((s) => s.booleanCombine);
+  const startCrop = useEditorStore((s) => s.startCrop);
+  const cancelCrop = useEditorStore((s) => s.cancelCrop);
+  const activeTool = useEditorStore((s) => s.ui.activeTool);
     const [replace, setReplace] = useState(false);
     const [toast, setToast] = useState(false);
     const fileInput = useRef<HTMLInputElement | null>(null);
@@ -53,6 +56,18 @@ export default function TopBar() {
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
+          <button
+            disabled={selection.length === 0}
+            className={activeTool === 'crop' ? 'bg-blue-600' : undefined}
+            onClick={() => {
+              const id = selection[selection.length - 1];
+              if (!id) return;
+              if (activeTool === 'crop') cancelCrop();
+              else startCrop(id);
+            }}
+          >
+            Crop
+          </button>
           <button>Align</button>
           <button
             disabled={selection.length === 0}

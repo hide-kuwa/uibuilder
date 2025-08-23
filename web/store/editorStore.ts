@@ -173,6 +173,15 @@ interface EditorActions {
   addPointOnSegment: (pathId: string, segIndex: number, t: number) => void;
   toggleCorner: (id: string) => void;
   toggleMask: (nodeId: string, enabled?: boolean) => void;
+  startCrop: (nodeId: string) => void;
+  updateCrop: (patch: Partial<CropDraft['rect']>) => void;
+  commitCrop: () => void;
+  cancelCrop: () => void;
+}
+
+export interface CropDraft {
+  nodeId: string;
+  rect: { x: number; y: number; w: number; h: number };
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -235,6 +244,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         guides: [],
         assets: { images: {} },
         vector: { selection: {} },
+        cropDraft: undefined,
         ui: {
           showRulers: false,
           showGuides: true,
@@ -1077,6 +1087,48 @@ export const useEditorStore = create<EditorState & EditorActions>()(
                 enabled === undefined ? !(node as any).isMask : enabled;
               (node as any).isMask = next;
             }
+          });
+        },
+        startCrop(nodeId) {
+          apply((draft) => {
+            const node = findNode(draft.tree, nodeId) as ImageNode | null;
+            if (!node) return;
+            const meta = draft.assets.images[node.props.assetId];
+            const rect =
+              node.props.crop || {
+                x: 0,
+                y: 0,
+                w: meta?.w || node.props.w || 0,
+                h: meta?.h || node.props.h || 0,
+              };
+            draft.cropDraft = { nodeId, rect };
+            draft.ui = { ...(draft.ui || {}), activeTool: 'crop' };
+          });
+        },
+        updateCrop(patch) {
+          apply((draft) => {
+            if (!draft.cropDraft) return;
+            draft.cropDraft.rect = { ...draft.cropDraft.rect, ...patch };
+          });
+        },
+        commitCrop() {
+          apply((draft) => {
+            if (!draft.cropDraft) return;
+            const node = findNode(
+              draft.tree,
+              draft.cropDraft.nodeId,
+            ) as ImageNode | null;
+            if (node) {
+              node.props = { ...node.props, crop: { ...draft.cropDraft.rect } };
+            }
+            draft.cropDraft = undefined;
+            draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+          });
+        },
+        cancelCrop() {
+          apply((draft) => {
+            draft.cropDraft = undefined;
+            draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
           });
         },
         undo() {
