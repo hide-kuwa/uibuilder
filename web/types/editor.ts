@@ -145,9 +145,26 @@ export interface FrameNode extends ComponentNode {
   isMask?: boolean;
 }
 
+export interface AssetMeta {
+  id: string;
+  mime: string;
+  w: number;
+  h: number;
+  size: number;
+  hash: string;
+  createdAt: number;
+}
+
+export interface ImageProps extends ComponentNode["props"] {
+  assetId: string;
+  fit?: "contain" | "cover" | "fill";
+  position?: { x: number; y: number };
+  isMask?: boolean;
+}
+
 export interface ImageNode extends ComponentNode {
   type: "Image";
-  props: ComponentNode["props"] & { isMask?: boolean; assetId?: string };
+  props: ImageProps;
 }
 
 export type MaskTarget = "vector" | "frame" | "image";
@@ -215,6 +232,7 @@ export interface EditorState {
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDefinition>;
   guides: Guide[];
+  assets?: { images: Record<string, AssetMeta> };
   vector?: {
     selection?: { pathId?: string; pointIds?: string[] };
     draft?: { pathId: string; points: PathPoint[] };

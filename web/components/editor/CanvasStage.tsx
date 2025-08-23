@@ -5,7 +5,8 @@ import ResizeHandles from './ResizeHandles';
 import SVGLayer from './SVGLayer';
 import PathEditorOverlay from './PathEditorOverlay';
 import PenTool from './tools/PenTool';
-import type { ComponentNode, InstanceNode, PathNode } from '@/types/editor';
+import ImageView from './ImageView';
+import type { ComponentNode, InstanceNode, PathNode, ImageNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
@@ -13,6 +14,7 @@ import ZoomControls from './ZoomControls';
 import { wheelRouter } from '@/lib/input/wheelRouter';
 import * as zoom from '@/lib/zoom';
 import { useRef } from 'react';
+import { saveImage } from '@/lib/assets';
 
 function NodeView({
   node,
@@ -69,6 +71,17 @@ function NodeView({
     Object.assign(style, sizeStyle(node, parentAxis));
   }
 
+  if (node.type === 'Image') {
+    const asset = useEditorStore(
+      (s) => (node.props as any).assetId && s.assets?.images[(node.props as any).assetId]
+    );
+    return (
+      <div style={style}>
+        {asset && <ImageView node={node as ImageNode} meta={asset} />}
+      </div>
+    );
+  }
+
   if (layout === 'auto') {
     return (
       <div
@@ -117,6 +130,13 @@ export default function CanvasStage() {
   const panning = useRef(false);
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
 
+  const handleFiles = async (files: FileList) => {
+    for (const file of Array.from(files)) {
+      const meta = await saveImage(file);
+      useEditorStore.getState().addImageNode(meta);
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     panning.current = true;
     last.current = { x: e.clientX, y: e.clientY, t: performance.now(), vx: 0, vy: 0 };
@@ -161,6 +181,14 @@ export default function CanvasStage() {
             y: state.camera.y - act.dy,
           });
         e.preventDefault();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onPaste={(e) => {
+        if (e.clipboardData.files?.length) handleFiles(e.clipboardData.files);
       }}
       onPointerDown={activeTool === 'pen' ? undefined : onPointerDown}
       onPointerMove={activeTool === 'pen' ? undefined : onPointerMove}
