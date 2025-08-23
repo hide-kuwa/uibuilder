@@ -2,20 +2,29 @@ import type { ImageAdjustments } from '@/types/editor';
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-export function normalize(adj: ImageAdjustments = {}): Required<ImageAdjustments> {
+export const DEFAULT_ADJ: Required<ImageAdjustments> = {
+  brightness: 1,
+  contrast: 1,
+  saturation: 1,
+  hue: 0,
+  blur: 0,
+  opacity: 1,
+};
+
+export function normalizeAdjustments(adj?: ImageAdjustments): Required<ImageAdjustments> {
+  const a = adj || {};
   return {
-    brightness: clamp(adj.brightness ?? 1, 0, 2),
-    contrast: clamp(adj.contrast ?? 1, 0, 2),
-    saturation: clamp(adj.saturation ?? 1, 0, 2),
-    hue: clamp(adj.hue ?? 0, -180, 180),
-    blur: clamp(adj.blur ?? 0, 0, 100),
-    opacity: clamp(adj.opacity ?? 1, 0, 1),
+    brightness: clamp(a.brightness ?? DEFAULT_ADJ.brightness, 0, 2),
+    contrast: clamp(a.contrast ?? DEFAULT_ADJ.contrast, 0, 2),
+    saturation: clamp(a.saturation ?? DEFAULT_ADJ.saturation, 0, 2),
+    hue: clamp(a.hue ?? DEFAULT_ADJ.hue, -180, 180),
+    blur: clamp(a.blur ?? DEFAULT_ADJ.blur, 0, 50),
+    opacity: clamp(a.opacity ?? DEFAULT_ADJ.opacity, 0, 1),
   };
 }
 
-export function cssFilter(adj?: ImageAdjustments): string {
-  if (!adj) return '';
-  const a = normalize(adj);
+export function toCssFilter(adj?: ImageAdjustments): string {
+  const a = normalizeAdjustments(adj);
   const parts = [
     `brightness(${a.brightness})`,
     `contrast(${a.contrast})`,

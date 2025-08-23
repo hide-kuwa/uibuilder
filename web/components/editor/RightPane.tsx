@@ -1,6 +1,7 @@
 "use client";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode, ImageNode, ImageAdjustments } from "@/types/editor";
+import type { PathNode, ImageNode, ImageAdjustments, BlendMode } from "@/types/editor";
+import { normalizeAdjustments, DEFAULT_ADJ } from "@/lib/image/filters";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -14,96 +15,174 @@ export default function RightPane() {
   const toggleMask = useEditorStore((s) => s.toggleMask);
   if (node && (node as ImageNode).type === "Image") {
     const img = node as ImageNode;
-    const adj = img.props.adjustments || {};
-    const setAdj = (patch: Partial<ImageAdjustments>) =>
-      updateImage(img.id, {
-        adjustments: { ...adj, ...patch },
-      });
+    const adj = normalizeAdjustments(img.props.adjustments);
+    const setAdj = (key: keyof ImageAdjustments, value: number) => {
+      const next = normalizeAdjustments({ ...(img.props.adjustments || {}), [key]: value });
+      updateImage(img.id, { adjustments: next });
+    };
+    const blendModes: BlendMode[] = [
+      "normal",
+      "multiply",
+      "screen",
+      "overlay",
+      "darken",
+      "lighten",
+      "color-burn",
+      "color-dodge",
+      "hard-light",
+      "soft-light",
+      "difference",
+      "exclusion",
+    ];
     return (
       <div className="bg-gray-800 p-2 space-y-2 text-xs">
         <div className="font-bold">Image › Adjust</div>
         <label className="block">
           Brightness
-          <input
-            type="range"
-            min={0}
-            max={2}
-            step={0.01}
-            value={adj.brightness ?? 1}
-            onChange={(e) => setAdj({ brightness: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={0}
+              max={200}
+              step={1}
+              value={Math.round(adj.brightness * 100)}
+              onChange={(e) => setAdj("brightness", Number(e.target.value) / 100)}
+            />
+            <input
+              type="number"
+              min={0}
+              max={200}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={Math.round(adj.brightness * 100)}
+              onChange={(e) => setAdj("brightness", Number(e.target.value) / 100)}
+            />
+          </div>
         </label>
         <label className="block">
           Contrast
-          <input
-            type="range"
-            min={0}
-            max={2}
-            step={0.01}
-            value={adj.contrast ?? 1}
-            onChange={(e) => setAdj({ contrast: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={0}
+              max={200}
+              step={1}
+              value={Math.round(adj.contrast * 100)}
+              onChange={(e) => setAdj("contrast", Number(e.target.value) / 100)}
+            />
+            <input
+              type="number"
+              min={0}
+              max={200}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={Math.round(adj.contrast * 100)}
+              onChange={(e) => setAdj("contrast", Number(e.target.value) / 100)}
+            />
+          </div>
         </label>
         <label className="block">
           Saturation
-          <input
-            type="range"
-            min={0}
-            max={2}
-            step={0.01}
-            value={adj.saturation ?? 1}
-            onChange={(e) => setAdj({ saturation: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={0}
+              max={200}
+              step={1}
+              value={Math.round(adj.saturation * 100)}
+              onChange={(e) => setAdj("saturation", Number(e.target.value) / 100)}
+            />
+            <input
+              type="number"
+              min={0}
+              max={200}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={Math.round(adj.saturation * 100)}
+              onChange={(e) => setAdj("saturation", Number(e.target.value) / 100)}
+            />
+          </div>
         </label>
         <label className="block">
           Hue
-          <input
-            type="range"
-            min={-180}
-            max={180}
-            step={1}
-            value={adj.hue ?? 0}
-            onChange={(e) => setAdj({ hue: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              step={1}
+              value={adj.hue}
+              onChange={(e) => setAdj("hue", Number(e.target.value))}
+            />
+            <input
+              type="number"
+              min={-180}
+              max={180}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={adj.hue}
+              onChange={(e) => setAdj("hue", Number(e.target.value))}
+            />
+          </div>
         </label>
         <label className="block">
           Blur
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={adj.blur ?? 0}
-            onChange={(e) => setAdj({ blur: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={0}
+              max={50}
+              step={1}
+              value={adj.blur}
+              onChange={(e) => setAdj("blur", Number(e.target.value))}
+            />
+            <input
+              type="number"
+              min={0}
+              max={50}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={adj.blur}
+              onChange={(e) => setAdj("blur", Number(e.target.value))}
+            />
+          </div>
         </label>
         <label className="block">
           Opacity
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={adj.opacity ?? 1}
-            onChange={(e) => setAdj({ opacity: Number(e.target.value) })}
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(adj.opacity * 100)}
+              onChange={(e) => setAdj("opacity", Number(e.target.value) / 100)}
+            />
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="w-16 bg-gray-700 p-1 text-white"
+              value={Math.round(adj.opacity * 100)}
+              onChange={(e) => setAdj("opacity", Number(e.target.value) / 100)}
+            />
+          </div>
         </label>
         <label className="block">
-          Blend
+          Blend Mode
           <select
             className="w-full bg-gray-700 ml-1 p-1 text-white"
             value={img.props.blend || "normal"}
-            onChange={(e) => updateImage(img.id, { blend: e.target.value })}
+            onChange={(e) => updateImage(img.id, { blend: e.target.value as BlendMode })}
           >
-            {["normal", "multiply", "screen", "overlay", "darken", "lighten"].map(
-              (m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ),
-            )}
+            {blendModes.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
           </select>
         </label>
+        <button
+          className="w-full p-1 bg-gray-700"
+          onClick={() => updateImage(img.id, { adjustments: DEFAULT_ADJ, blend: "normal" })}
+        >
+          Reset
+        </button>
       </div>
     );
   }
