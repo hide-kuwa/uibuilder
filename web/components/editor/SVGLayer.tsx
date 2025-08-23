@@ -1,6 +1,6 @@
-'use client';
-import { useEditorStore } from '@/store/editorStore';
-import type { PathNode, PathPoint } from '@/types/editor';
+"use client";
+import { useEditorStore } from "@/store/editorStore";
+import type { PathNode, PathPoint } from "@/types/editor";
 
 function areMirrored(pt: PathPoint) {
   return (
@@ -24,7 +24,7 @@ function segToCmd(prev: PathPoint, curr: PathPoint, prevSmooth: boolean) {
 
 function pathToD(node: PathNode) {
   const pts = node.points;
-  if (!pts.length) return '';
+  if (!pts.length) return "";
   const cmds = [`M${pts[0].x} ${pts[0].y}`];
   for (let i = 1; i < pts.length; i++) {
     cmds.push(segToCmd(pts[i - 1], pts[i], areMirrored(pts[i - 1])));
@@ -33,32 +33,53 @@ function pathToD(node: PathNode) {
     const last = pts[pts.length - 1];
     const first = pts[0];
     cmds.push(segToCmd(last, first, areMirrored(last)));
-    cmds.push('Z');
+    cmds.push("Z");
   }
-  return cmds.join(' ');
+  return cmds.join(" ");
 }
 
 export default function SVGLayer() {
   const paths = useEditorStore((s) =>
-    s.tree.filter((n): n is PathNode => n.type === 'Path')
+    s.tree.filter((n): n is PathNode => n.type === "Path"),
   );
   const selectPath = useEditorStore((s) => s.selectPath);
   return (
     <svg className="absolute inset-0 pointer-events-none">
-      {paths.map((p) => (
-        <path
-          key={p.id}
-          d={pathToD(p)}
-          fill={p.props?.fill || 'none'}
-          stroke={p.props?.stroke || 'none'}
-          strokeWidth={p.props?.strokeWidth || 1}
-          className="pointer-events-auto"
-          onPointerDown={(e) => {
-            selectPath(p.id);
-            e.stopPropagation();
-          }}
-        />
-      ))}
+      {paths.map((p) => {
+        const props = p.props || {};
+        const strokeWidth = props.strokeWidth ?? 0;
+        const strokeProps =
+          strokeWidth > 0
+            ? {
+                stroke: props.stroke || "none",
+                strokeWidth,
+                strokeLinecap: props.strokeCap || "butt",
+                strokeLinejoin: props.strokeJoin || "miter",
+                strokeMiterlimit: props.miterLimit ?? 4,
+                strokeDasharray:
+                  props.dash && props.dash.length
+                    ? props.dash.join(" ")
+                    : undefined,
+                strokeDashoffset: props.dashOffset ?? 0,
+                strokeOpacity: props.strokeOpacity ?? 1,
+              }
+            : {};
+        return (
+          <path
+            key={p.id}
+            d={pathToD(p)}
+            fill={props.fill || "none"}
+            fillOpacity={props.fillOpacity ?? 1}
+            fillRule={props.fillRule || "nonzero"}
+            className="pointer-events-auto"
+            onPointerDown={(e) => {
+              selectPath(p.id);
+              e.stopPropagation();
+            }}
+            {...strokeProps}
+          />
+        );
+      })}
     </svg>
   );
 }
