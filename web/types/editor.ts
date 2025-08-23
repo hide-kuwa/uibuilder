@@ -182,6 +182,7 @@ export interface ImageProps extends ComponentNode["props"] {
   assetId: string;
   fit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down';
   position?: { x: number; y: number };
+  /** When true, this image acts as a mask for subsequent siblings */
   isMask?: boolean;
   crop?: { x: number; y: number; w: number; h: number };
   adjustments?: ImageAdjustments;

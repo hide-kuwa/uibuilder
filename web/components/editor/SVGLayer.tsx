@@ -11,8 +11,11 @@ import type {
 import {
   ensureMaskDefs,
   buildMaskElement,
+  buildImageMaskElement,
   makeMaskId,
 } from "@/lib/vector/mask";
+import { loadImage } from "@/lib/assets";
+import { computeDrawRect } from "@/lib/image/fit";
 
 function areMirrored(pt: PathPoint) {
   return (
@@ -55,6 +58,7 @@ function pathToD(node: PathNode) {
 export default function SVGLayer() {
   const tree = useEditorStore((s) => s.tree);
   const selectPath = useEditorStore((s) => s.selectPath);
+  const assets = useEditorStore((s) => s.assets?.images || {});
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Build mask <defs> on every change to the tree
@@ -63,24 +67,70 @@ export default function SVGLayer() {
     if (!svg) return;
     const defs = ensureMaskDefs(svg);
     defs.innerHTML = "";
-    const masks: Array<PathNode | FrameNode | ImageNode> = [];
+    const urls: string[] = [];
+    const masks: ComponentNode[] = [];
     const collect = (nodes: ComponentNode[]) => {
       nodes.forEach((n) => {
-        if ((n as any).isMask) masks.push(n as any);
+        if ((n as any).isMask || n.props?.isMask) masks.push(n);
         if (n.children) collect(n.children);
       });
     };
     collect(tree);
     masks.forEach((m) => {
-      defs.appendChild(buildMaskElement(svg.ownerDocument, m));
+      if (m.type === "Image" && m.props?.isMask) {
+        const meta = assets[m.props.assetId];
+        if (!meta) return;
+        loadImage(meta.id).then((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          urls.push(url);
+          const frame = {
+            w: m.props.w ?? meta.w,
+            h: m.props.h ?? meta.h,
+          };
+          const draw = computeDrawRect(
+            frame,
+            { w: meta.w, h: meta.h },
+            m.props.fit || "contain",
+            m.props.position || { x: 0.5, y: 0.5 },
+            m.props.crop,
+          );
+          const viewport = {
+            x: m.props.x || 0,
+            y: m.props.y || 0,
+            w: frame.w,
+            h: frame.h,
+          };
+          const maskEl = buildImageMaskElement(svg.ownerDocument, {
+            nodeId: m.id,
+            href: url,
+            drawRect: {
+              x: draw.x + viewport.x,
+              y: draw.y + viewport.y,
+              w: draw.w,
+              h: draw.h,
+            },
+            viewport,
+            rotateDeg: m.props.rotation,
+            useLuminance: meta.mime !== "image/png",
+          });
+          defs.appendChild(maskEl);
+        });
+      } else {
+        defs.appendChild(buildMaskElement(svg.ownerDocument, m as any));
+      }
     });
-  }, [tree]);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [tree, assets]);
 
   const renderNodes = (nodes: ComponentNode[]): JSX.Element[] => {
     const els: JSX.Element[] = [];
     let activeMask: string | null = null;
     nodes.forEach((n) => {
-      if ((n as any).isMask) {
+      const isMask = (n as any).isMask || n.props?.isMask;
+      if (isMask) {
         activeMask = makeMaskId(n.id);
         return; // mask nodes are not rendered themselves
       }

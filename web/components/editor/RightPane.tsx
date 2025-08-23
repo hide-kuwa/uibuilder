@@ -36,7 +36,21 @@ export default function RightPane() {
     ];
     return (
       <div className="bg-gray-800 p-2 space-y-2 text-xs">
-        <div className="font-bold">Image › Adjust</div>
+        <div className="font-bold">Image</div>
+        <label className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={img.props.isMask || false}
+            onChange={() =>
+              updateImage(img.id, { isMask: !(img.props.isMask || false) })
+            }
+          />
+          Use as Mask
+        </label>
+        <div className="text-[10px] text-gray-400">
+          Applies to subsequent siblings until another mask appears.
+        </div>
+        <div className="font-bold">Adjust</div>
         <label className="block">
           Brightness
           <div className="flex items-center gap-1">

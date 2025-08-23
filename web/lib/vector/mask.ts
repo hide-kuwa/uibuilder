@@ -1,9 +1,4 @@
-import type {
-  FrameNode,
-  ImageNode,
-  PathNode,
-  PathPoint,
-} from "@/types/editor";
+import type { FrameNode, PathNode, PathPoint } from "@/types/editor";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -64,7 +59,7 @@ function pathToD(node: PathNode) {
 // Build a mask element for the given node
 export function buildMaskElement(
   doc: Document,
-  node: PathNode | FrameNode | ImageNode,
+  node: PathNode | FrameNode,
 ): SVGMaskElement {
   const mask = doc.createElementNS(SVG_NS, "mask");
   mask.setAttribute("id", makeMaskId(node.id));
@@ -90,17 +85,6 @@ export function buildMaskElement(
     rect.setAttribute("height", String(p.h || 0));
     rect.setAttribute("fill", "white");
     mask.appendChild(rect);
-  } else if (node.type === "Image") {
-    const img = doc.createElementNS(SVG_NS, "image");
-    const p = node.props || {};
-    if (p.assetId) {
-      img.setAttributeNS("http://www.w3.org/1999/xlink", "href", p.assetId);
-    }
-    if (p.x !== undefined) img.setAttribute("x", String(p.x));
-    if (p.y !== undefined) img.setAttribute("y", String(p.y));
-    if (p.w !== undefined) img.setAttribute("width", String(p.w));
-    if (p.h !== undefined) img.setAttribute("height", String(p.h));
-    mask.appendChild(img);
   }
   return mask;
 }
@@ -108,5 +92,59 @@ export function buildMaskElement(
 // Apply a mask to a group element
 export function applyMask(groupEl: SVGGElement, maskId: string): void {
   groupEl.setAttribute("mask", `url(#${maskId})`);
+}
+
+export function buildImageMaskElement(
+  doc: Document,
+  args: {
+    nodeId: string;
+    href: string;
+    drawRect: { x: number; y: number; w: number; h: number };
+    viewport: { x: number; y: number; w: number; h: number };
+    rotateDeg?: number;
+    useLuminance?: boolean;
+  },
+): SVGMaskElement {
+  const { nodeId, href, drawRect, viewport, rotateDeg, useLuminance } = args;
+  const mask = doc.createElementNS(SVG_NS, "mask");
+  mask.setAttribute("id", makeMaskId(nodeId));
+  mask.setAttribute("maskUnits", "userSpaceOnUse");
+  mask.setAttribute("maskContentUnits", "userSpaceOnUse");
+  mask.setAttribute("x", String(viewport.x));
+  mask.setAttribute("y", String(viewport.y));
+  mask.setAttribute("width", String(viewport.w));
+  mask.setAttribute("height", String(viewport.h));
+  mask.setAttribute("style", "mask-type:alpha");
+
+  const image = doc.createElementNS(SVG_NS, "image");
+  image.setAttributeNS("http://www.w3.org/1999/xlink", "href", href);
+  image.setAttribute("x", String(drawRect.x));
+  image.setAttribute("y", String(drawRect.y));
+  image.setAttribute("width", String(drawRect.w));
+  image.setAttribute("height", String(drawRect.h));
+  image.setAttribute("preserveAspectRatio", "none");
+  if (rotateDeg) {
+    const cx = drawRect.x + drawRect.w / 2;
+    const cy = drawRect.y + drawRect.h / 2;
+    image.setAttribute("transform", `rotate(${rotateDeg} ${cx} ${cy})`);
+  }
+
+  if (useLuminance) {
+    const filter = doc.createElementNS(SVG_NS, "filter");
+    const filterId = `lum-${nodeId}`;
+    filter.setAttribute("id", filterId);
+    const fe = doc.createElementNS(SVG_NS, "feColorMatrix");
+    fe.setAttribute("type", "matrix");
+    fe.setAttribute(
+      "values",
+      "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2126 0.7152 0.0722 0 0",
+    );
+    filter.appendChild(fe);
+    mask.appendChild(filter);
+    image.setAttribute("filter", `url(#${filterId})`);
+  }
+
+  mask.appendChild(image);
+  return mask;
 }
 
