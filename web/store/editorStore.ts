@@ -15,6 +15,9 @@ import type {
   PathNode,
   PathPoint,
   PathProps,
+  ImageNode,
+  AssetMeta,
+  ImageProps,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
@@ -41,6 +44,10 @@ interface EditorActions {
   rotateNode: (id: string, deg: number) => void;
   duplicate: (ids?: string[]) => void;
   remove: (ids?: string[]) => void;
+  addImageAsset: (meta: AssetMeta) => void;
+  removeImageAsset: (id: string) => void;
+  addImageNode: (meta: AssetMeta, opts?: { x?: number; y?: number }) => string;
+  updateImageNode: (id: string, patch: Partial<ImageProps>) => void;
   undo: () => void;
   redo: () => void;
   makeAutoLayout: (frameId?: string) => void;
@@ -226,6 +233,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         meta: { version: 1, updatedAt: Date.now() },
         components: {},
         guides: [],
+        assets: { images: {} },
         vector: { selection: {} },
         ui: {
           showRulers: false,
@@ -308,6 +316,53 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               });
             draft.tree = removeRec(draft.tree);
             draft.selectedIds = [];
+          });
+        },
+        addImageAsset(meta) {
+          apply((draft) => {
+            draft.assets = draft.assets || { images: {} };
+            draft.assets.images[meta.id] = meta;
+          });
+        },
+        removeImageAsset(id) {
+          apply((draft) => {
+            if (draft.assets?.images) delete draft.assets.images[id];
+          });
+        },
+        addImageNode(meta, opts) {
+          const id = uuid();
+          const rect = get().getViewportRect();
+          const pos = {
+            x: opts?.x ?? rect.x + rect.w / 2 - meta.w / 2,
+            y: opts?.y ?? rect.y + rect.h / 2 - meta.h / 2,
+          };
+          apply((draft) => {
+            draft.assets = draft.assets || { images: {} };
+            draft.assets.images[meta.id] = meta;
+            const node: ImageNode = {
+              id,
+              type: "Image",
+              props: {
+                x: pos.x,
+                y: pos.y,
+                w: meta.w,
+                h: meta.h,
+                assetId: meta.id,
+                fit: "contain",
+                position: { x: 0.5, y: 0.5 },
+              },
+            };
+            draft.tree.push(node);
+            draft.selectedIds = [id];
+          });
+          return id;
+        },
+        updateImageNode(id, patch) {
+          apply((draft) => {
+            const node = findNode(draft.tree, id) as ImageNode | null;
+            if (node && node.type === "Image") {
+              node.props = { ...node.props, ...patch } as ImageProps;
+            }
           });
         },
         makeAutoLayout(frameId) {
@@ -1035,7 +1090,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     {
       name: "uibuilder:editor",
       storage: createJSONStorage(() => idbStorage),
-      version: 6,
+      version: 7,
       migrate: (persisted, version) => {
         if (!persisted) return persisted;
         const state = persisted as EditorState;
@@ -1080,6 +1135,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             });
           };
           migratePath(state.tree);
+        }
+        if (version < 7) {
+          if (!state.assets) state.assets = { images: {} } as any;
         }
         return state;
       },

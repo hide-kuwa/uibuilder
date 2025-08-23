@@ -1,8 +1,9 @@
 'use client';
 import { TOP_BAR_HEIGHT } from '@/lib/layout/constants';
 import { useEditorStore } from '@/store/editorStore';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { BooleanOp } from '@/lib/vector/boolean';
+import { saveImage } from '@/lib/assets';
 
 export default function TopBar() {
     const prefs = useEditorStore((s) => s.prefs || {});
@@ -15,6 +16,15 @@ export default function TopBar() {
     const combine = useEditorStore((s) => s.booleanCombine);
     const [replace, setReplace] = useState(false);
     const [toast, setToast] = useState(false);
+    const fileInput = useRef<HTMLInputElement | null>(null);
+
+    const handleFiles = async (files: FileList | null) => {
+      if (!files) return;
+      for (const file of Array.from(files)) {
+        const meta = await saveImage(file);
+        useEditorStore.getState().addImageNode(meta);
+      }
+    };
 
     const run = (op: BooleanOp) => {
       const id = combine(op, selection, { replace });
@@ -34,6 +44,15 @@ export default function TopBar() {
       </div>
         <div className="flex items-center gap-4">
           <button>Group</button>
+          <button onClick={() => fileInput.current?.click()}>Place Image</button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
           <button>Align</button>
           <button
             disabled={selection.length === 0}
