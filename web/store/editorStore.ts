@@ -17,6 +17,7 @@ import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
+import { MIN_ZOOM, MAX_ZOOM } from '@/lib/layout/constants';
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -60,7 +61,7 @@ interface EditorActions {
   toggleOutline: () => void;
   setLastCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
-  tweenCamera: (cam: Camera, opts?: { duration?: number }) => void;
+  tweenCamera: (cam: Camera | Partial<Camera>, opts?: { duration?: number }) => void;
   getViewportRect: () => { x: number; y: number; w: number; h: number };
   getSelectionBounds: () => { x: number; y: number; w: number; h: number } | null;
   // Variants
@@ -403,10 +404,21 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           set({ lastCommandId: id });
         },
         setCamera(cam) {
-          set((state) => ({ camera: { ...state.camera, ...cam } }));
+          set((state) => {
+            const next = { ...state.camera, ...cam };
+            if (next.zoom !== undefined) {
+              next.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
+            }
+            return { camera: next };
+          });
         },
         tweenCamera(cam) {
-          set({ camera: cam });
+          const state = get();
+          const next = { ...state.camera, ...cam } as Camera;
+          if (next.zoom !== undefined) {
+            next.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
+          }
+          set({ camera: next });
         },
         getViewportRect() {
           const { camera } = get();

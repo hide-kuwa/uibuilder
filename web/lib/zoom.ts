@@ -1,25 +1,105 @@
 import { useEditorStore } from '@/store/editorStore';
+import { MIN_ZOOM, MAX_ZOOM, FIT_PADDING, PAN_INERTIA } from '@/lib/layout/constants';
 
-export function zoomBy(factor: number, origin?: { x: number; y: number }) {
+function clampZoom(z: number) {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+}
+
+export function zoomBy(factor: number, anchor?: { x: number; y: number }) {
   const { camera, setCamera } = useEditorStore.getState();
-  setCamera({ zoom: camera.zoom * factor });
+  const nextZoom = clampZoom(camera.zoom * factor);
+  let x = camera.x;
+  let y = camera.y;
+  if (anchor) {
+    const wx = (anchor.x - camera.x) / camera.zoom;
+    const wy = (anchor.y - camera.y) / camera.zoom;
+    x = anchor.x - wx * nextZoom;
+    y = anchor.y - wy * nextZoom;
+  }
+  setCamera({ x, y, zoom: nextZoom });
 }
 
-export function animateZoomTo(zoom: number, _opts?: { duration?: number }) {
-  const { setCamera } = useEditorStore.getState();
-  setCamera({ zoom });
+export function animateZoomTo(
+  targetZoom: number,
+  anchor?: { x: number; y: number },
+  opts?: { duration?: number }
+): Promise<void> {
+  const store = useEditorStore.getState();
+  const start = performance.now();
+  const duration = opts?.duration ?? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--motion-base')) || 200;
+  const from = store.camera;
+  const toZoom = clampZoom(targetZoom);
+  let toX = from.x;
+  let toY = from.y;
+  if (anchor) {
+    const wx = (anchor.x - from.x) / from.zoom;
+    const wy = (anchor.y - from.y) / from.zoom;
+    toX = anchor.x - wx * toZoom;
+    toY = anchor.y - wy * toZoom;
+  }
+  return new Promise((resolve) => {
+    function frame(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = t * (2 - t); // ease-out
+      const z = from.zoom + (toZoom - from.zoom) * eased;
+      const x = from.x + (toX - from.x) * eased;
+      const y = from.y + (toY - from.y) * eased;
+      store.setCamera({ x, y, zoom: z });
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
 }
 
-export function fitAll() {
-  const { setCamera } = useEditorStore.getState();
-  setCamera({ x: 0, y: 0, zoom: 1 });
+export function fitAll(): void {
+  const store = useEditorStore.getState();
+  const nodes = store.tree;
+  if (!nodes.length) return;
+  const boxes = nodes
+    .map((n) => ({ x: n.props?.x || 0, y: n.props?.y || 0, w: n.props?.w || 0, h: n.props?.h || 0 }));
+  const x1 = Math.min(...boxes.map((b) => b.x));
+  const y1 = Math.min(...boxes.map((b) => b.y));
+  const x2 = Math.max(...boxes.map((b) => b.x + b.w));
+  const y2 = Math.max(...boxes.map((b) => b.y + b.h));
+  const bounds = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  fitBounds(bounds);
 }
 
-export function fitSelection() {
-  const { setCamera } = useEditorStore.getState();
-  setCamera({ x: 0, y: 0, zoom: 1 });
+export function fitSelection(): void {
+  const store = useEditorStore.getState();
+  const bounds = store.getSelectionBounds();
+  if (bounds) fitBounds(bounds);
+  else fitAll();
 }
 
-export function panWithInertia(_vx: number, _vy: number) {
-  // stub
+function fitBounds(bounds: { x: number; y: number; w: number; h: number }) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const padW = bounds.w * FIT_PADDING;
+  const padH = bounds.h * FIT_PADDING;
+  const zoom = clampZoom(Math.min(vw / (bounds.w + padW * 2), vh / (bounds.h + padH * 2)));
+  const cx = bounds.x + bounds.w / 2;
+  const cy = bounds.y + bounds.h / 2;
+  const x = cx - vw / (2 * zoom);
+  const y = cy - vh / (2 * zoom);
+  useEditorStore.getState().setCamera({ x, y, zoom });
+}
+
+export function panWithInertia(vx: number, vy: number) {
+  let { camera } = useEditorStore.getState();
+  let x = camera.x;
+  let y = camera.y;
+  let last = performance.now();
+  function step(now: number) {
+    const dt = now - last;
+    last = now;
+    x -= vx * dt;
+    y -= vy * dt;
+    useEditorStore.getState().setCamera({ x, y });
+    vx *= PAN_INERTIA;
+    vy *= PAN_INERTIA;
+    if (Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }

@@ -1,18 +1,16 @@
-import { zoomBy } from '@/lib/zoom';
-import { useEditorStore } from '@/store/editorStore';
 import type { WheelEvent as ReactWheelEvent } from 'react';
 
-export function wheelRouter(e: WheelEvent | ReactWheelEvent) {
+export type WheelAction =
+  | { type: 'zoom'; factor: number; anchor: { x: number; y: number } }
+  | { type: 'pan'; dx: number; dy: number };
+
+export function wheelRouter(e: WheelEvent | ReactWheelEvent): WheelAction {
   const evt = 'nativeEvent' in e ? (e as ReactWheelEvent).nativeEvent : e;
-  const store = useEditorStore.getState();
+  const dx = evt.deltaMode === WheelEvent.DOM_DELTA_LINE ? evt.deltaX * 16 : evt.deltaX;
+  const dy = evt.deltaMode === WheelEvent.DOM_DELTA_LINE ? evt.deltaY * 16 : evt.deltaY;
   if (evt.ctrlKey || evt.metaKey) {
-    const factor = evt.deltaY > 0 ? 0.9 : 1.1;
-    zoomBy(factor, { x: evt.clientX, y: evt.clientY });
-  } else {
-    store.setCamera({
-      x: store.camera.x - evt.deltaX,
-      y: store.camera.y - evt.deltaY,
-    });
+    const factor = dy > 0 ? 0.9 : 1.1;
+    return { type: 'zoom', factor, anchor: { x: evt.clientX, y: evt.clientY } };
   }
-  evt.preventDefault();
+  return { type: 'pan', dx, dy };
 }
