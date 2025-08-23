@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { loadImage } from '@/lib/assets';
+import { cssFilter } from '@/lib/image/filters';
 import type { ImageNode, AssetMeta } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
 
@@ -22,6 +23,11 @@ export default function ImageView({ node, meta }: { node: ImageNode; meta: Asset
   const pos = node.props.position || { x: 0.5, y: 0.5 };
   if (!url) return null;
   const crop = node.props.crop;
+  const styleCommon: CSSProperties = {
+    filter: cssFilter(node.props.adjustments),
+    mixBlendMode: node.props.blend,
+    opacity: node.props.adjustments?.opacity,
+  };
   if (crop) {
     const scaleX = (node.props.w || meta.w) / crop.w;
     const scaleY = (node.props.h || meta.h) / crop.h;
@@ -33,6 +39,7 @@ export default function ImageView({ node, meta }: { node: ImageNode; meta: Asset
             width: meta.w * scaleX,
             height: meta.h * scaleY,
             transform: `translate(${-crop.x * scaleX}px, ${-crop.y * scaleY}px)`,
+            ...styleCommon,
           }}
         />
       </div>
@@ -46,6 +53,7 @@ export default function ImageView({ node, meta }: { node: ImageNode; meta: Asset
         height: '100%',
         objectFit: fit,
         objectPosition: `${pos.x * 100}% ${pos.y * 100}%`,
+        ...styleCommon,
       }}
       onDoubleClick={() => startCrop(node.id)}
     />

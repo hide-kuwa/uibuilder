@@ -155,12 +155,23 @@ export interface AssetMeta {
   createdAt: number;
 }
 
+export interface ImageAdjustments {
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  hue?: number;
+  blur?: number;
+  opacity?: number;
+}
+
 export interface ImageProps extends ComponentNode["props"] {
   assetId: string;
   fit?: "contain" | "cover" | "fill";
   position?: { x: number; y: number };
   isMask?: boolean;
   crop?: { x: number; y: number; w: number; h: number };
+  adjustments?: ImageAdjustments;
+  blend?: string;
 }
 
 export interface ImageNode extends ComponentNode {

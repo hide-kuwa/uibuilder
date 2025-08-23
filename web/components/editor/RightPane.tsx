@@ -1,14 +1,112 @@
 "use client";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode } from "@/types/editor";
+import type { PathNode, ImageNode, ImageAdjustments } from "@/types/editor";
 
 export default function RightPane() {
-  const selected = useEditorStore((s) => s.vector?.selection?.pathId);
+  const selectedId = useEditorStore((s) => s.selectedIds[0]);
+  const node = useEditorStore((s) => s.tree.find((n) => n.id === selectedId));
+  const updateImage = useEditorStore((s) => s.updateImageNode);
+  const selectedPath = useEditorStore((s) => s.vector?.selection?.pathId);
   const path = useEditorStore((s) =>
-    s.tree.find((n): n is PathNode => n.id === selected && n.type === "Path"),
+    s.tree.find((n): n is PathNode => n.id === selectedPath && n.type === "Path"),
   );
   const setProps = useEditorStore((s) => s.setPathProps);
   const toggleMask = useEditorStore((s) => s.toggleMask);
+  if (node && (node as ImageNode).type === "Image") {
+    const img = node as ImageNode;
+    const adj = img.props.adjustments || {};
+    const setAdj = (patch: Partial<ImageAdjustments>) =>
+      updateImage(img.id, {
+        adjustments: { ...adj, ...patch },
+      });
+    return (
+      <div className="bg-gray-800 p-2 space-y-2 text-xs">
+        <div className="font-bold">Image › Adjust</div>
+        <label className="block">
+          Brightness
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.01}
+            value={adj.brightness ?? 1}
+            onChange={(e) => setAdj({ brightness: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Contrast
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.01}
+            value={adj.contrast ?? 1}
+            onChange={(e) => setAdj({ contrast: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Saturation
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.01}
+            value={adj.saturation ?? 1}
+            onChange={(e) => setAdj({ saturation: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Hue
+          <input
+            type="range"
+            min={-180}
+            max={180}
+            step={1}
+            value={adj.hue ?? 0}
+            onChange={(e) => setAdj({ hue: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Blur
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={adj.blur ?? 0}
+            onChange={(e) => setAdj({ blur: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Opacity
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={adj.opacity ?? 1}
+            onChange={(e) => setAdj({ opacity: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Blend
+          <select
+            className="w-full bg-gray-700 ml-1 p-1 text-white"
+            value={img.props.blend || "normal"}
+            onChange={(e) => updateImage(img.id, { blend: e.target.value })}
+          >
+            {["normal", "multiply", "screen", "overlay", "darken", "lighten"].map(
+              (m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+      </div>
+    );
+  }
   if (!path) return <div className="bg-gray-800" />;
   const props = path.props || {};
   const parseDash = (v: string) => {
