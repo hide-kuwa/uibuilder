@@ -1,25 +1,31 @@
 'use client';
-import { useState } from 'react';
-import { ZOOM_BUTTON_SIZE, ZOOM_PERCENT_WIDTH } from '@/lib/layout/constants';
+import { ZOOM_BUTTON_SIZE } from '@/lib/layout/constants';
+import * as zoom from '@/lib/zoom';
+import { useEditorStore } from '@/store/editorStore';
 
 export default function ZoomControls() {
-  const [zoom, setZoom] = useState(100);
-  const inc = () => setZoom((z) => Math.min(z + 10, 800));
-  const dec = () => setZoom((z) => Math.max(z - 10, 10));
-  const fit = () => setZoom(100);
-  const reset = () => setZoom(100);
+  const z = useEditorStore((s) => s.camera.zoom);
   return (
-    <div className="flex items-center gap-1 bg-gray-800/70 rounded" style={{height: ZOOM_BUTTON_SIZE}}>
-      <button className="w-7 h-7" onClick={dec}>-</button>
-      <input
-        className="text-center bg-transparent"
-        style={{width: ZOOM_PERCENT_WIDTH}}
-        value={`${zoom}%`}
-        onChange={(e) => setZoom(parseInt(e.target.value) || 0)}
-      />
-      <button className="w-7 h-7" onClick={inc}>+</button>
-      <button className="w-7 h-7" onClick={fit}>Fit</button>
-      <button className="w-7 h-7" onClick={reset}>1:1</button>
+    <div
+      className="flex items-center gap-1 bg-gray-800/70 rounded px-1"
+      style={{ height: ZOOM_BUTTON_SIZE }}
+    >
+      <button className="w-7 h-7" onClick={() => zoom.zoomBy(1.1)}>
+        +
+      </button>
+      <button className="w-7 h-7" onClick={() => zoom.zoomBy(0.9)}>
+        -
+      </button>
+      <span className="text-xs w-12 text-center">{Math.round(z * 100)}%</span>
+      <button className="w-12 h-7" onClick={() => zoom.animateZoomTo(1)}>
+        100%
+      </button>
+      <button className="w-7 h-7" onClick={() => zoom.fitAll()}>
+        Fit
+      </button>
+      <button className="w-7 h-7" onClick={() => zoom.fitSelection()}>
+        Sel
+      </button>
     </div>
   );
 }

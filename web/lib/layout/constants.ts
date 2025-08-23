@@ -9,3 +9,7 @@ export const STATUS_BAR_HEIGHT = 28;
 export const SPLITTER_WIDTH = 6;
 export const ZOOM_BUTTON_SIZE = 28;
 export const ZOOM_PERCENT_WIDTH = 56;
+export const MIN_ZOOM = 0.05;
+export const MAX_ZOOM = 16;
+export const FIT_PADDING = 0.08;
+export const PAN_INERTIA = 0.92;

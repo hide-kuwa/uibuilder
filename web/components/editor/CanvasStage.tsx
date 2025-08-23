@@ -7,8 +7,9 @@ import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import ZoomControls from './ZoomControls';
-import { keyRouter } from '@/lib/input/keyRouter';
 import { wheelRouter } from '@/lib/input/wheelRouter';
+import * as zoom from '@/lib/zoom';
+import { useRef } from 'react';
 
 function NodeView({
   node,
@@ -104,12 +105,58 @@ export default function CanvasStage() {
   const tree = useEditorStore((s) => s.tree);
   const selected = useEditorStore((s) => s.selectedIds);
   const components = useEditorStore((s) => s.components);
+
+  const panning = useRef(false);
+  const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    panning.current = true;
+    last.current = { x: e.clientX, y: e.clientY, t: performance.now(), vx: 0, vy: 0 };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!panning.current) return;
+    const now = performance.now();
+    const state = useEditorStore.getState();
+    const dx = e.clientX - last.current.x;
+    const dy = e.clientY - last.current.y;
+    state.setCamera({
+      x: state.camera.x - dx / state.camera.zoom,
+      y: state.camera.y - dy / state.camera.zoom,
+    });
+    last.current.vx = dx / (now - last.current.t);
+    last.current.vy = dy / (now - last.current.t);
+    last.current.x = e.clientX;
+    last.current.y = e.clientY;
+    last.current.t = now;
+  };
+
+  const onPointerUp = () => {
+    if (panning.current) {
+      panning.current = false;
+      zoom.panWithInertia(last.current.vx, last.current.vy);
+    }
+  };
+
   return (
     <div
       className="relative bg-gray-900 overflow-hidden"
       tabIndex={0}
-      onKeyDown={keyRouter}
-      onWheel={wheelRouter}
+      onWheel={(e) => {
+        const act = wheelRouter(e);
+        const state = useEditorStore.getState();
+        if (act.type === 'zoom') zoom.zoomBy(act.factor, act.anchor);
+        else
+          state.setCamera({
+            x: state.camera.x - act.dx,
+            y: state.camera.y - act.dy,
+          });
+        e.preventDefault();
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
     >
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />

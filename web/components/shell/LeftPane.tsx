@@ -22,6 +22,7 @@ export default function LeftPane() {
       </div>
       <div className="p-2">
         <input
+          id="leftpane-search"
           className="w-full px-2 py-1 bg-gray-700"
           placeholder="Search layers"
         />
