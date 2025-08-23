@@ -257,6 +257,7 @@ export interface EditorState {
   tree: ComponentNode[];
   selectedIds: string[];
   hoverId: string | null;
+  pressId: string | null;
   camera: Camera;
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDefinition>;
