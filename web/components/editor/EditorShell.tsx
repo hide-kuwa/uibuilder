@@ -4,7 +4,7 @@ import CanvasStage from './CanvasStage';
 import RightPane from './RightPane';
 import CommandPalette from './CommandPalette';
 import ContextMenu from './ContextMenu';
-import ExportDialog from './ExportDialog';
+import ExportPanel from './ExportPanel';
 import ShareButton from './ShareButton';
 import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
@@ -74,7 +74,7 @@ export default function EditorShell() {
       <RightPane />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
-      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
+      <ExportPanel open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
