@@ -59,6 +59,9 @@ interface EditorActions {
   toggleRulers: () => void;
   toggleGuides: () => void;
   toggleOutline: () => void;
+  toggleLayoutGrid: () => void;
+  togglePixelGrid: () => void;
+  toggleSnapToPixel: () => void;
   setLastCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (cam: Camera | Partial<Camera>, opts?: { duration?: number }) => void;
@@ -147,6 +150,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         components: {},
         guides: [],
         ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
+        prefs: { showLayoutGrid: false, showPixelGrid: false, snapToPixel: true },
         lastCommandId: undefined,
         review: { status: 'DRAFT', requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
@@ -398,6 +402,24 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           apply((draft) => {
             draft.ui = draft.ui || {};
             draft.ui.showOutline = !draft.ui.showOutline;
+          });
+        },
+        toggleLayoutGrid() {
+          apply((draft) => {
+            draft.prefs = draft.prefs || {};
+            draft.prefs.showLayoutGrid = !draft.prefs.showLayoutGrid;
+          });
+        },
+        togglePixelGrid() {
+          apply((draft) => {
+            draft.prefs = draft.prefs || {};
+            draft.prefs.showPixelGrid = !draft.prefs.showPixelGrid;
+          });
+        },
+        toggleSnapToPixel() {
+          apply((draft) => {
+            draft.prefs = draft.prefs || {};
+            draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
           });
         },
         setLastCommand(id) {

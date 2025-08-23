@@ -20,6 +20,9 @@ export type Command =
   | 'view.toggleRulers'
   | 'view.toggleGuides'
   | 'view.toggleOutline'
+  | 'view.toggleLayoutGrid'
+  | 'view.togglePixelGrid'
+  | 'view.toggleSnapToPixel'
   | 'export'
   | 'annotation.pin'
   | 'annotation.rect'
@@ -64,6 +67,9 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyR') return 'view.toggleRulers';
     if (e.code === 'Semicolon') return 'view.toggleGuides';
     if (e.code === 'KeyY') return 'view.toggleOutline';
+    if (e.code === 'KeyG' && e.shiftKey) return 'view.toggleLayoutGrid';
+    if (e.code === 'Quote') return 'view.togglePixelGrid';
+    if (e.code === 'KeyP' && e.shiftKey) return 'view.toggleSnapToPixel';
     if (e.code === 'KeyE' && e.shiftKey) return 'export';
     if (e.code === 'Enter') return 'comment.submit';
   }

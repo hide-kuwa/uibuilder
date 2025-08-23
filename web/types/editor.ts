@@ -2,6 +2,60 @@ export type LayoutMode = 'free' | 'auto';
 export type Axis = 'horizontal' | 'vertical';
 export type SizeMode = 'HUG' | 'FIXED' | 'FILL';
 
+export type ConstraintH =
+  | 'LEFT'
+  | 'RIGHT'
+  | 'LEFT_RIGHT'
+  | 'CENTER'
+  | 'SCALE';
+export type ConstraintV =
+  | 'TOP'
+  | 'BOTTOM'
+  | 'TOP_BOTTOM'
+  | 'CENTER'
+  | 'SCALE';
+
+export interface Constraints {
+  horizontal: ConstraintH;
+  vertical: ConstraintV;
+}
+
+export type GridKind = 'COLUMNS' | 'ROWS' | 'GRID';
+
+export interface LayoutGridBase {
+  id: string;
+  kind: GridKind;
+  visible?: boolean;
+  color?: string;
+  opacity?: number;
+}
+
+export interface ColumnsGrid extends LayoutGridBase {
+  kind: 'COLUMNS';
+  count: number;
+  type: 'stretch' | 'center' | 'left' | 'right';
+  gutter: number;
+  margin?: number;
+  offset?: number;
+}
+
+export interface RowsGrid extends LayoutGridBase {
+  kind: 'ROWS';
+  count: number;
+  type: 'stretch' | 'center' | 'top' | 'bottom';
+  gutter: number;
+  margin?: number;
+  offset?: number;
+}
+
+export interface SquareGrid extends LayoutGridBase {
+  kind: 'GRID';
+  size: number;
+  offset?: number;
+}
+
+export type LayoutGrid = ColumnsGrid | RowsGrid | SquareGrid;
+
 export interface Camera {
   x: number;
   y: number;
@@ -86,6 +140,8 @@ export interface ComponentNode {
     className?: string;
     text?: string; // for Text nodes
     visible?: boolean;
+    constraints?: Constraints;
+    layoutGrids?: LayoutGrid[];
   };
   bindings?: Record<string, PropBinding>;
   variants?: {
@@ -118,6 +174,11 @@ export interface EditorState {
     showGuides?: boolean;
     showSmartGuides?: boolean;
     showOutline?: boolean;
+  };
+  prefs?: {
+    showLayoutGrid?: boolean;
+    showPixelGrid?: boolean;
+    snapToPixel?: boolean;
   };
   lastCommandId?: string;
   review: {

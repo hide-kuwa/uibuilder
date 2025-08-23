@@ -96,6 +96,57 @@ export default function RightInspector() {
             </select>
           </label>
         )}
+        <div className="mt-2 space-y-1">
+          <h3 className="text-xs font-bold">Constraints</h3>
+          <label className="block text-xs">
+            Horizontal:
+            <select
+              className="w-full bg-gray-700 ml-1 p-1 text-white"
+              value={node?.props?.constraints?.horizontal || 'LEFT'}
+              onChange={(e) =>
+                update(selected, {
+                  props: {
+                    ...(node?.props || {}),
+                    constraints: {
+                      ...(node?.props?.constraints || { vertical: 'TOP', horizontal: 'LEFT' }),
+                      horizontal: e.target.value as any,
+                    },
+                  },
+                })
+              }
+            >
+              {['LEFT', 'RIGHT', 'LEFT_RIGHT', 'CENTER', 'SCALE'].map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs">
+            Vertical:
+            <select
+              className="w-full bg-gray-700 ml-1 p-1 text-white"
+              value={node?.props?.constraints?.vertical || 'TOP'}
+              onChange={(e) =>
+                update(selected, {
+                  props: {
+                    ...(node?.props || {}),
+                    constraints: {
+                      ...(node?.props?.constraints || { vertical: 'TOP', horizontal: 'LEFT' }),
+                      vertical: e.target.value as any,
+                    },
+                  },
+                })
+              }
+            >
+              {['TOP', 'BOTTOM', 'TOP_BOTTOM', 'CENTER', 'SCALE'].map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
     </div>
   );
