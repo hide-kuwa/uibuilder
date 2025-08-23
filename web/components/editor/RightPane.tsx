@@ -1,7 +1,9 @@
 "use client";
+import { useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import type { PathNode, ImageNode, ImageAdjustments, BlendMode } from "@/types/editor";
 import { normalizeAdjustments, DEFAULT_ADJ } from "@/lib/image/filters";
+import { getScaleInfo } from "@/lib/image/metrics";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -13,8 +15,21 @@ export default function RightPane() {
   );
   const setProps = useEditorStore((s) => s.setPathProps);
   const toggleMask = useEditorStore((s) => s.toggleMask);
+  const assets = useEditorStore((s) => s.assets.images);
+  const prefs = useEditorStore((s) => s.prefs);
+  const setPrefs = useEditorStore((s) => s.setPrefs);
+  const ensureDominantColor = useEditorStore((s) => s.ensureDominantColor);
+
+  useEffect(() => {
+    if (node && node.type === "Image") {
+      const meta = assets[(node as ImageNode).props.assetId];
+      if (meta && !meta.dominant) ensureDominantColor(meta.id);
+    }
+  }, [node, assets, ensureDominantColor]);
   if (node && (node as ImageNode).type === "Image") {
     const img = node as ImageNode;
+    const meta = assets[img.props.assetId];
+    const si = meta ? getScaleInfo(img, meta) : undefined;
     const adj = normalizeAdjustments(img.props.adjustments);
     const setAdj = (key: keyof ImageAdjustments, value: number) => {
       const next = normalizeAdjustments({ ...(img.props.adjustments || {}), [key]: value });
@@ -37,6 +52,41 @@ export default function RightPane() {
     return (
       <div className="bg-gray-800 p-2 space-y-2 text-xs">
         <div className="font-bold">Image</div>
+        {meta && si && (
+          <div className="space-y-1">
+            <div>Natural: {si.natural.w}×{si.natural.h} px</div>
+            <div>
+              Display: CSS {Math.round(si.displayCss.w)}×{Math.round(si.displayCss.h)} px / Device {Math.round(si.displayDevice.w)}×{Math.round(si.displayDevice.h)} px
+            </div>
+            <div>
+              Scale: {si.scaleX.toFixed(2)} / {si.scaleY.toFixed(2)} / {si.scaleMax.toFixed(2)}
+            </div>
+            <div className="flex items-center gap-2">
+              Dominant:
+              <span
+                className="color-swatch"
+                style={{ background: meta.dominant || "#000" }}
+              />
+              <span>{meta.dominant || "-"}</span>
+              <button
+                className="ml-auto px-1 bg-gray-700"
+                onClick={() => ensureDominantColor(meta.id)}
+              >
+                Recompute
+              </button>
+            </div>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={prefs?.showImageBadges !== false}
+                onChange={(e) =>
+                  setPrefs({ showImageBadges: e.target.checked })
+                }
+              />
+              Show image badges
+            </label>
+          </div>
+        )}
         <label className="flex items-center gap-1">
           <input
             type="checkbox"

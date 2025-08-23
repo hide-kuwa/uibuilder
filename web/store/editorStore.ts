@@ -30,7 +30,8 @@ import {
   booleanCombine as combinePolys,
   BooleanOp,
 } from "@/lib/vector/boolean";
-import { saveImage } from "@/lib/assets";
+import { saveImage, loadImage } from "@/lib/assets";
+import { computeDominantColor } from "@/lib/color/dominant";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -96,6 +97,8 @@ interface EditorActions {
   toggleLayoutGrid: () => void;
   togglePixelGrid: () => void;
   toggleSnapToPixel: () => void;
+  setPrefs: (patch: Partial<EditorState['prefs']>) => void;
+  ensureDominantColor: (assetId: string) => Promise<string>;
   booleanCombine: (
     op: BooleanOp,
     ids: string[],
@@ -267,6 +270,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showLayoutGrid: false,
           showPixelGrid: false,
           snapToPixel: true,
+          showImageBadges: true,
         },
         lastCommandId: undefined,
         review: { status: "DRAFT", requireApprovedToShare: false },
@@ -641,6 +645,22 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             draft.prefs = draft.prefs || {};
             draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
           });
+        },
+        setPrefs(patch) {
+          apply((draft) => {
+            draft.prefs = { ...(draft.prefs || {}), ...patch };
+          });
+        },
+        async ensureDominantColor(assetId) {
+          const asset = get().assets.images?.[assetId];
+          if (asset?.dominant) return asset.dominant;
+          const blob = await loadImage(assetId);
+          if (!blob) return '#000000';
+          const color = await computeDominantColor(blob);
+          apply((draft) => {
+            draft.assets.images[assetId].dominant = color;
+          });
+          return color;
         },
         booleanCombine(op, ids, opts) {
           const flat = opts?.flatness ?? 0.5;

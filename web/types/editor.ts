@@ -153,6 +153,8 @@ export interface AssetMeta {
   size: number;
   hash: string;
   createdAt: number;
+  dominant?: string;
+  lastUsedAt?: number;
 }
 
 export type BlendMode =
@@ -275,6 +277,7 @@ export interface EditorState {
     showLayoutGrid?: boolean;
     showPixelGrid?: boolean;
     snapToPixel?: boolean;
+    showImageBadges?: boolean;
   };
   lastCommandId?: string;
   review: {
