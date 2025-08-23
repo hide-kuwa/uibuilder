@@ -14,8 +14,9 @@ import { applyOverrides } from '@/lib/overrideMerge';
 import ZoomControls from './ZoomControls';
 import { wheelRouter } from '@/lib/input/wheelRouter';
 import * as zoom from '@/lib/zoom';
-import { useRef } from 'react';
-import { saveImage } from '@/lib/assets';
+import { useRef, useState } from 'react';
+import { saveImageMulti } from '@/lib/assets';
+import DropOverlay from './DropOverlay';
 
 function NodeView({
   node,
@@ -127,14 +128,22 @@ export default function CanvasStage() {
   const components = useEditorStore((s) => s.components);
   const prefs = useEditorStore((s) => s.prefs || {});
   const activeTool = useEditorStore((s) => s.ui?.activeTool || 'select');
+  const placeImages = useEditorStore((s) => s.placeImages);
+  const replaceImageAsset = useEditorStore((s) => s.replaceImageAsset);
+  const placeFromClipboard = useEditorStore((s) => s.placeFromClipboard);
 
   const panning = useRef(false);
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
 
+  const [dragCount, setDragCount] = useState<number | null>(null);
+
   const handleFiles = async (files: FileList) => {
-    for (const file of Array.from(files)) {
-      const meta = await saveImage(file);
-      useEditorStore.getState().addImageNode(meta);
+    const metas = await saveImageMulti(files);
+    if (selected.length === 1 && files.length === 1) {
+      useEditorStore.getState().addImageAsset(metas[0]);
+      replaceImageAsset(selected[0], metas[0].id);
+    } else {
+      placeImages(metas);
     }
   };
 
@@ -183,13 +192,27 @@ export default function CanvasStage() {
           });
         e.preventDefault();
       }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer.items?.length) setDragCount(e.dataTransfer.items.length);
+      }}
+      onDragLeave={(e) => {
+        if (e.target === e.currentTarget) setDragCount(null);
+      }}
       onDrop={(e) => {
         e.preventDefault();
+        setDragCount(null);
         if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
       }}
       onDragOver={(e) => e.preventDefault()}
       onPaste={(e) => {
-        if (e.clipboardData.files?.length) handleFiles(e.clipboardData.files);
+        const item = Array.from(e.clipboardData.items || []).find((i) =>
+          i.type.startsWith('image/')
+        );
+        if (item) {
+          const file = item.getAsFile();
+          if (file) placeFromClipboard(file);
+        }
       }}
       onPointerDown={activeTool === 'pen' ? undefined : onPointerDown}
       onPointerMove={activeTool === 'pen' ? undefined : onPointerMove}
@@ -198,6 +221,7 @@ export default function CanvasStage() {
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />
       ))}
+      {dragCount !== null && <DropOverlay count={dragCount} />}
       <SVGLayer />
       <PathEditorOverlay />
       <ImageCropOverlay />

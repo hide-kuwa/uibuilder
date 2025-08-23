@@ -1,7 +1,7 @@
 'use client';
 import { TOP_BAR_HEIGHT } from '@/lib/layout/constants';
 import { useEditorStore } from '@/store/editorStore';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { BooleanOp } from '@/lib/vector/boolean';
 import { saveImage } from '@/lib/assets';
 
@@ -20,6 +20,7 @@ export default function TopBar() {
     const [replace, setReplace] = useState(false);
     const [toast, setToast] = useState(false);
     const fileInput = useRef<HTMLInputElement | null>(null);
+    const replaceInput = useRef<HTMLInputElement | null>(null);
 
     const handleFiles = async (files: FileList | null) => {
       if (!files) return;
@@ -28,6 +29,28 @@ export default function TopBar() {
         useEditorStore.getState().addImageNode(meta);
       }
     };
+
+    const handleReplace = async (files: FileList | null) => {
+      if (!files || selection.length === 0) return;
+      const file = files[0];
+      const meta = await saveImage(file);
+      const id = selection[selection.length - 1];
+      useEditorStore.getState().addImageAsset(meta);
+      useEditorStore.getState().replaceImageAsset(id, meta.id);
+    };
+
+    useEffect(() => {
+      const onKey = (e: KeyboardEvent) => {
+        if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'r') {
+          if (selection.length === 1) {
+            e.preventDefault();
+            replaceInput.current?.click();
+          }
+        }
+      };
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, [selection]);
 
     const run = (op: BooleanOp) => {
       const id = combine(op, selection, { replace });
@@ -55,6 +78,19 @@ export default function TopBar() {
             multiple
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
+          />
+          <button
+            disabled={selection.length !== 1}
+            onClick={() => replaceInput.current?.click()}
+          >
+            Replace
+          </button>
+          <input
+            ref={replaceInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleReplace(e.target.files)}
           />
           <button
             disabled={selection.length === 0}

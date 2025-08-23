@@ -85,3 +85,23 @@
 .path-anchor.selected {
   fill: #ffa500;
 }
+
+/* drag & drop overlay */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+  z-index: 50;
+}
+.drop-overlay .badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 9999px;
+  padding: 0 6px;
+  font-size: 12px;
+}
