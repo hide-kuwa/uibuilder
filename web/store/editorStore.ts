@@ -35,6 +35,8 @@ import { computeDominantColor } from "@/lib/color/dominant";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
+  setHover: (id: string | null) => void;
+  setPress: (id: string | null) => void;
   updateNode: (id: string, patch: Partial<ComponentNode>) => void;
   moveNode: (
     id: string,
@@ -252,6 +254,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         tree: [],
         selectedIds: [],
         hoverId: null,
+        pressId: null,
         camera: { x: 0, y: 0, zoom: 1 },
         meta: { version: 1, updatedAt: Date.now() },
         components: {},
@@ -275,6 +278,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         lastCommandId: undefined,
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
+        setHover(id) {
+          set({ hoverId: id });
+        },
+        setPress(id) {
+          set({ pressId: id });
+        },
         select(ids) {
           set((state) => ({
             selectedIds:

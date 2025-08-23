@@ -1,6 +1,6 @@
 'use client';
 import { useEditorStore } from '@/store/editorStore';
-import SelectionBox from './SelectionBox';
+import SelectionOutline from './SelectionOutline';
 import ResizeHandles from './ResizeHandles';
 import SVGLayer from './SVGLayer';
 import PathEditorOverlay from './PathEditorOverlay';
@@ -29,6 +29,10 @@ function NodeView({
   parentLayout?: string;
   parentAxis?: 'horizontal' | 'vertical';
 }) {
+  const hoverId = useEditorStore((s) => s.hoverId);
+  const pressId = useEditorStore((s) => s.pressId);
+  const setHover = useEditorStore((s) => s.setHover);
+  const setPress = useEditorStore((s) => s.setPress);
   if (node.type === 'Path') {
     return null;
   }
@@ -49,7 +53,11 @@ function NodeView({
       );
     }
   }
-  const style: any = {};
+  const style: any = {
+    transition: 'opacity var(--motion-fast) var(--easing-standard), transform var(--motion-fast) var(--easing-standard)',
+    opacity: hoverId === node.id ? 1 : 0.85,
+    transform: pressId === node.id ? 'scale(0.98)' : undefined,
+  };
   const layout = node.props?.layout || 'free';
   if (node.props?.visible === false) style.display = 'none';
   if (layout === 'auto') {
@@ -77,16 +85,41 @@ function NodeView({
     const asset = useEditorStore(
       (s) => (node.props as any).assetId && s.assets?.images[(node.props as any).assetId]
     );
+    const common = {
+      onPointerEnter: () => setHover(node.id),
+      onPointerLeave: () => {
+        setHover(null);
+        setPress(null);
+      },
+      onPointerDown: (e: React.PointerEvent) => {
+        setPress(node.id);
+        e.stopPropagation();
+      },
+      onPointerUp: () => setPress(null),
+    };
     return (
-      <div style={style}>
+      <div {...common} style={style}>
         {asset && <ImageView node={node as ImageNode} meta={asset} />}
       </div>
     );
   }
 
   if (layout === 'auto') {
+    const common = {
+      onPointerEnter: () => setHover(node.id),
+      onPointerLeave: () => {
+        setHover(null);
+        setPress(null);
+      },
+      onPointerDown: (e: React.PointerEvent) => {
+        setPress(node.id);
+        e.stopPropagation();
+      },
+      onPointerUp: () => setPress(null),
+    };
     return (
       <div
+        {...common}
         className="border border-gray-700 text-xs text-white"
         style={style}
       >
@@ -103,8 +136,21 @@ function NodeView({
       </div>
     );
   }
+  const common = {
+    onPointerEnter: () => setHover(node.id),
+    onPointerLeave: () => {
+      setHover(null);
+      setPress(null);
+    },
+    onPointerDown: (e: React.PointerEvent) => {
+      setPress(node.id);
+      e.stopPropagation();
+    },
+    onPointerUp: () => setPress(null),
+  };
   return (
     <div
+      {...common}
       className="border border-gray-700 text-xs text-white"
       style={style}
     >
@@ -136,6 +182,11 @@ export default function CanvasStage() {
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
 
   const [dragCount, setDragCount] = useState<number | null>(null);
+
+  const cursorMap: Record<string, string> = {
+    pen: 'crosshair',
+    crop: 'crosshair',
+  };
 
   const handleFiles = async (files: FileList) => {
     const metas = await saveImageMulti(files);
@@ -180,6 +231,7 @@ export default function CanvasStage() {
   return (
     <div
       className="relative bg-gray-900 overflow-hidden"
+      style={{ cursor: cursorMap[activeTool] || 'default' }}
       tabIndex={0}
       onWheel={(e) => {
         const act = wheelRouter(e);
@@ -232,7 +284,7 @@ export default function CanvasStage() {
       {prefs.showPixelGrid && (
         <div className="absolute inset-0 pointer-events-none pixel-grid" />
       )}
-      {selected.length === 1 && <SelectionBox />}
+      {selected.length === 1 && <SelectionOutline />}
       {selected.length === 1 && <ResizeHandles />}
       <div className="absolute top-2 right-2"><ZoomControls /></div>
     </div>
