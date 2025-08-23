@@ -21,11 +21,11 @@ export function resizeCrop(rect:Rect, handle:'n'|'ne'|'e'|'se'|'s'|'sw'|'w'|'nw'
   return normalizeCrop({ x, y, w, h }, natural);
 }
 export function worldToImage(pt:{x:number;y:number}, node:any){
-  const { w, h } = node.props;
+  const { x: nx, y: ny, w, h } = node.props;
   const crop = node.props.crop || { x:0, y:0, w:node.meta?.w||w, h:node.meta?.h||h };
   const scaleX = crop.w / w;
   const scaleY = crop.h / h;
-  return { x: pt.x * scaleX + crop.x, y: pt.y * scaleY + crop.y };
+  return { x: (pt.x - nx) * scaleX + crop.x, y: (pt.y - ny) * scaleY + crop.y };
 }
 export function imageToWorld(pt:{x:number;y:number}, node:any){
   const { x: nx, y: ny, w, h } = node.props;

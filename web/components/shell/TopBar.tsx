@@ -68,6 +68,9 @@ export default function TopBar() {
           >
             Crop
           </button>
+          {activeTool === 'crop' && (
+            <span className="text-xs">Enter to confirm / Esc to cancel</span>
+          )}
           <button>Align</button>
           <button
             disabled={selection.length === 0}
