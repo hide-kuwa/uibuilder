@@ -12,6 +12,9 @@ import type {
   Anchor,
   CommentThread,
   Camera,
+  PathNode,
+  PathPoint,
+  PathProps,
 } from '@/types/editor';
 import { idbStorage } from '@/lib/idb';
 import { push, undo as undoStack, redo as redoStack } from './undoRedo';
@@ -103,6 +106,11 @@ interface EditorActions {
   ) => void;
   setReviewStatus: (s: ReviewStatus) => void;
   toggleRequireApprovedToShare: () => void;
+  // Vector
+  addPath: (path: PathNode) => void;
+  updatePathProps: (id: string, patch: Partial<PathProps>) => void;
+  selectPath: (id: string | null, pointIds?: string[]) => void;
+  setPoints: (id: string, pts: PathPoint[]) => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -149,6 +157,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         meta: { version: 1, updatedAt: Date.now() },
         components: {},
         guides: [],
+        vector: { selection: {} },
         ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
         prefs: { showLayoutGrid: false, showPixelGrid: false, snapToPixel: true },
         lastCommandId: undefined,
@@ -633,6 +642,33 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               requireApprovedToShare: !state.review.requireApprovedToShare,
             },
           }));
+        },
+        addPath(path) {
+          apply((draft) => {
+            draft.tree.push(path);
+          });
+        },
+        updatePathProps(id, patch) {
+          apply((draft) => {
+            const node = findNode(draft.tree, id) as PathNode | null;
+            if (node && node.type === 'Path') {
+              node.props = { ...(node.props || {}), ...patch };
+            }
+          });
+        },
+        selectPath(id, pointIds) {
+          set((state) => ({
+            selectedIds: id ? [id] : [],
+            vector: { selection: { pathId: id || undefined, pointIds } },
+          }));
+        },
+        setPoints(id, pts) {
+          apply((draft) => {
+            const node = findNode(draft.tree, id) as PathNode | null;
+            if (node && node.type === 'Path') {
+              node.points = pts;
+            }
+          });
         },
         undo() {
           set((state) => undoStack(state));
