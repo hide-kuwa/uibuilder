@@ -1,5 +1,10 @@
 export type Command =
   | 'select'
+  | 'tool.pen'
+  | 'tool.select'
+  | 'path.confirm'
+  | 'path.cancel'
+  | 'path.deleteLast'
   | 'frame'
   | 'rect'
   | 'text'
@@ -38,12 +43,15 @@ export type Command =
   | 'nudge.big.right';
 
 const map: Record<string, Command> = {
-  KeyV: 'select',
+  KeyP: 'tool.pen',
+  KeyV: 'tool.select',
+  Enter: 'path.confirm',
+  Escape: 'path.cancel',
+  Backspace: 'path.deleteLast',
   KeyF: 'frame',
   KeyR: 'rect',
   KeyT: 'text',
   Delete: 'delete',
-  Backspace: 'delete',
 };
 
 export function getCommand(e: KeyboardEvent): Command | undefined {

@@ -9,6 +9,7 @@ import ShareButton from './ShareButton';
 import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
 import { COMMANDS } from '@/lib/commands';
+import { useEditorStore } from '@/store/editorStore';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -18,6 +19,31 @@ export default function EditorShell() {
     const handler = (e: KeyboardEvent) => {
       const cmd = getCommand(e);
       if (!cmd) return;
+      if (cmd === 'tool.pen') {
+        e.preventDefault();
+        useEditorStore.getState().startPen();
+        return;
+      }
+      if (cmd === 'tool.select') {
+        e.preventDefault();
+        useEditorStore.getState().cancelPen();
+        return;
+      }
+      if (cmd === 'path.confirm') {
+        e.preventDefault();
+        useEditorStore.getState().closePath();
+        return;
+      }
+      if (cmd === 'path.cancel') {
+        e.preventDefault();
+        useEditorStore.getState().cancelPen();
+        return;
+      }
+      if (cmd === 'path.deleteLast') {
+        e.preventDefault();
+        useEditorStore.getState().deleteLast();
+        return;
+      }
       if (cmd === 'commandPalette') {
         e.preventDefault();
         setPaletteOpen(true);
