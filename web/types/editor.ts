@@ -133,6 +133,7 @@ export interface PathNode extends ComponentNode {
   type: "Path";
   closed: boolean;
   points: PathPoint[];
+  subpaths?: PathPoint[][];
   props?: ComponentNode["props"] & PathProps;
 }
 
