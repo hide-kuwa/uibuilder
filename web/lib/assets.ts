@@ -52,6 +52,18 @@ export async function saveImage(file: Blob): Promise<AssetMeta> {
   return meta;
 }
 
+export async function saveImageMulti(
+  files: Iterable<Blob>,
+): Promise<AssetMeta[]> {
+  const metas: AssetMeta[] = [];
+  for (const f of Array.from(files)) {
+    // sequentially process to avoid blocking main thread too much
+    const meta = await saveImage(f);
+    metas.push(meta);
+  }
+  return metas;
+}
+
 export async function loadImage(id: string): Promise<Blob | null> {
   const row = await db.images.get(id);
   return row ? row.blob : null;

@@ -30,6 +30,7 @@ import {
   booleanCombine as combinePolys,
   BooleanOp,
 } from "@/lib/vector/boolean";
+import { saveImage } from "@/lib/assets";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -48,6 +49,16 @@ interface EditorActions {
   removeImageAsset: (id: string) => void;
   addImageNode: (meta: AssetMeta, opts?: { x?: number; y?: number }) => string;
   updateImageNode: (id: string, patch: Partial<ImageProps>) => void;
+  replaceImageAsset: (
+    nodeId: string,
+    newAssetId: string,
+    opts?: { preserveCrop?: boolean; fitPolicy?: 'keep' | 'cover' | 'contain' },
+  ) => void;
+  placeImages: (
+    assets: { id: string; w: number; h: number }[],
+    opts?: { grid?: { cols?: number; gap?: number }; start?: { x: number; y: number } },
+  ) => string[];
+  placeFromClipboard: (blob: Blob) => Promise<string>;
   undo: () => void;
   redo: () => void;
   makeAutoLayout: (frameId?: string) => void;
@@ -374,6 +385,58 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               node.props = { ...node.props, ...patch } as ImageProps;
             }
           });
+        },
+        replaceImageAsset(nodeId, newAssetId) {
+          apply((draft) => {
+            const node = findNode(draft.tree, nodeId) as ImageNode | null;
+            if (node && node.type === "Image") {
+              if (node.props) (node.props as any).assetId = newAssetId;
+            }
+          });
+        },
+        placeImages(assets, opts) {
+          const ids: string[] = [];
+          const cols = opts?.grid?.cols ?? 4;
+          const gap = opts?.grid?.gap ?? 16;
+          const rect = get().getViewportRect();
+          const startX = opts?.start?.x ?? rect.x;
+          const startY = opts?.start?.y ?? rect.y;
+          apply((draft) => {
+            draft.assets = draft.assets || { images: {} };
+            assets.forEach((meta, i) => {
+              draft.assets.images[meta.id] = meta;
+              const short = Math.min(meta.w, meta.h);
+              const scale = 240 / short;
+              const w = meta.w * scale;
+              const h = meta.h * scale;
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              const x = startX + col * (w + gap);
+              const y = startY + row * (h + gap);
+              const id = uuid();
+              const node: ImageNode = {
+                id,
+                type: "Image",
+                props: {
+                  x,
+                  y,
+                  w,
+                  h,
+                  assetId: meta.id,
+                  fit: "contain",
+                  position: { x: 0.5, y: 0.5 },
+                },
+              };
+              draft.tree.push(node);
+              ids.push(id);
+            });
+            if (ids.length) draft.selectedIds = [ids[ids.length - 1]];
+          });
+          return ids;
+        },
+        async placeFromClipboard(blob) {
+          const meta = await saveImage(blob);
+          return get().addImageNode(meta);
         },
         makeAutoLayout(frameId) {
           apply((draft) => {
