@@ -108,6 +108,25 @@ export interface Guide {
   label?: string;
 }
 
+export interface PathPoint {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface PathProps {
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+}
+
+export interface PathNode extends ComponentNode {
+  type: 'Path';
+  closed: boolean;
+  points: PathPoint[];
+  props?: ComponentNode['props'] & PathProps;
+}
+
 export interface ComponentNode {
   id: string;
   type: string; // 'Frame' | 'Rect' | 'Text' | 'Instance' etc
@@ -169,6 +188,9 @@ export interface EditorState {
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDefinition>;
   guides: Guide[];
+  vector?: {
+    selection?: { pathId?: string; pointIds?: string[] };
+  };
   ui?: {
     showRulers?: boolean;
     showGuides?: boolean;

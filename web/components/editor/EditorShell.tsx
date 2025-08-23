@@ -1,7 +1,7 @@
 'use client';
 import LeftPanel from './LeftPanel';
 import CanvasStage from './CanvasStage';
-import RightInspector from './RightInspector';
+import RightPane from './RightPane';
 import CommandPalette from './CommandPalette';
 import ContextMenu from './ContextMenu';
 import ExportDialog from './ExportDialog';
@@ -45,7 +45,7 @@ export default function EditorShell() {
         <div className="absolute top-2 right-2 z-10"><ShareButton /></div>
         <CanvasStage />
       </div>
-      <RightInspector />
+      <RightPane />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
       <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />

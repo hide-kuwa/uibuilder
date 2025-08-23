@@ -2,7 +2,9 @@
 import { useEditorStore } from '@/store/editorStore';
 import SelectionBox from './SelectionBox';
 import ResizeHandles from './ResizeHandles';
-import type { ComponentNode, InstanceNode } from '@/types/editor';
+import SVGLayer from './SVGLayer';
+import PathEditorOverlay from './PathEditorOverlay';
+import type { ComponentNode, InstanceNode, PathNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
@@ -22,6 +24,9 @@ function NodeView({
   parentLayout?: string;
   parentAxis?: 'horizontal' | 'vertical';
 }) {
+  if (node.type === 'Path') {
+    return null;
+  }
   if (node.type === 'Instance') {
     const inst = node as InstanceNode;
     const def = components[inst.componentId];
@@ -162,6 +167,8 @@ export default function CanvasStage() {
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />
       ))}
+      <SVGLayer />
+      <PathEditorOverlay />
       {prefs.showLayoutGrid && (
         <div className="absolute inset-0 pointer-events-none layout-grid" />
       )}
