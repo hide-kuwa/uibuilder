@@ -105,6 +105,7 @@ export default function CanvasStage() {
   const tree = useEditorStore((s) => s.tree);
   const selected = useEditorStore((s) => s.selectedIds);
   const components = useEditorStore((s) => s.components);
+  const prefs = useEditorStore((s) => s.prefs || {});
 
   const panning = useRef(false);
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
@@ -161,6 +162,12 @@ export default function CanvasStage() {
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />
       ))}
+      {prefs.showLayoutGrid && (
+        <div className="absolute inset-0 pointer-events-none layout-grid" />
+      )}
+      {prefs.showPixelGrid && (
+        <div className="absolute inset-0 pointer-events-none pixel-grid" />
+      )}
       {selected.length === 1 && <SelectionBox />}
       {selected.length === 1 && <ResizeHandles />}
       <div className="absolute top-2 right-2"><ZoomControls /></div>

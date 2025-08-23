@@ -54,6 +54,24 @@ export const COMMANDS: Command[] = [
     run: () => useEditorStore.getState().toggleOutline(),
   },
   {
+    id: 'view.toggleLayoutGrid',
+    label: 'Toggle Layout Grid',
+    shortcut: 'Ctrl+Shift+G',
+    run: () => useEditorStore.getState().toggleLayoutGrid(),
+  },
+  {
+    id: 'view.togglePixelGrid',
+    label: 'Toggle Pixel Grid',
+    shortcut: "Ctrl+'",
+    run: () => useEditorStore.getState().togglePixelGrid(),
+  },
+  {
+    id: 'view.toggleSnapToPixel',
+    label: 'Toggle Snap To Pixel',
+    shortcut: 'Ctrl+Shift+P',
+    run: () => useEditorStore.getState().toggleSnapToPixel(),
+  },
+  {
     id: 'export',
     label: 'Export',
     shortcut: 'Ctrl+Shift+E',
