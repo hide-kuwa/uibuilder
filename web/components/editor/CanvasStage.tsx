@@ -6,6 +6,7 @@ import SVGLayer from './SVGLayer';
 import PathEditorOverlay from './PathEditorOverlay';
 import PenTool from './tools/PenTool';
 import ImageView from './ImageView';
+import ImageCropOverlay from './ImageCropOverlay';
 import type { ComponentNode, InstanceNode, PathNode, ImageNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
@@ -199,6 +200,7 @@ export default function CanvasStage() {
       ))}
       <SVGLayer />
       <PathEditorOverlay />
+      <ImageCropOverlay />
       {activeTool === 'pen' && <PenTool />}
       {prefs.showLayoutGrid && (
         <div className="absolute inset-0 pointer-events-none layout-grid" />

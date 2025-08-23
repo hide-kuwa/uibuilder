@@ -1,3 +1,5 @@
+import { useEditorStore } from '@/store/editorStore';
+
 export type Command =
   | 'select'
   | 'tool.pen'
@@ -55,6 +57,7 @@ const map: Record<string, Command> = {
 };
 
 export function getCommand(e: KeyboardEvent): Command | undefined {
+  if (useEditorStore.getState().ui?.activeTool === 'crop') return undefined;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.altKey) {
     if (e.code === 'KeyK') return 'createComponent';
