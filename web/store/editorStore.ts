@@ -111,6 +111,11 @@ interface EditorActions {
   updatePathProps: (id: string, patch: Partial<PathProps>) => void;
   selectPath: (id: string | null, pointIds?: string[]) => void;
   setPoints: (id: string, pts: PathPoint[]) => void;
+  startPen: () => void;
+  placePoint: (pt: { x: number; y: number }) => void;
+  deleteLast: () => void;
+  closePath: () => void;
+  cancelPen: () => void;
 }
 
 function findNode(nodes: ComponentNode[], id: string): ComponentNode | null {
@@ -140,6 +145,12 @@ function findNodeWithParent(
   return null;
 }
 
+function uuid() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+}
+
 export const useEditorStore = create<EditorState & EditorActions>()(
   persist(
     (set, get) => {
@@ -158,7 +169,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         components: {},
         guides: [],
         vector: { selection: {} },
-        ui: { showRulers: false, showGuides: true, showSmartGuides: true, showOutline: false },
+        ui: {
+          showRulers: false,
+          showGuides: true,
+          showSmartGuides: true,
+          showOutline: false,
+          activeTool: 'select',
+        },
         prefs: { showLayoutGrid: false, showPixelGrid: false, snapToPixel: true },
         lastCommandId: undefined,
         review: { status: 'DRAFT', requireApprovedToShare: false },
@@ -669,6 +686,74 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               node.points = pts;
             }
           });
+        },
+        startPen() {
+          set((state) => ({
+            ui: { ...(state.ui || {}), activeTool: 'pen' },
+            vector: { ...(state.vector || {}), draft: undefined },
+          }));
+        },
+        placePoint(pt) {
+          apply((draft) => {
+            draft.vector = draft.vector || {};
+            if (!draft.vector.draft) {
+              draft.vector.draft = { pathId: uuid(), points: [] };
+            }
+            const d = draft.vector.draft;
+            const last = d.points[d.points.length - 1];
+            if (!last || last.x !== pt.x || last.y !== pt.y) {
+              d.points.push({ id: uuid(), x: pt.x, y: pt.y });
+            }
+          });
+        },
+        deleteLast() {
+          apply((draft) => {
+            const d = draft.vector?.draft;
+            if (d) {
+              d.points.pop();
+              if (d.points.length === 0) draft.vector!.draft = undefined;
+            }
+          });
+        },
+        closePath() {
+          apply((draft) => {
+            const d = draft.vector?.draft;
+            if (!d) return;
+            if (d.points.length < 2) {
+              draft.vector!.draft = undefined;
+              draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+              return;
+            }
+            const pts = d.points;
+            const first = pts[0];
+            const last = pts[pts.length - 1];
+            const threshold = 6 / draft.camera.zoom;
+            const dist = Math.hypot(last.x - first.x, last.y - first.y);
+            const closed = dist <= threshold;
+            if (closed) {
+              last.x = first.x;
+              last.y = first.y;
+              if (pts.length > 1 && pts[pts.length - 1].id !== first.id) {
+                pts.pop();
+              }
+            }
+            draft.tree.push({
+              id: d.pathId,
+              type: 'Path',
+              closed,
+              points: pts,
+              props: { stroke: '#ffffff', fill: 'none', strokeWidth: 1 },
+            });
+            draft.selectedIds = [d.pathId];
+            draft.vector = { selection: { pathId: d.pathId } };
+            draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+          });
+        },
+        cancelPen() {
+          set((state) => ({
+            ui: { ...(state.ui || {}), activeTool: 'select' },
+            vector: { ...(state.vector || {}), draft: undefined },
+          }));
         },
         undo() {
           set((state) => undoStack(state));

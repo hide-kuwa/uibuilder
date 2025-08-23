@@ -4,6 +4,7 @@ import SelectionBox from './SelectionBox';
 import ResizeHandles from './ResizeHandles';
 import SVGLayer from './SVGLayer';
 import PathEditorOverlay from './PathEditorOverlay';
+import PenTool from './tools/PenTool';
 import type { ComponentNode, InstanceNode, PathNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
@@ -111,6 +112,7 @@ export default function CanvasStage() {
   const selected = useEditorStore((s) => s.selectedIds);
   const components = useEditorStore((s) => s.components);
   const prefs = useEditorStore((s) => s.prefs || {});
+  const activeTool = useEditorStore((s) => s.ui?.activeTool || 'select');
 
   const panning = useRef(false);
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
@@ -160,15 +162,16 @@ export default function CanvasStage() {
           });
         e.preventDefault();
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      onPointerDown={activeTool === 'pen' ? undefined : onPointerDown}
+      onPointerMove={activeTool === 'pen' ? undefined : onPointerMove}
+      onPointerUp={activeTool === 'pen' ? undefined : onPointerUp}
     >
       {tree.map((n) => (
         <NodeView key={n.id} node={n} components={components} />
       ))}
       <SVGLayer />
       <PathEditorOverlay />
+      {activeTool === 'pen' && <PenTool />}
       {prefs.showLayoutGrid && (
         <div className="absolute inset-0 pointer-events-none layout-grid" />
       )}

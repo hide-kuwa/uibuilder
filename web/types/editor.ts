@@ -190,12 +190,14 @@ export interface EditorState {
   guides: Guide[];
   vector?: {
     selection?: { pathId?: string; pointIds?: string[] };
+    draft?: { pathId: string; points: PathPoint[] };
   };
   ui?: {
     showRulers?: boolean;
     showGuides?: boolean;
     showSmartGuides?: boolean;
     showOutline?: boolean;
+    activeTool?: 'select' | 'pen';
   };
   prefs?: {
     showLayoutGrid?: boolean;
