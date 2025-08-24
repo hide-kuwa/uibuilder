@@ -31,6 +31,8 @@ import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariant } from "@/lib/variantResolver";
+import { applyOverrides } from "@/lib/overrideMerge";
+import { migrateOverrides } from "@/lib/override/compat";
 import { resolveOverrides } from "@/lib/override/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
 import { reflectHandle } from "@/lib/vector/bezier";
@@ -98,6 +100,7 @@ interface EditorActions {
   placeInstance: (componentId: string, pos?: { x: number; y: number }) => void;
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
+  swapInstanceDef: (nodeId: string, newDefId: string) => void;
   // v3 additions
   align: (
     kind: "left" | "right" | "top" | "bottom" | "centerH" | "centerV",
@@ -663,6 +666,28 @@ export const useEditorStore = create<
               Object.entries(def.axes).forEach(([k, vals]) => {
                 if (!inst.variant![k]) inst.variant![k] = vals[0];
               });
+            }
+          });
+        },
+        swapInstanceDef(nodeId, newDefId) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            const prev = draft.components[inst.componentId];
+            const next = draft.components[newDefId];
+            if (!prev || !next) return;
+            inst.overrides = migrateOverrides(inst.overrides, prev, next);
+            inst.componentId = newDefId;
+            if (next?.axes) {
+              inst.variant = inst.variant || {};
+              Object.keys(inst.variant).forEach((k) => {
+                if (!next.axes || !next.axes[k]) delete inst.variant![k];
+              });
+              Object.entries(next.axes).forEach(([k, vals]) => {
+                if (!inst.variant![k]) inst.variant![k] = vals[0];
+              });
+            } else {
+              delete inst.variant;
             }
           });
         },
