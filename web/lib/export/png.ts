@@ -1,21 +1,9 @@
-import { toPng } from 'html-to-image';
-import type { ExportScope, ExportOptions } from './index';
+import type { TextNode } from '@/types/editor';
+import { renderTextToCanvas } from './text';
 
-function getTargetElement(_scope: ExportScope): HTMLElement {
-  // Placeholder: export entire document body
-  return document.body as HTMLElement;
-}
-
-export async function exportPNG(scope: ExportScope, opts: ExportOptions = {}): Promise<Blob> {
-  const el = getTargetElement(scope);
-  const dataUrl = await toPng(el, {
-    cacheBust: true,
-    pixelRatio: opts.scale ?? 1,
-    backgroundColor:
-      opts.background && opts.background !== 'transparent'
-        ? opts.background.color
-        : undefined,
+export async function exportPNG(node: TextNode, opts: { dpr?: number } = {}): Promise<Blob> {
+  const canvas = renderTextToCanvas(node, { dpr: opts.dpr });
+  return await new Promise<Blob>((resolve) => {
+    canvas.toBlob((b) => resolve(b!), 'image/png');
   });
-  const res = await fetch(dataUrl);
-  return await res.blob();
 }

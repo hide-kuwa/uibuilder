@@ -1,10 +1,7 @@
-import { serialize } from '../serialize';
-import { useEditorStore } from '@/store/editorStore';
-import type { ExportScope, ExportOptions } from './index';
+import type { TextNode } from '@/types/editor';
+import { renderTextToHTML } from './text';
 
-export async function exportHTML(_scope: ExportScope, _opts: ExportOptions = {}): Promise<{ html: string }> {
-  const state = useEditorStore.getState();
-  const data = JSON.stringify(serialize(state));
-  const html = `<!DOCTYPE html><html><head></head><body><pre>${data}</pre></body></html>`;
+export async function exportHTML(node: TextNode, opts: { dpr?: number } = {}): Promise<{ html: string }> {
+  const html = renderTextToHTML(node, opts);
   return { html };
 }
