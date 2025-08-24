@@ -3,7 +3,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useEditorStore } from "@/store/editorStore";
-import type { InstanceNode, ComponentProp, VariantPropDef } from "@/types/editor";
+import type {
+  InstanceNode,
+  ComponentProp,
+  VariantPropDef,
+  PrototypeLink,
+} from "@/types/editor";
 import { mapNodesForSwap } from "@/lib/override/compat";
 import { listOverridable } from "@/lib/override/util";
 import { findNode } from "@/lib/tree";
@@ -23,6 +28,29 @@ export default function RightPane() {
   const clearOverride = useEditorStore((s) => s.clearOverride);
   const clearAllOverrides = useEditorStore((s) => s.clearAllOverrides);
   const tree = useEditorStore((s) => s.tree);
+  const updateNode = useEditorStore((s) => s.updateNode);
+  const frames = useEditorStore((s) => s.tree.filter((n) => n.type === "Frame"));
+  const link = inst.prototypeLink;
+  const [linkKind, setLinkKind] = useState(link?.kind || "");
+  const [linkTarget, setLinkTarget] = useState(link?.targetId || "");
+  useEffect(() => {
+    setLinkKind(link?.kind || "");
+    setLinkTarget(link?.targetId || "");
+  }, [link?.kind, link?.targetId]);
+  const handleKindChange = (k: string) => {
+    setLinkKind(k);
+    if (!k) updateNode(inst.id, { prototypeLink: undefined });
+    else
+      updateNode(inst.id, {
+        prototypeLink: { kind: k as PrototypeLink["kind"], targetId: linkTarget },
+      });
+  };
+  const handleTargetChange = (t: string) => {
+    setLinkTarget(t);
+    updateNode(inst.id, {
+      prototypeLink: { kind: linkKind as PrototypeLink["kind"], targetId: t },
+    });
+  };
 
   const overrideTargets = useMemo(() => {
     if (!component) return [] as { id: string; type: string; name?: string }[];
@@ -219,6 +247,33 @@ export default function RightPane() {
         >
           Swap
         </button>
+      </div>
+
+      <div>
+        <div className="font-bold">Link</div>
+        <select
+          className="w-full bg-gray-700 p-1 text-white"
+          value={linkKind}
+          onChange={(e) => handleKindChange(e.target.value)}
+        >
+          <option value="">None</option>
+          <option value="navigate">Link To</option>
+          <option value="overlay">Overlay</option>
+          <option value="back">Back</option>
+        </select>
+        {(linkKind === "navigate" || linkKind === "overlay") && (
+          <select
+            className="w-full bg-gray-700 p-1 text-white mt-1"
+            value={linkTarget}
+            onChange={(e) => handleTargetChange(e.target.value)}
+          >
+            {frames.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name || f.id}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div>
