@@ -10,6 +10,8 @@ export default function TopBar() {
     const togglePreferences = useEditorStore((s) => s.togglePreferences);
     const selection = useEditorStore((s) => s.selectedIds);
     const tree = useEditorStore((s) => s.tree);
+  const createComponent = useEditorStore((s) => s.createComponent);
+  const detachInstance = useEditorStore((s) => s.detachInstance);
   const toggleMask = useEditorStore((s) => s.toggleMask);
   const combine = useEditorStore((s) => s.booleanCombine);
   const startCrop = useEditorStore((s) => s.startCrop);
@@ -71,6 +73,18 @@ export default function TopBar() {
       </div>
         <div className="flex items-center gap-4">
           <button>Group</button>
+          <button
+            disabled={selection.length !== 1}
+            onClick={() => createComponent()}
+          >
+            Create Component
+          </button>
+          <button
+            disabled={selection.length !== 1}
+            onClick={() => detachInstance(selection[0])}
+          >
+            Detach
+          </button>
           <button onClick={() => window.dispatchEvent(new CustomEvent('uibuilder:export'))}>
             Export
           </button>

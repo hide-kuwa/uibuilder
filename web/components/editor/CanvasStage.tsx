@@ -9,6 +9,7 @@ import ImageView from './ImageView';
 import TextView from './TextView';
 import TextEditor from './TextEditor';
 import ImageCropOverlay from './ImageCropOverlay';
+import InstanceView from './InstanceView';
 import type { ComponentNode, InstanceNode, PathNode, ImageNode, TextNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
@@ -56,6 +57,20 @@ function NodeView({
         />
       );
     }
+    return (
+      <InstanceView
+        node={inst}
+        components={components}
+        render={(resolved) => (
+          <NodeView
+            node={resolved}
+            components={components}
+            parentLayout={parentLayout}
+            parentAxis={parentAxis}
+          />
+        )}
+      />
+    );
   }
   const style: any = {
     transition: 'opacity var(--motion-fast) var(--easing-standard), transform var(--motion-fast) var(--easing-standard)',

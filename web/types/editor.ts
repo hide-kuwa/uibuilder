@@ -376,6 +376,9 @@ export interface OverrideMap {
   visible?: Record<string, boolean>;
   style?: Record<string, { fill?: string; stroke?: string }>;
 }
+// v10-1 component definitions
+export type ComponentDef = ComponentDefinition;
+export type OverrideMap = Record<string, any>;
 
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
