@@ -1,7 +1,8 @@
 'use client'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useEditorStore } from '@/store/editorStore'
 import { extractTokensFromTree, tokensToJSON, tokensToTS } from '@/lib/export/tokens'
+import { buildAssetMapJSON } from '@/lib/export'
 
 /**
  * v12-2: Design Tokens Export Panel
@@ -10,6 +11,8 @@ import { extractTokensFromTree, tokensToJSON, tokensToTS } from '@/lib/export/to
 export default function TokensExportPanel() {
   const tree = useEditorStore((s) => s.tree)
   const tokens = useMemo(() => extractTokensFromTree(tree), [tree])
+  const [assetStats, setAssetStats] = useState<{ total: number; unique: number; duplicates: number } | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const download = (filename: string, content: string, type = 'application/json') => {
     const blob = new Blob([content], { type })
@@ -21,6 +24,19 @@ export default function TokensExportPanel() {
     a.click()
     URL.revokeObjectURL(url)
     a.remove()
+  }
+
+  const handleDownloadAssetMap = async () => {
+    try {
+      setBusy(true)
+      const { json, map } = await buildAssetMapJSON(tree)
+      download('asset-map.json', json)
+      setAssetStats(map.stats)
+    } catch {
+      // no-op
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -77,6 +93,33 @@ export default function TokensExportPanel() {
               {tokens.spacing.space.join(', ') || '—'}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* v12-3: Asset Map */}
+      <div className="rounded-lg border border-zinc-700 p-3 bg-zinc-900/50">
+        <div className="text-sm font-medium mb-2">Asset Map</div>
+        <p className="text-xs text-zinc-400 mb-3">
+          画像アセットをハッシュで重複判定し、参照先一覧とともに <code>asset-map.json</code> を出力します。
+          <br />
+          <span className="text-[11px]">
+            data:URL は <b>SHA-256</b>、それ以外のURLは <b>FNV-1a(文字列)</b> でハッシュ化（MVP）。
+          </span>
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm disabled:opacity-60"
+            onClick={handleDownloadAssetMap}
+            disabled={busy}
+          >
+            {busy ? 'Building…' : 'Build & Download Map'}
+          </button>
+          {assetStats && (
+            <span className="text-xs text-zinc-400">
+              total: {assetStats.total} / unique: {assetStats.unique}{' '}
+              {assetStats.duplicates > 0 && <>(dup: {assetStats.duplicates})</>}
+            </span>
+          )}
         </div>
       </div>
     </div>
