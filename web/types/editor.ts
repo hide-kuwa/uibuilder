@@ -358,6 +358,7 @@ export interface EditorState {
     draft?: { anchor?: Anchor; text?: string };
     filter?: { status?: ThreadStatus[]; onlySelection?: boolean };
   };
+  variantSets: Record<string, VariantSet>;
 }
 
 // Component Props (ユーザー定義プロパティ)
@@ -369,17 +370,27 @@ export interface ComponentProp {
 }
 
 // Variant Props & Definitions
-export type VariantProps = Record<string, string>;
+export type VariantPropType = 'TEXT' | 'BOOLEAN' | 'NUMBER' | 'ENUM'
+
+export interface VariantPropDef {
+  name: string
+  type: VariantPropType
+  options?: string[]
+  default?: string | number | boolean
+}
 
 export interface VariantDef {
-  id: string;
-  props: VariantProps;
-  root: ComponentNode;
+  id: string
+  name: string
+  props: Record<string, string | number | boolean>
+  rootId: string
 }
 
 export interface VariantSet {
-  props: Record<string, string[]>;
-  defs: VariantDef[];
+  id: string
+  defId: string
+  propDefs: VariantPropDef[]
+  variants: VariantDef[]
 }
 
 export interface ComponentDefinition {
@@ -401,7 +412,7 @@ export interface ComponentDefinition {
     node: string;
     patch: Partial<ComponentNode>;
   }>;
-  variantSet?: VariantSet; // variant 設定
+  variantSetId?: string; // variant 設定
 }
 export type ComponentDef = ComponentDefinition;
 
@@ -419,7 +430,7 @@ export interface InstanceNode extends FrameNode {
   defId: string;
   /** legacy alias */
   componentId?: string;
-  variant?: VariantProps; // バリアント
+  variantProps?: Record<string, string | number | boolean>; // バリアント
   overrides?: OverrideMap; // オーバーライド
   propValues?: Record<string, any>; // ComponentProp の値
 }
