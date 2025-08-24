@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { findNode } from '@/lib/tree';
 import type { ComponentNode, InstanceNode, PrototypeLink } from '@/types/editor';
@@ -7,6 +7,7 @@ import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import { resolveBinding } from '@/lib/binding/resolve';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
+import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
 
 function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
   const components = useEditorStore((s) => s.components);
@@ -67,6 +68,11 @@ export default function Player() {
   const frames = tree;
   const [history, setHistory] = useState<string[]>(() => (frames[0] ? [frames[0].id] : []));
   const [overlay, setOverlay] = useState<string | null>(null);
+  const [tr, setTr] = useState<
+    | { fromId: string; toId: string; kind: 'instant' | 'dissolve'; t0: number; dur: number }
+    | null
+  >(null);
+  const rafRef = useRef<number | null>(null);
   const currentId = history[history.length - 1];
   const current = findNode(tree, currentId) as ComponentNode | null;
 
@@ -84,19 +90,29 @@ export default function Player() {
 
   const currentIndex = Math.max(0, frames.findIndex((f) => f.id === currentId));
 
-  const doBack = () => {
+  const doBack = (kind: 'instant' | 'dissolve' = 'dissolve') => {
     if (overlay) setOverlay(null);
-    else setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h));
+    else
+      setHistory((h) => {
+        if (h.length <= 1) return h;
+        startTransition(h[h.length - 1], h[h.length - 2], kind);
+        return h.slice(0, -1);
+      });
   };
 
-  const goForward = () => {
+  const goForward = (kind: 'instant' | 'dissolve') => {
     if (overlay) {
       setOverlay(null);
       return;
     }
     const nav = activeLinks.find((x) => x.link.kind === 'navigate' && x.link.targetId);
     if (nav?.link.targetId) {
-      setHistory((h) => [...h, nav.link.targetId!]);
+      setHistory((h) => {
+        const fromId = h[h.length - 1];
+        const anim = nav.link.animation === 'instant' ? 'instant' : kind;
+        startTransition(fromId, nav.link.targetId!, anim);
+        return [...h, nav.link.targetId!];
+      });
       return;
     }
     const ov = activeLinks.find((x) => x.link.kind === 'overlay' && x.link.targetId);
@@ -106,23 +122,56 @@ export default function Player() {
     }
     const idx = frames.findIndex((f) => f.id === currentId);
     const next = frames[(idx + 1) % frames.length];
-    if (next) setHistory((h) => [...h, next.id]);
+    if (next)
+      setHistory((h) => {
+        const fromId = h[h.length - 1];
+        startTransition(fromId, next.id, kind);
+        return [...h, next.id];
+      });
   };
 
   const handleLink = (l: PrototypeLink) => {
-    if (l.kind === 'navigate') setHistory((h) => [...h, l.targetId]);
+    if (l.kind === 'navigate')
+      setHistory((h) => {
+        const fromId = h[h.length - 1];
+        const anim = l.animation === 'instant' ? 'instant' : 'dissolve';
+        startTransition(fromId, l.targetId, anim);
+        return [...h, l.targetId];
+      });
     else if (l.kind === 'overlay') setOverlay(l.targetId);
-    else if (l.kind === 'back') doBack();
+    else if (l.kind === 'back') doBack(l.animation === 'instant' ? 'instant' : 'dissolve');
   };
+
+  function startTransition(fromId: string, toId: string, kind: 'instant' | 'dissolve') {
+    if (kind === 'instant') {
+      setTr(null);
+      return;
+    }
+    try {
+      const fromNode = findNode(tree, fromId);
+      const toNode = findNode(tree, toId);
+      if (fromNode && toNode) {
+        const before = buildPoseMap(fromNode);
+        const after = buildPoseMap(toNode);
+        // Future use: per-node interpolation
+        void diffPoses(before, after);
+      }
+    } catch {
+      // ignore errors
+    }
+    setTr({ fromId, toId, kind, t0: performance.now(), dur: 200 });
+  }
+
+  const progress = useTransitionProgress(tr);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
         e.preventDefault();
-        doBack();
+        doBack('dissolve');
       } else if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
-        goForward();
+        goForward('dissolve');
       }
     };
     window.addEventListener('keydown', onKey);
@@ -138,10 +187,17 @@ export default function Player() {
         index={currentIndex}
         total={frames.length}
         overlayOpen={!!overlay}
-        onBack={doBack}
-        onForward={goForward}
+        onBack={() => doBack('dissolve')}
+        onForward={() => goForward('dissolve')}
       />
-      <NodeRenderer node={current} onLink={handleLink} />
+      {tr && tr.kind === 'dissolve' && (
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 1 - progress }}>
+          <NodeRenderer node={findNode(tree, tr.fromId)!} onLink={handleLink} />
+        </div>
+      )}
+      <div className="absolute inset-0" style={{ opacity: tr?.kind === 'dissolve' ? progress : 1 }}>
+        <NodeRenderer node={current} onLink={handleLink} />
+      </div>
       {overlay && (
         <div
           className="absolute inset-0 bg-black/50 flex items-center justify-center"
@@ -154,4 +210,29 @@ export default function Player() {
       )}
     </div>
   );
+}
+
+function useTransitionProgress(tr: { t0: number; dur: number; kind: 'instant' | 'dissolve' } | null) {
+  const [p, setP] = useState(1);
+  const raf = useRef<number | null>(null);
+  useEffect(() => {
+    if (!tr || tr.kind === 'instant') {
+      setP(1);
+      return;
+    }
+    const loop = () => {
+      const now = performance.now();
+      const raw = Math.min(1, (now - tr.t0) / tr.dur);
+      const eased = easeStandard(raw);
+      setP(eased);
+      if (raw < 1) raf.current = requestAnimationFrame(loop);
+      else if (raf.current) cancelAnimationFrame(raf.current);
+    };
+    setP(0);
+    raf.current = requestAnimationFrame(loop);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [tr]);
+  return p;
 }
