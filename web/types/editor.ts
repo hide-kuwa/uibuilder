@@ -331,12 +331,14 @@ export interface EditorState {
     showSmartGuides?: boolean;
     showOutline?: boolean;
     activeTool?: "select" | "pen" | "text" | string;
+    showPreferences?: boolean;
   };
   prefs?: {
-    showLayoutGrid?: boolean;
-    showPixelGrid?: boolean;
-    snapToPixel?: boolean;
     showImageBadges?: boolean;
+    reduceMotion?: boolean;
+    snapPx?: number;
+    showGrid?: boolean;
+    showPerfHud?: boolean;
   };
   textSel?: TextSelection;
   styles: { text: Record<string, TextStyleDef> };

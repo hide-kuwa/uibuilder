@@ -7,6 +7,7 @@ import StatusBar from './StatusBar';
 import Splitter from './Splitter';
 import CanvasStage from '../editor/CanvasStage';
 import KeyboardHandler from './KeyboardHandler';
+import Preferences from './Preferences';
 import {
   LEFT_PANE_DEFAULT_WIDTH,
   LEFT_PANE_MIN_WIDTH,
@@ -40,6 +41,7 @@ export default function AppShell() {
     <div className="flex flex-col h-screen">
       <KeyboardHandler />
       <TopBar />
+      <Preferences />
       <div className="flex flex-1 min-h-0">
         {!layout.left.collapsed && (
           <div style={{ width: layout.left.width }} className="h-full">
