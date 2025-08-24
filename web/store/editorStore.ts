@@ -53,6 +53,7 @@ import {
   saveLatestSnapshot,
   type SnapshotDoc,
 } from "@/lib/persist/snapshot";
+import { commitWithRetry } from "@/lib/persist/commit";
 
 const updateUsageCounts = (draft: EditorState) => {
   const counts: Record<string, number> = {};
@@ -344,10 +345,14 @@ export const useEditorStore = create<
   persist(
     (set, get) => {
       const apply = (recipe: (draft: EditorState) => void) => {
-        const [next, patches, inverse] = produceWithPatches(get(), recipe);
+        const [next, patches, inverse] = produceWithPatches(get(), (draft) => {
+          recipe(draft);
+          draft.pendingVersion++;
+        });
         push(patches, inverse);
         set(next);
         schedulePersist();
+        scheduleCommit();
       };
 
       return {
@@ -387,6 +392,13 @@ export const useEditorStore = create<
         comments: { threads: {}, users: {} },
         styles: { text: {} },
         textSel: undefined,
+        dirtyNodes: {},
+        lastExportAt: null,
+        pendingVersion: 0,
+        committedVersion: 0,
+        commitState: 'idle',
+        lastCommittedAt: null,
+        lastCommitError: null,
         saveQueue: [],
         lastSavedAt: null,
         lastSnapshotAt: null,
@@ -703,6 +715,7 @@ export const useEditorStore = create<
 
             draft.tree.push(inst);
             draft.selectedIds = [id];
+            draft.dirtyNodes[id] = Date.now();
           });
           bumpComponentUsage(componentId).catch(() => {});
         },
@@ -813,6 +826,7 @@ setInstanceProp(nodeId, propId, value) {
     const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
     if (!inst) return;
     inst.propValues = { ...(inst.propValues || {}), [propId]: value };
+    draft.dirtyNodes[nodeId] = Date.now();
   });
 },
 
@@ -1797,6 +1811,47 @@ swapInstanceDef(nodeId, newDefId, opts) {
 );
 
 initPersist(useEditorStore);
+
+// ===== v13-5: コミットキュー（単一並列・最新版のみ） =====
+let _commitTimer: number | null = null;
+let _commitScheduledAt = 0;
+const DEBOUNCE_MS = 700;
+const RETRY_AFTER_MS = 3000;
+
+function scheduleCommit() {
+  if (_commitTimer) clearTimeout(_commitTimer);
+  _commitTimer = window.setTimeout(runCommit, DEBOUNCE_MS);
+  _commitScheduledAt = Date.now();
+}
+
+async function runCommit() {
+  _commitTimer = null;
+  const s = useEditorStore.getState();
+  if (s.pendingVersion <= s.committedVersion) return;
+  if (s.commitState === 'committing') return;
+  const payload: SnapshotDoc = {
+    tree: s.tree,
+    components: s.components,
+    prototypeLinks: s.prototypeLinks,
+  };
+  useEditorStore.setState({ commitState: 'committing', lastCommitError: null });
+  try {
+    await commitWithRetry(payload, { maxAttempts: 4, baseDelayMs: 700 });
+    const committedVersion = useEditorStore.getState().pendingVersion;
+    useEditorStore.setState({
+      commitState: 'idle',
+      committedVersion,
+      lastCommittedAt: Date.now(),
+      lastCommitError: null,
+    });
+    if (useEditorStore.getState().pendingVersion > committedVersion) {
+      scheduleCommit();
+    }
+  } catch (e: any) {
+    useEditorStore.setState({ commitState: 'error', lastCommitError: String(e?.message || e) });
+    setTimeout(scheduleCommit, RETRY_AFTER_MS);
+  }
+}
 
 // ===== v13-4: スナップショット自動保存（サブスクライブ） =====
 let _snapTimer: number | null = null;
