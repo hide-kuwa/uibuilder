@@ -47,6 +47,7 @@ export async function saveImage(file: Blob): Promise<AssetMeta> {
     size: blob.size,
     hash,
     createdAt: Date.now(),
+    lastUsedAt: Date.now(),
   };
   await db.images.put({ ...meta, blob });
   return meta;
@@ -71,4 +72,49 @@ export async function loadImage(id: string): Promise<Blob | null> {
 
 export async function hashBlob(blob: Blob): Promise<string> {
   return sha1(await blob.arrayBuffer());
+}
+
+export async function listAssets(opts: {
+  query?: string;
+  sort?: 'newest' | 'oldest' | 'size' | 'used';
+} = {}): Promise<AssetMeta[]> {
+  const rows = await db.images.toArray();
+  let items = rows.map(({ blob, ...meta }) => meta);
+  if (opts.query) {
+    const q = opts.query.toLowerCase();
+    items = items.filter(
+      (m) => m.id.toLowerCase().includes(q) || m.hash.includes(q),
+    );
+  }
+  switch (opts.sort) {
+    case 'oldest':
+      items.sort((a, b) => a.createdAt - b.createdAt);
+      break;
+    case 'size':
+      items.sort((a, b) => b.size - a.size);
+      break;
+    case 'used':
+      items.sort((a, b) => (b.lastUsedAt || 0) - (a.lastUsedAt || 0));
+      break;
+    default:
+      items.sort((a, b) => b.createdAt - a.createdAt);
+  }
+  return items;
+}
+
+export async function duplicates(): Promise<Record<string, AssetMeta[]>> {
+  const rows = await db.images.toArray();
+  const groups: Record<string, AssetMeta[]> = {};
+  rows.forEach(({ blob, ...meta }) => {
+    groups[meta.hash] = groups[meta.hash] || [];
+    groups[meta.hash].push(meta);
+  });
+  Object.keys(groups).forEach((h) => {
+    if (groups[h].length < 2) delete groups[h];
+  });
+  return groups;
+}
+
+export async function touchAsset(id: string): Promise<void> {
+  await db.images.update(id, { lastUsedAt: Date.now() });
 }
