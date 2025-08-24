@@ -3,16 +3,20 @@ import React, { useMemo, useState } from 'react'
 import { useEditorStore } from '@/store/editorStore'
 import { extractTokensFromTree, tokensToJSON, tokensToTS } from '@/lib/export/tokens'
 import { buildAssetMapJSON } from '@/lib/export'
+import { generateReactTSX } from '@/lib/export/react-codegen'
 
 /**
  * v12-2: Design Tokens Export Panel
  * - 現在のドキュメント（tree）から tokens を抽出し、JSON / TS としてダウンロード
+ * v12-1 追記:
+ * - コンポーネントごとの React .tsx コード生成
  */
 export default function TokensExportPanel() {
   const tree = useEditorStore((s) => s.tree)
   const tokens = useMemo(() => extractTokensFromTree(tree), [tree])
   const [assetStats, setAssetStats] = useState<{ total: number; unique: number; duplicates: number } | null>(null)
   const [busy, setBusy] = useState(false)
+  const components = useEditorStore((s) => s.components)
 
   const download = (filename: string, content: string, type = 'application/json') => {
     const blob = new Blob([content], { type })
@@ -120,6 +124,42 @@ export default function TokensExportPanel() {
               {assetStats.duplicates > 0 && <>(dup: {assetStats.duplicates})</>}
             </span>
           )}
+        </div>
+      </div>
+
+      {/* v12-1: React Codegen */}
+      <div className="rounded-lg border border-zinc-700 p-3 bg-zinc-900/50">
+        <div className="text-sm font-medium mb-2">React Code</div>
+        <p className="text-xs text-zinc-400 mb-3">
+          Component を <code>.tsx</code> として出力します（Props/Variants（一部）/visible・text・color の最小 Overrides 対応）。
+        </p>
+        <ul className="space-y-1">
+          {Object.values(components).length === 0 && (
+            <li className="text-xs text-zinc-500">Components がありません。</li>
+          )}
+          {Object.values(components).map((def) => (
+            <li key={def.id} className="flex items-center justify-between gap-3">
+              <div className="text-xs truncate">{def.name}</div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm"
+                  onClick={() => {
+                    try {
+                      const { filename, code } = generateReactTSX(def)
+                      download(filename, code, 'text/tsx')
+                    } catch {
+                      // no-op
+                    }
+                  }}
+                >
+                  Download TSX
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 text-[11px] text-zinc-500">
+          注: レイアウト/スタイルは inline style で最小限を出力します。Canvas と±1pxの一致を目標にしていますが、差異が出る場合は手調整してください。
         </div>
       </div>
     </div>
