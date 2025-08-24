@@ -1,6 +1,6 @@
 export interface Command {
   id: string;
-  label: string;
+  title: string;
   keywords?: string[];
   shortcut?: string;
   run: () => void;
@@ -12,56 +12,63 @@ import * as zoom from '@/lib/zoom';
 export const COMMANDS: Command[] = [
   {
     id: 'align.left',
-    label: 'Align Left',
+    title: 'Align Left',
     keywords: ['align', 'left'],
     shortcut: 'Ctrl+Shift+L',
     run: () => useEditorStore.getState().align('left'),
   },
   {
     id: 'align.center.h',
-    label: 'Align Horizontal Center',
+    title: 'Align Horizontal Center',
     shortcut: 'Ctrl+Shift+H',
     run: () => useEditorStore.getState().align('centerH'),
   },
   {
     id: 'distribute.h',
-    label: 'Distribute Horizontally',
+    title: 'Distribute Horizontally',
     shortcut: 'Ctrl+Alt+H',
     run: () => useEditorStore.getState().distribute('h'),
   },
   {
     id: 'order.front',
-    label: 'Bring to Front',
+    title: 'Bring to Front',
     shortcut: 'Ctrl+]',
     run: () => useEditorStore.getState().reorder('front'),
   },
   {
     id: 'view.toggleRulers',
-    label: 'Toggle Rulers',
+    title: 'Toggle Rulers',
     shortcut: 'Ctrl+R',
     run: () => useEditorStore.getState().toggleRulers(),
   },
   {
     id: 'view.toggleGuides',
-    label: 'Toggle Guides',
+    title: 'Toggle Guides',
     shortcut: 'Ctrl+;',
     run: () => useEditorStore.getState().toggleGuides(),
   },
   {
     id: 'view.toggleOutline',
-    label: 'Toggle Outline',
+    title: 'Toggle Outline',
     shortcut: 'Ctrl+Y',
     run: () => useEditorStore.getState().toggleOutline(),
   },
   {
     id: 'view.toggleLayoutGrid',
-    label: 'Toggle Layout Grid',
+    title: 'Toggle Layout Grid',
     shortcut: 'Ctrl+Shift+G',
     run: () => useEditorStore.getState().toggleLayoutGrid(),
   },
   {
+
+    id: 'view.togglePixelGrid',
+    title: 'Toggle Pixel Grid',
+    shortcut: "Ctrl+'",
+    run: () => useEditorStore.getState().togglePixelGrid(),
+  },
+  {
     id: 'view.toggleSnapToPixel',
-    label: 'Toggle Snap To Pixel',
+    title: 'Toggle Snap To Pixel',
     shortcut: 'Ctrl+Shift+P',
     run: () => useEditorStore.getState().toggleSnapToPixel(),
   },
@@ -73,37 +80,37 @@ export const COMMANDS: Command[] = [
   },
   {
     id: 'export',
-    label: 'Export',
+    title: 'Export',
     shortcut: 'Ctrl+Shift+E',
     run: () => window.dispatchEvent(new CustomEvent('uibuilder:export')),
   },
   {
     id: 'zoom.in',
-    label: 'Zoom In',
+    title: 'Zoom In',
     shortcut: 'Ctrl++',
     run: () => zoom.zoomBy(1.1),
   },
   {
     id: 'zoom.out',
-    label: 'Zoom Out',
+    title: 'Zoom Out',
     shortcut: 'Ctrl+-',
     run: () => zoom.zoomBy(0.9),
   },
   {
     id: 'zoom.fitAll',
-    label: 'Fit All',
+    title: 'Fit All',
     shortcut: 'Shift+1',
     run: () => zoom.fitAll(),
   },
   {
     id: 'zoom.fitSelection',
-    label: 'Fit Selection',
+    title: 'Fit Selection',
     shortcut: 'Shift+2',
     run: () => zoom.fitSelection(),
   },
   {
     id: 'zoom.to100',
-    label: 'Zoom to 100%',
+    title: 'Zoom to 100%',
     shortcut: '1',
     run: () => {
       const cam = useEditorStore.getState().camera;
@@ -116,6 +123,8 @@ export function runCommand(id: string): boolean {
   const cmd = COMMANDS.find((c) => c.id === id);
   if (!cmd) return false;
   cmd.run();
-  useEditorStore.getState().setLastCommand(id);
+  const store = useEditorStore.getState();
+  store.setLastCommand(id);
+  store.addRecentCommand(id);
   return true;
 }

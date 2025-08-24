@@ -40,6 +40,7 @@ import { saveImage, loadImage } from "@/lib/assets";
 import { computeDominantColor } from "@/lib/color/dominant";
 import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
+import { applyRun, removeRun } from "@/lib/text/rangeOps";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -115,6 +116,7 @@ interface EditorActions {
     opts?: { replace?: boolean; flatness?: number; simplify?: number },
   ) => string;
   setLastCommand: (id: string) => void;
+  addRecentCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (
     cam: Camera | Partial<Camera>,
@@ -214,10 +216,20 @@ interface EditorActions {
   detachTextStyle: (nodeId: string) => void;
   removeTextStyle: (id: string) => void;
   syncTextStyles: (styleId: string) => void;
-  setTextSelection: (sel: TextSelection) => void;
+  setTextSelection: (sel: EditorState['textSel']) => void;
   clearTextSelection: () => void;
   updateTextRuns: (id: string, runs: TextRun[]) => void;
   applyRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    style: Partial<TextStyle> & { link?: string },
+  ) => void;
+  removeRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    keys: (keyof TextStyle | 'link')[],
+  ) => void;
+  toggleRunStyle: (
     id: string,
     range: { from: number; to: number },
     style: Partial<TextStyle> & { link?: string },
@@ -307,6 +319,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showPerfHud: false,
         },
         lastCommandId: undefined,
+        recentCommands: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         styles: { text: {} },
@@ -746,6 +759,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
+        },
+        addRecentCommand(id) {
+          set((state) => ({
+            recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),
+          }));
         },
         setCamera(cam) {
           set((state) => {
@@ -1392,6 +1410,30 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             n.runs = n.runs?.filter((r) => !(r.from >= from && r.to <= to)) || [];
             n.runs.push({ from, to, style });
             n.runs.sort((a, b) => a.from - b.from);
+          });
+        },
+        removeRunStyle(id, range, keys) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            n.runs = removeRun(n.runs, from, to, keys);
+          });
+        },
+        toggleRunStyle(id, range, style) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            const applied = applyRun(n.runs, from, to, style);
+            const same = JSON.stringify(applied) === JSON.stringify(n.runs || []);
+            n.runs = same
+              ? removeRun(n.runs, from, to, Object.keys(style) as (keyof TextStyle | 'link')[])
+              : applied;
           });
         },
         undo() {
