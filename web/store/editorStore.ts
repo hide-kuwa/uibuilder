@@ -88,10 +88,12 @@ interface EditorActions {
     value?: number,
   ) => void;
   // Components
+  createComponent: (name?: string) => void;
   createComponentFromSelection: (name?: string) => void;
   deleteComponent: (componentId: string) => void;
   renameComponent: (componentId: string, name: string) => void;
   createInstance: (componentId: string, pos?: { x: number; y: number }) => void;
+  placeInstance: (componentId: string, pos?: { x: number; y: number }) => void;
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
   // v3 additions
@@ -569,6 +571,9 @@ export const useEditorStore = create<
             }
           });
         },
+        createComponent(name) {
+          get().createComponentFromSelection(name);
+        },
         createComponentFromSelection(name) {
           apply((draft) => {
             const sel = draft.selectedIds[0];
@@ -619,6 +624,9 @@ export const useEditorStore = create<
             draft.tree.push(inst);
             draft.selectedIds = [id];
           });
+        },
+        placeInstance(componentId, pos) {
+          get().createInstance(componentId, pos);
         },
         detachInstance(nodeId) {
           apply((draft) => {
