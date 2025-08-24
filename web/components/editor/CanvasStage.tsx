@@ -6,15 +6,17 @@ import SVGLayer from './SVGLayer';
 import PathEditorOverlay from './PathEditorOverlay';
 import PenTool from './tools/PenTool';
 import ImageView from './ImageView';
+import TextView from './TextView';
+import TextEditor from './TextEditor';
 import ImageCropOverlay from './ImageCropOverlay';
-import type { ComponentNode, InstanceNode, PathNode, ImageNode } from '@/types/editor';
+import type { ComponentNode, InstanceNode, PathNode, ImageNode, TextNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 import ZoomControls from './ZoomControls';
 import { wheelRouter } from '@/lib/input/wheelRouter';
 import * as zoom from '@/lib/zoom';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { saveImageMulti } from '@/lib/assets';
 import DropOverlay from './DropOverlay';
 import MarqueeZoom from './MarqueeZoom';
@@ -105,6 +107,16 @@ function NodeView({
     );
   }
 
+  if (node.type === 'Text') {
+    const t = node as TextNode;
+    return (
+      <>
+        <TextView node={t} />
+        {t.edit?.active && <TextEditor node={t} />}
+      </>
+    );
+  }
+
   if (layout === 'auto') {
     const common = {
       onPointerEnter: () => setHover(node.id),
@@ -178,6 +190,9 @@ export default function CanvasStage() {
   const placeImages = useEditorStore((s) => s.placeImages);
   const replaceImageAsset = useEditorStore((s) => s.replaceImageAsset);
   const placeFromClipboard = useEditorStore((s) => s.placeFromClipboard);
+  const addText = useEditorStore((s) => s.addText);
+  const toggleEditText = useEditorStore((s) => s.toggleEditText);
+  const setActiveTool = useEditorStore((s) => s.setActiveTool);
 
   const panning = useRef(false);
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
@@ -200,7 +215,25 @@ export default function CanvasStage() {
     }
   };
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 't' || e.key === 'T') {
+        setActiveTool('text');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setActiveTool]);
+
   const onPointerDown = (e: React.PointerEvent) => {
+    if (activeTool === 'text') {
+      const state = useEditorStore.getState();
+      const x = state.camera.x + e.clientX / state.camera.zoom;
+      const y = state.camera.y + e.clientY / state.camera.zoom;
+      const id = addText({ x, y });
+      toggleEditText(id, true);
+      return;
+    }
     if (e.shiftKey) {
       setMarqueeStart({ x: e.clientX, y: e.clientY });
       return;

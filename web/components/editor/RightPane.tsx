@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode, ImageNode, ImageAdjustments, BlendMode } from "@/types/editor";
+import type { PathNode, ImageNode, ImageAdjustments, BlendMode, TextNode, TextResizeMode } from "@/types/editor";
 import { normalizeAdjustments, DEFAULT_ADJ } from "@/lib/image/filters";
 import { getScaleInfo } from "@/lib/image/metrics";
 
@@ -247,6 +247,66 @@ export default function RightPane() {
         >
           Reset
         </button>
+      </div>
+    );
+  }
+  if (node && node.type === 'Text') {
+    const t = node as TextNode;
+    const setStyle = useEditorStore((s) => s.setTextStyle);
+    const setResize = useEditorStore((s) => s.setTextResizeMode);
+    const applyRun = useEditorStore((s) => s.applyRunStyle);
+    const sel = useEditorStore((s) => s.textSel);
+    return (
+      <div className="bg-gray-800 p-2 space-y-2 text-xs">
+        <div className="font-bold">Typography</div>
+        <label className="block">
+          Font
+          <input
+            className="w-full bg-gray-700 p-1 text-white"
+            value={t.style.fontFamily}
+            onChange={(e) => setStyle(t.id, { fontFamily: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          Size
+          <input
+            type="number"
+            className="w-full bg-gray-700 p-1 text-white"
+            value={t.style.fontSize}
+            onChange={(e) => setStyle(t.id, { fontSize: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          Color
+          <input
+            type="color"
+            value={t.style.color || '#000000'}
+            onChange={(e) => setStyle(t.id, { color: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          Resize
+          <select
+            className="w-full bg-gray-700 p-1 text-white"
+            value={t.resizeMode || 'AUTO_HEIGHT'}
+            onChange={(e) => setResize(t.id, e.target.value as TextResizeMode)}
+          >
+            <option value="AUTO_WIDTH">Auto width</option>
+            <option value="AUTO_HEIGHT">Auto height</option>
+            <option value="FIXED">Fixed</option>
+          </select>
+        </label>
+        {sel?.nodeId === t.id && sel.start !== sel.end && (
+          <label className="block">
+            Link
+            <input
+              className="w-full bg-gray-700 p-1 text-white"
+              onChange={(e) =>
+                applyRun(t.id, { from: sel.start, to: sel.end }, { link: e.target.value })
+              }
+            />
+          </label>
+        )}
       </div>
     );
   }

@@ -131,3 +131,11 @@
   height: 16px;
   border: 1px solid #fff;
 }
+
+.text-editor {
+  caret-color: var(--accent-color);
+}
+
+.text-editor::selection {
+  background: rgba(59,130,246,0.4);
+}
