@@ -42,7 +42,11 @@ export type Command =
   | 'nudge.big.up'
   | 'nudge.big.down'
   | 'nudge.big.left'
-  | 'nudge.big.right';
+  | 'nudge.big.right'
+  | 'text.bold'
+  | 'text.italic'
+  | 'text.underline'
+  | 'text.link';
 
 const map: Record<string, Command> = {
   KeyP: 'tool.pen',
@@ -59,6 +63,13 @@ const map: Record<string, Command> = {
 export function getCommand(e: KeyboardEvent): Command | undefined {
   if (useEditorStore.getState().ui?.activeTool === 'crop') return undefined;
   const mod = e.metaKey || e.ctrlKey;
+  const editing = !!useEditorStore.getState().textSel;
+  if (mod && editing) {
+    if (e.code === 'KeyB') return 'text.bold';
+    if (e.code === 'KeyI') return 'text.italic';
+    if (e.code === 'KeyU') return 'text.underline';
+    if (e.code === 'KeyK') return 'text.link';
+  }
   if (mod && e.altKey) {
     if (e.code === 'KeyK') return 'createComponent';
     if (e.code === 'KeyB') return 'detachInstance';
