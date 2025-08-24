@@ -18,6 +18,12 @@ import type {
   ImageNode,
   AssetMeta,
   ImageProps,
+  TextNode,
+  TextStyle,
+  TextResizeMode,
+  TextStyleDef,
+  TextSelection,
+  TextRun,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
@@ -32,6 +38,8 @@ import {
 } from "@/lib/vector/boolean";
 import { saveImage, loadImage } from "@/lib/assets";
 import { computeDominantColor } from "@/lib/color/dominant";
+import { nanoid } from "nanoid";
+import { layoutText } from "@/lib/text/layout";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -193,6 +201,27 @@ interface EditorActions {
   updateCrop: (patch: Partial<CropDraft['rect']>) => void;
   commitCrop: () => void;
   cancelCrop: () => void;
+  // Text actions
+  setActiveTool: (tool: EditorState['ui']['activeTool']) => void;
+  addText: (opts: { x: number; y: number; text?: string; style?: TextStyle }) => string;
+  updateText: (id: string, text: string) => void;
+  setTextStyle: (id: string, patch: Partial<TextStyle>) => void;
+  toggleEditText: (id: string, active?: boolean) => void;
+  setTextResizeMode: (id: string, mode: TextResizeMode) => void;
+  createTextStyle: (name: string, style: TextStyle) => string;
+  updateTextStyle: (id: string, style: TextStyle) => void;
+  applyTextStyle: (nodeId: string, styleId: string) => void;
+  detachTextStyle: (nodeId: string) => void;
+  removeTextStyle: (id: string) => void;
+  syncTextStyles: (styleId: string) => void;
+  setTextSelection: (sel: TextSelection) => void;
+  clearTextSelection: () => void;
+  updateTextRuns: (id: string, runs: TextRun[]) => void;
+  applyRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    style: Partial<TextStyle> & { link?: string },
+  ) => void;
 }
 
 export interface CropDraft {
@@ -278,6 +307,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         lastCommandId: undefined,
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
+        styles: { text: {} },
+        textSel: undefined,
         setHover(id) {
           set({ hoverId: id });
         },
@@ -1221,6 +1252,144 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           apply((draft) => {
             draft.cropDraft = undefined;
             draft.ui = { ...(draft.ui || {}), activeTool: 'select' };
+          });
+        },
+        // text actions implementations
+        setActiveTool(tool) {
+          set((state) => ({ ui: { ...(state.ui || {}), activeTool: tool } }));
+        },
+        addText({ x, y, text = '', style }) {
+          const id = nanoid();
+          apply((draft) => {
+            draft.tree.push({
+              id,
+              type: 'Text',
+              text,
+              style: style || {
+                fontFamily: 'sans-serif',
+                fontSize: 16,
+                letterSpacing: { unit: 'PERCENT', value: 0 },
+              },
+              props: { x, y, w: 0, h: 0 },
+            } as TextNode);
+            draft.selectedIds = [id];
+          });
+          return id;
+        },
+        updateText(id, text) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (n) {
+              n.text = text;
+              const size = layoutText(n);
+              n.props = { ...(n.props || {}), w: size.w, h: size.h };
+            }
+          });
+        },
+        setTextStyle(id, patch) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (n) {
+              Object.assign(n.style, patch);
+              const size = layoutText(n);
+              n.props = { ...(n.props || {}), w: size.w, h: size.h };
+            }
+          });
+        },
+        toggleEditText(id, active) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (n) n.edit = { active: active ?? !(n.edit?.active) };
+          });
+        },
+        setTextResizeMode(id, mode) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (n) {
+              n.resizeMode = mode;
+              const size = layoutText(n);
+              n.props = { ...(n.props || {}), w: size.w, h: size.h };
+            }
+          });
+        },
+        createTextStyle(name, style) {
+          const id = nanoid();
+          apply((draft) => {
+            draft.styles.text[id] = { id, name, style };
+          });
+          return id;
+        },
+        updateTextStyle(id, style) {
+          apply((draft) => {
+            if (draft.styles.text[id]) draft.styles.text[id].style = style;
+          });
+          get().syncTextStyles(id);
+        },
+        applyTextStyle(nodeId, styleId) {
+          apply((draft) => {
+            const n = findNode(draft.tree, nodeId) as TextNode | null;
+            const def = draft.styles.text[styleId];
+            if (n && def) {
+              n.styleRef = styleId;
+              n.style = JSON.parse(JSON.stringify(def.style));
+              const size = layoutText(n);
+              n.props = { ...(n.props || {}), w: size.w, h: size.h };
+            }
+          });
+        },
+        detachTextStyle(nodeId) {
+          apply((draft) => {
+            const n = findNode(draft.tree, nodeId) as TextNode | null;
+            if (n) n.styleRef = undefined;
+          });
+        },
+        removeTextStyle(id) {
+          apply((draft) => {
+            delete draft.styles.text[id];
+          });
+        },
+        syncTextStyles(styleId) {
+          const def = get().styles.text[styleId];
+          if (!def) return;
+          apply((draft) => {
+            const visit = (nodes: ComponentNode[]) => {
+              nodes.forEach((n) => {
+                if ((n as TextNode).type === 'Text') {
+                  const t = n as TextNode;
+                  if (t.styleRef === styleId) {
+                    t.style = JSON.parse(JSON.stringify(def.style));
+                    const size = layoutText(t);
+                    t.props = { ...(t.props || {}), w: size.w, h: size.h };
+                  }
+                }
+                if (n.children) visit(n.children);
+              });
+            };
+            visit(draft.tree);
+          });
+        },
+        setTextSelection(sel) {
+          set({ textSel: sel });
+        },
+        clearTextSelection() {
+          set({ textSel: undefined });
+        },
+        updateTextRuns(id, runs) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (n) n.runs = runs;
+          });
+        },
+        applyRunStyle(id, range, style) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            n.runs = n.runs?.filter((r) => !(r.from >= from && r.to <= to)) || [];
+            n.runs.push({ from, to, style });
+            n.runs.sort((a, b) => a.from - b.from);
           });
         },
         undo() {

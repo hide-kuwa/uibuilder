@@ -209,6 +209,50 @@ export interface ImageNode extends ComponentNode {
   props: ImageProps;
 }
 
+export type TextResizeMode = "AUTO_WIDTH" | "AUTO_HEIGHT" | "FIXED";
+
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight?: number;
+  lineHeight?: "AUTO" | { px: number };
+  letterSpacing?: { unit: "PERCENT" | "PX"; value: number };
+  color?: string;
+  textAlign?: "left" | "center" | "right" | "justify";
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  uppercase?: boolean;
+}
+
+export interface TextRun {
+  from: number;
+  to: number;
+  style: Partial<TextStyle> & { link?: string };
+}
+
+export interface TextNode extends ComponentNode {
+  type: "Text";
+  text: string;
+  style: TextStyle;
+  edit?: { active: boolean };
+  resizeMode?: TextResizeMode;
+  runs?: TextRun[];
+  styleRef?: string;
+}
+
+export interface TextStyleDef {
+  id: string;
+  name: string;
+  style: TextStyle;
+}
+
+export interface TextSelection {
+  nodeId: string | null;
+  start: number;
+  end: number;
+}
+
 export type MaskTarget = "vector" | "frame" | "image";
 
 export interface ComponentNode {
@@ -286,7 +330,7 @@ export interface EditorState {
     showGuides?: boolean;
     showSmartGuides?: boolean;
     showOutline?: boolean;
-    activeTool?: "select" | "pen";
+    activeTool?: "select" | "pen" | "text" | string;
   };
   prefs?: {
     showLayoutGrid?: boolean;
@@ -294,6 +338,8 @@ export interface EditorState {
     snapToPixel?: boolean;
     showImageBadges?: boolean;
   };
+  textSel?: TextSelection;
+  styles: { text: Record<string, TextStyleDef> };
   lastCommandId?: string;
   review: {
     status: ReviewStatus;
