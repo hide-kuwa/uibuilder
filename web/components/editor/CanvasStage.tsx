@@ -4,6 +4,7 @@ import { CanvasTiler, type Camera, type WorldRect } from '@/lib/render/tiler'
 import { useEditorStore } from '@/store/editorStore'
 import RecoveryPrompt from '@/components/hud/RecoveryPrompt'
 import SaveIndicator from '@/components/hud/SaveIndicator'
+import { updateHitIndex, pickAt } from '@/lib/vector/hitTest'
 
 /**
  * v13-1: タイル描画ステージ実装（MVP）
@@ -30,6 +31,7 @@ export default function CanvasStage() {
     const onResizeDpr = () => tiler.setDpr(window.devicePixelRatio || 1)
     onResizeDpr()
     window.addEventListener('resize', onResizeDpr)
+    updateHitIndex(tree) // 初期構築
     const raf = () => {
       const f = fpsRef.current
       f.frames++
@@ -54,6 +56,7 @@ export default function CanvasStage() {
   // シーン更新のたびに全タイル無効化（MVP）
   useEffect(() => {
     tilerRef.current?.invalidateAll()
+    updateHitIndex(tree)
   }, [tree])
 
   // ====== 入力（パン/ズーム） ======
@@ -88,6 +91,21 @@ export default function CanvasStage() {
     }
     const onPointerUp = (e: PointerEvent) => {
       dragging = false
+      // 左クリック・ドラッグ量が小さければヒットテスト例（MVP）
+      if (e.button === 0) {
+        const rect = el.getBoundingClientRect()
+        const dpr = window.devicePixelRatio || 1
+        // CSS px → ワールド座標（CanvasTiler の変換と一致させる）
+        const px = (e.clientX - rect.left) / dpr
+        const py = (e.clientY - rect.top) / dpr
+        const wx = cam.x + px / cam.scale
+        const wy = cam.y + py / cam.scale
+        const id = pickAt(wx, wy)
+        if (id) {
+          // 既存の選択APIがある前提（なければ no-op）
+          try { useEditorStore.getState().select([id]) } catch {}
+        }
+      }
     }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
