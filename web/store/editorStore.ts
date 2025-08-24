@@ -49,6 +49,23 @@ import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
 import { applyRun, removeRun } from "@/lib/text/rangeOps";
 
+const updateUsageCounts = (draft: EditorState) => {
+  const counts: Record<string, number> = {};
+  const walk = (nodes: ComponentNode[]) => {
+    for (const n of nodes) {
+      if ((n as any).type === "Instance") {
+        const compId = (n as InstanceNode).componentId;
+        counts[compId] = (counts[compId] || 0) + 1;
+      }
+      if ((n as any).children) walk((n as any).children!);
+    }
+  };
+  walk(draft.tree);
+  Object.keys(draft.components).forEach((id) => {
+    draft.components[id].usageCount = counts[id] || 0;
+  });
+};
+
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
   setHover: (id: string | null) => void;
@@ -408,15 +425,27 @@ export const useEditorStore = create<
         duplicate(ids) {
           apply((draft) => {
             const targets = ids ?? draft.selectedIds;
+            const touched = new Set<string>();
+            const collect = (n: ComponentNode) => {
+              if ((n as any).type === "Instance")
+                touched.add((n as InstanceNode).componentId);
+              if (n.children) n.children.forEach(collect);
+            };
             targets.forEach((id) => {
               const node = findNode(draft.tree, id);
               if (node) {
+                collect(node);
                 const copy: ComponentNode = JSON.parse(JSON.stringify(node));
                 copy.id = Math.random().toString(36).slice(2);
                 draft.tree.push(copy);
                 draft.selectedIds = [copy.id];
               }
             });
+            touched.forEach((cid) => {
+              const def = draft.components[cid];
+              if (def) def.lastUsedAt = Date.now();
+            });
+            updateUsageCounts(draft);
           });
         },
         remove(ids) {
@@ -430,6 +459,7 @@ export const useEditorStore = create<
               });
             draft.tree = removeRec(draft.tree);
             draft.selectedIds = [];
+            updateUsageCounts(draft);
           });
         },
         addImageAsset(meta) {
@@ -600,6 +630,8 @@ export const useEditorStore = create<
               id: compId,
               name: name || node.name || "Component",
               root: node,
+              usageCount: 0,
+              lastUsedAt: Date.now(),
             } as ComponentDefinition;
             const instId = Math.random().toString(36).slice(2);
             const instance: InstanceNode = {
@@ -611,6 +643,7 @@ export const useEditorStore = create<
             if (parent && parent.children) parent.children[index] = instance;
             else draft.tree[index] = instance;
             draft.selectedIds = [instId];
+            updateUsageCounts(draft);
           });
         },
         deleteComponent(componentId) {
@@ -638,108 +671,156 @@ export const useEditorStore = create<
               props: { x: pos?.x || 0, y: pos?.y || 0 },
               propValues: {},
             };
-            def.props?.forEach((p) => {
-              inst.propValues![p.id] = p.default;
-            });
-            draft.tree.push(inst);
-            draft.selectedIds = [id];
-          });
-        },
-        placeInstance(componentId, pos) {
-          get().createInstance(componentId, pos);
-        },
-        detachInstance(nodeId) {
-          apply((draft) => {
-            const res = findNodeWithParent(draft.tree, nodeId);
-            if (!res) return;
-            const inst = res.node as InstanceNode;
-            const def = draft.components[inst.componentId];
-            if (!def) return;
-            let resolved = resolveVariant(def, inst.variant);
-            if (inst.overrides) {
-              resolved = resolveOverrides(resolved, inst.overrides);
-            }
-            if (inst.propValues) {
-              resolved = resolveBinding(resolved, inst.propValues);
-            }
-            if (res.parent && res.parent.children)
-              res.parent.children[res.index] = resolved;
-            else draft.tree[res.index] = resolved;
-          });
-        },
-        swapInstance(nodeId, nextComponentId) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.componentId = nextComponentId;
-            const def = draft.components[nextComponentId];
-            if (def?.axes) {
-              inst.variant = inst.variant || {};
-              // remove axes not in new component
-              Object.keys(inst.variant).forEach((k) => {
-                if (!def.axes || !def.axes[k]) delete inst.variant![k];
-              });
-              Object.entries(def.axes).forEach(([k, vals]) => {
-                if (!inst.variant![k]) inst.variant![k] = vals[0];
-              });
-            }
-            if (def?.props) {
-              inst.propValues = {};
-              def.props.forEach((p) => {
-                inst.propValues![p.id] = p.default;
-              });
-            } else {
-              inst.propValues = {};
-            }
-          });
-        },
-        addComponentProp(componentId, prop) {
-          apply((draft) => {
-            const comp = draft.components[componentId];
-            if (!comp) return;
-            comp.props = [...(comp.props || []), prop];
-            const addToInstances = (nodes: ComponentNode[]) => {
-              nodes.forEach((n) => {
-                if (n.type === 'Instance' && (n as InstanceNode).componentId === componentId) {
-                  const inst = n as InstanceNode;
-                  inst.propValues = {
-                    ...(inst.propValues || {}),
-                    [prop.id]: prop.default,
-                  };
-                }
-                if (n.children) addToInstances(n.children);
-              });
-            };
-            addToInstances(draft.tree);
-          });
-        },
-        setInstanceProp(nodeId, propId, value) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.propValues = { ...(inst.propValues || {}), [propId]: value };
-          });
-        },
-        swapInstanceDef(nodeId, newDefId) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            const prev = draft.components[inst.componentId];
-            const next = draft.components[newDefId];
-            if (!prev || !next) return;
-            inst.overrides = migrateOverrides(inst.overrides, prev, next);
-            inst.componentId = newDefId;
-            if (next?.axes) {
-              inst.variant = inst.variant || {};
-              Object.keys(inst.variant).forEach((k) => {
-                if (!next.axes || !next.axes[k]) delete inst.variant![k];
-              });
-              Object.entries(next.axes).forEach(([k, vals]) => {
-                if (!inst.variant![k]) inst.variant![k] = vals[0];
-              });
-            } else {
-              delete inst.variant;
-            }
+createInstance(componentId, pos) {
+  apply((draft) => {
+    const def = draft.components[componentId];
+    if (!def) return;
+    const id = nanoid();
+    const inst: InstanceNode = {
+      id,
+      type: "Instance",
+      componentId,
+      props: {
+        x: pos?.x || 0,
+        y: pos?.y || 0,
+        w: def.root.props?.w || 100,
+        h: def.root.props?.h || 100,
+      },
+      children: [],
+      variant: {},
+      overrides: {},
+      propValues: {},
+    };
+
+    // props のデフォルト値を埋める
+    def.props?.forEach((p) => {
+      inst.propValues![p.id] = p.default;
+    });
+
+    // usage 情報更新
+    def.usageCount = (def.usageCount || 0) + 1;
+    def.lastUsedAt = Date.now();
+
+    draft.tree.push(inst);
+    draft.selectedIds = [id];
+  });
+},
+
+placeInstance(componentId, pos) {
+  get().createInstance(componentId, pos);
+},
+
+detachInstance(nodeId) {
+  apply((draft) => {
+    const res = findNodeWithParent(draft.tree, nodeId);
+    if (!res) return;
+    const inst = res.node as InstanceNode;
+    const def = draft.components[inst.componentId];
+    if (!def) return;
+    let resolved = resolveVariant(def, inst.variant);
+    if (inst.overrides) {
+      resolved = resolveOverrides(resolved, inst.overrides);
+    }
+    if (inst.propValues) {
+      resolved = resolveBinding(resolved, inst.propValues);
+    }
+    if (res.parent && res.parent.children)
+      res.parent.children[res.index] = resolved;
+    else draft.tree[res.index] = resolved;
+    updateUsageCounts(draft);
+  });
+},
+
+swapInstance(nodeId, nextComponentId) {
+  apply((draft) => {
+    const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+    if (!inst) return;
+    inst.componentId = nextComponentId;
+
+    const def = draft.components[nextComponentId];
+    if (def) {
+      def.lastUsedAt = Date.now();
+
+      // axes に対応
+      if (def.axes) {
+        inst.variant = inst.variant || {};
+        // remove axes not in new component
+        Object.keys(inst.variant).forEach((k) => {
+          if (!def.axes || !def.axes[k]) delete inst.variant![k];
+        });
+        Object.entries(def.axes).forEach(([k, vals]) => {
+          if (!inst.variant![k]) inst.variant![k] = vals[0];
+        });
+      }
+
+      // props の初期化
+      if (def.props) {
+        inst.propValues = {};
+        def.props.forEach((p) => {
+          inst.propValues![p.id] = p.default;
+        });
+      } else {
+        inst.propValues = {};
+      }
+    }
+
+    updateUsageCounts(draft);
+  });
+},
+
+addComponentProp(componentId, prop) {
+  apply((draft) => {
+    const comp = draft.components[componentId];
+    if (!comp) return;
+    comp.props = [...(comp.props || []), prop];
+    const addToInstances = (nodes: ComponentNode[]) => {
+      nodes.forEach((n) => {
+        if (n.type === "Instance" && (n as InstanceNode).componentId === componentId) {
+          const inst = n as InstanceNode;
+          inst.propValues = {
+            ...(inst.propValues || {}),
+            [prop.id]: prop.default,
+          };
+        }
+        if (n.children) addToInstances(n.children);
+      });
+    };
+    addToInstances(draft.tree);
+  });
+},
+
+setInstanceProp(nodeId, propId, value) {
+  apply((draft) => {
+    const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+    if (!inst) return;
+    inst.propValues = { ...(inst.propValues || {}), [propId]: value };
+  });
+},
+
+swapInstanceDef(nodeId, newDefId) {
+  apply((draft) => {
+    const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+    if (!inst) return;
+    const prev = draft.components[inst.componentId];
+    const next = draft.components[newDefId];
+    if (!prev || !next) return;
+    inst.overrides = migrateOverrides(inst.overrides, prev, next);
+    inst.componentId = newDefId;
+
+    if (next?.axes) {
+      inst.variant = inst.variant || {};
+      Object.keys(inst.variant).forEach((k) => {
+        if (!next.axes || !next.axes[k]) delete inst.variant![k];
+      });
+      Object.entries(next.axes).forEach(([k, vals]) => {
+        if (!inst.variant![k]) inst.variant![k] = vals[0];
+      });
+    } else {
+      delete inst.variant;
+    }
+  });
+},
+
           });
         },
         align(kind) {

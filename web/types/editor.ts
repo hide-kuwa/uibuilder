@@ -384,6 +384,9 @@ export interface ComponentDefinition {
   id: string;
   name: string;
   root: ComponentNode;
+  usageCount?: number;
+  /** timestamp of last instance placement */
+  lastUsedAt?: number;
   props?: ComponentProp[]; // インスタンスに渡せる props
   axes?: Record<string, string[]>;
   rules?: Array<{
