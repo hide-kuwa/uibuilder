@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useEditorStore } from "@/store/editorStore";
-import type { InstanceNode, ComponentProp } from "@/types/editor";
-import { isCompatible } from "@/lib/override/compat";
+import type { InstanceNode, ComponentProp, VariantPropDef } from "@/types/editor";
+import { mapNodesForSwap } from "@/lib/override/compat";
 import { listOverridable } from "@/lib/override/util";
 import { findNode } from "@/lib/tree";
 
@@ -31,11 +31,38 @@ export default function RightPane() {
   }, [component, tree]);
 
   const [targetId, setTargetId] = useState<string>(overrideTargets[0]?.id || "");
+  const [swapId, setSwapId] = useState(inst.defId || inst.componentId);
+  const [variantProps, setVariantProps] = useState<Record<string, any>>({});
+  const variantSets = useEditorStore((s) => s.variantSets);
 
   const curr = component;
-  const opts = Object.values(components).filter(
-    (c) => curr && isCompatible(curr, c),
-  );
+  const opts = useMemo(() => {
+    if (!curr) return [] as typeof components[keyof typeof components][];
+    const state = useEditorStore.getState();
+    return Object.values(components).filter((c) =>
+      mapNodesForSwap(state, curr.rootId, c.rootId).ok,
+    );
+  }, [components, curr]);
+
+  const currSet = curr?.variantSetId ? variantSets[curr.variantSetId] : null;
+  const nextDef = components[swapId];
+  const nextSet = nextDef?.variantSetId
+    ? variantSets[nextDef.variantSetId]
+    : null;
+  const sharedPropDefs = useMemo<VariantPropDef[]>(() => {
+    if (!currSet || !nextSet) return [];
+    const currNames = new Set(currSet.propDefs.map((p) => p.name));
+    return nextSet.propDefs.filter((p) => currNames.has(p.name));
+  }, [currSet, nextSet]);
+  useEffect(() => {
+    const next: Record<string, any> = {};
+    sharedPropDefs.forEach((p) => {
+      if (inst.variantProps && inst.variantProps[p.name] !== undefined)
+        next[p.name] = inst.variantProps[p.name];
+      else if (p.default !== undefined) next[p.name] = p.default;
+    });
+    setVariantProps(next);
+  }, [swapId, inst.variantProps, sharedPropDefs]);
 
   const handleAdd = () => {
     const name = prompt("Prop name?");
@@ -120,21 +147,78 @@ export default function RightPane() {
       )}
 
       <div>
-        <div className="font-bold">Instance</div>
-        <label className="block">
-          Swap
-          <select
-            className="w-full bg-gray-700 p-1 text-white"
-            value={inst.defId || inst.componentId}
-            onChange={(e) => swap(inst.id, e.target.value)}
-          >
-            {opts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+        <div className="font-bold">Swap</div>
+        <select
+          className="w-full bg-gray-700 p-1 text-white"
+          value={swapId}
+          onChange={(e) => setSwapId(e.target.value)}
+        >
+          {opts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        {sharedPropDefs.length > 0 && (
+          <div className="mt-1 space-y-1">
+            {sharedPropDefs.map((p) => (
+              <label key={p.name} className="block">
+                {p.name}
+                {p.type === 'BOOLEAN' ? (
+                  <input
+                    type="checkbox"
+                    className="ml-1"
+                    checked={!!variantProps[p.name]}
+                    onChange={(e) =>
+                      setVariantProps({ ...variantProps, [p.name]: e.target.checked })
+                    }
+                  />
+                ) : p.type === 'NUMBER' ? (
+                  <input
+                    type="number"
+                    className="w-full bg-gray-700 p-1 text-white"
+                    value={variantProps[p.name] ?? ''}
+                    onChange={(e) =>
+                      setVariantProps({
+                        ...variantProps,
+                        [p.name]: Number(e.target.value),
+                      })
+                    }
+                  />
+                ) : p.type === 'ENUM' && p.options ? (
+                  <select
+                    className="w-full bg-gray-700 p-1 text-white"
+                    value={variantProps[p.name] ?? ''}
+                    onChange={(e) =>
+                      setVariantProps({ ...variantProps, [p.name]: e.target.value })
+                    }
+                  >
+                    {p.options.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    className="w-full bg-gray-700 p-1 text-white"
+                    value={variantProps[p.name] ?? ''}
+                    onChange={(e) =>
+                      setVariantProps({ ...variantProps, [p.name]: e.target.value })
+                    }
+                  />
+                )}
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+        )}
+        <button
+          className="mt-1 px-1 bg-gray-700"
+          onClick={() => swap(inst.id, swapId, { variantProps })}
+        >
+          Swap
+        </button>
       </div>
 
       <div>
