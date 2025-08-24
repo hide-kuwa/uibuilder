@@ -23,6 +23,7 @@ import { saveImageMulti } from '@/lib/assets';
 import DropOverlay from './DropOverlay';
 import MarqueeZoom from './MarqueeZoom';
 import Minimap from '@/components/hud/Minimap';
+import HotspotOverlay from './HotspotOverlay';
 
 function NodeView({
   node,
@@ -344,6 +345,7 @@ export default function CanvasStage() {
       )}
       {selected.length === 1 && <SelectionOutline />}
       {selected.length === 1 && <ResizeHandles />}
+      <HotspotOverlay />
       <div className="absolute top-2 right-2"><ZoomControls /></div>
       <div className="minimap"><Minimap /></div>
     </div>

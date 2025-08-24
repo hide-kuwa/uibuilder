@@ -297,6 +297,7 @@ export interface ComponentNode {
     layoutGrids?: LayoutGrid[];
   };
   bindings?: Record<string, PropBinding>;
+  prototypeLink?: PrototypeLink;
   variants?: {
     hover?: { className?: string };
     active?: { className?: string };
@@ -315,6 +316,11 @@ export interface PropBinding {
   path: string;
   fallback?: string;
 }
+
+export type PrototypeLink =
+  | { kind: 'navigate'; targetId: string; animation?: 'instant' }
+  | { kind: 'overlay'; targetId: string; animation?: 'instant' }
+  | { kind: 'back'; animation?: 'instant' };
 
 export interface EditorState {
   tree: ComponentNode[];
