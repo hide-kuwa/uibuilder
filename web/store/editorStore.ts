@@ -120,6 +120,7 @@ interface EditorActions {
     cam: Camera | Partial<Camera>,
     opts?: { duration?: number },
   ) => void;
+  centerOn: (pt: { x: number; y: number }) => void;
   getViewportRect: () => { x: number; y: number; w: number; h: number };
   getSelectionBounds: () => {
     x: number;
@@ -761,6 +762,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             next.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
           }
           set({ camera: next });
+        },
+        centerOn(pt) {
+          const cam = get().camera;
+          const vw = window.innerWidth / cam.zoom;
+          const vh = window.innerHeight / cam.zoom;
+          set({ camera: { ...cam, x: pt.x - vw / 2, y: pt.y - vh / 2 } });
         },
         getViewportRect() {
           const { camera } = get();
