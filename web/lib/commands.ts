@@ -72,6 +72,12 @@ export const COMMANDS: Command[] = [
     run: () => useEditorStore.getState().toggleSnapToPixel(),
   },
   {
+    id: 'view.eventLog',
+    label: 'Toggle Event Log',
+    shortcut: 'Ctrl+Alt+L',
+    run: () => window.dispatchEvent(new CustomEvent('uibuilder:toggleEventLog')),
+  },
+  {
     id: 'export',
     label: 'Export',
     shortcut: 'Ctrl+Shift+E',

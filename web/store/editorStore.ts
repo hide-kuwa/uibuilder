@@ -127,6 +127,8 @@ interface EditorActions {
     w: number;
     h: number;
   } | null;
+  logDev: (entry: { ts: number; type: string; payload: any }) => void;
+  clearDevLog: () => void;
   // Variants
   defineVariantAxis: (
     componentId: string,
@@ -305,6 +307,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showImageBadges: true,
         },
         lastCommandId: undefined,
+        devLog: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         styles: { text: {} },
@@ -744,6 +747,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
+        },
+        logDev(entry) {
+          set((state) => ({ devLog: [...(state.devLog || []), entry] }));
+        },
+        clearDevLog() {
+          set({ devLog: [] });
         },
         setCamera(cam) {
           set((state) => {
