@@ -118,6 +118,14 @@
   pointer-events: none;
 }
 
+.marquee-zoom {
+  position: absolute;
+  border: 1px dashed #fff;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  z-index: 30;
+}
+
 .color-swatch {
   width: 16px;
   height: 16px;

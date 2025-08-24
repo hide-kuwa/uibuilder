@@ -17,7 +17,13 @@ export default function ZoomControls() {
         -
       </button>
       <span className="text-xs w-12 text-center">{Math.round(z * 100)}%</span>
-      <button className="w-12 h-7" onClick={() => zoom.animateZoomTo(1)}>
+      <button
+        className="w-12 h-7"
+        onClick={() => {
+          const cam = useEditorStore.getState().camera;
+          zoom.animateZoomTo({ ...cam, zoom: 1 });
+        }}
+      >
         100%
       </button>
       <button className="w-7 h-7" onClick={() => zoom.fitAll()}>

@@ -105,7 +105,10 @@ export const COMMANDS: Command[] = [
     id: 'zoom.to100',
     label: 'Zoom to 100%',
     shortcut: '1',
-    run: () => zoom.animateZoomTo(1),
+    run: () => {
+      const cam = useEditorStore.getState().camera;
+      zoom.animateZoomTo({ ...cam, zoom: 1 });
+    },
   },
 ];
 
