@@ -34,7 +34,7 @@ import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariantRoot } from "@/lib/variant/resolve";
 import { resolveBinding } from "@/lib/binding/resolve";
-import { migrateOverrides } from "@/lib/override/compat";
+import { mapNodesForSwap } from "@/lib/override/compat";
 import { resolveOverrides } from "@/lib/override/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
 import { reflectHandle } from "@/lib/vector/bezier";
@@ -123,7 +123,11 @@ interface EditorActions {
   addComponentProp: (componentId: string, prop: ComponentProp) => void;
   setInstanceProp: (nodeId: string, propId: string, value: any) => void;
   // Instance Swap (new API)
-  swapInstanceDef: (nodeId: string, newDefId: string) => void;
+  swapInstanceDef: (
+    nodeId: string,
+    newDefId: string,
+    opts?: { variantProps?: Record<string, any> },
+  ) => void;
 }
 
   // v3 additions
@@ -796,27 +800,57 @@ setInstanceProp(nodeId, propId, value) {
   });
 },
 
-swapInstanceDef(nodeId, newDefId) {
+swapInstanceDef(nodeId, newDefId, opts) {
   apply((draft) => {
     const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
     if (!inst) return;
-    const prev = draft.components[inst.componentId];
-    const next = draft.components[newDefId];
-    if (!prev || !next) return;
-    inst.overrides = migrateOverrides(inst.overrides, prev, next);
-    inst.componentId = newDefId;
+    const prevDef = draft.components[inst.defId || inst.componentId];
+    const nextDef = draft.components[newDefId];
+    if (!prevDef || !nextDef) return;
 
-    if (next?.axes) {
-      inst.variant = inst.variant || {};
-      Object.keys(inst.variant).forEach((k) => {
-        if (!next.axes || !next.axes[k]) delete inst.variant![k];
-      });
-      Object.entries(next.axes).forEach(([k, vals]) => {
-        if (!inst.variant![k]) inst.variant![k] = vals[0];
-      });
-    } else {
-      delete inst.variant;
+    const { map } = mapNodesForSwap(draft, prevDef.rootId, nextDef.rootId);
+
+    if (inst.overrides) {
+      const mapped: OverrideMap = {};
+      (['text', 'image', 'visible', 'style'] as (keyof OverrideMap)[]).forEach(
+        (kind) => {
+          const src = inst.overrides![kind];
+          if (!src) return;
+          Object.entries(src).forEach(([id, payload]) => {
+            const targetId = map[id];
+            if (!targetId) return;
+            if (!mapped[kind]) mapped[kind] = {} as any;
+            (mapped[kind] as any)[targetId] = payload;
+          });
+        },
+      );
+      inst.overrides = Object.keys(mapped).length ? mapped : undefined;
     }
+
+    let vProps: Record<string, any> | undefined = undefined;
+    if (nextDef.variantSetId) {
+      const set = draft.variantSets[nextDef.variantSetId];
+      if (set) {
+        vProps = {};
+        const names = set.propDefs.map((p) => p.name);
+        names.forEach((name) => {
+          if (inst.variantProps && inst.variantProps[name] !== undefined) {
+            vProps![name] = inst.variantProps[name];
+          }
+        });
+        if (opts?.variantProps) {
+          Object.entries(opts.variantProps).forEach(([k, v]) => {
+            if (names.includes(k)) vProps![k] = v;
+          });
+        }
+        if (!Object.keys(vProps).length) vProps = undefined;
+      }
+    }
+    if (vProps) inst.variantProps = vProps;
+    else delete inst.variantProps;
+
+    inst.defId = newDefId;
+    inst.componentId = newDefId;
   });
 },
 

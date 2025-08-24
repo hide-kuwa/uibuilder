@@ -260,6 +260,8 @@ export interface ComponentNode {
   id: string;
   type: string; // 'Frame' | 'Rect' | 'Text' | 'Instance' etc
   name?: string;
+  /** Stable identifier for swap/override mapping */
+  stableKey?: string;
   props?: {
     x?: number;
     y?: number;
