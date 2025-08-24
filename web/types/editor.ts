@@ -555,3 +555,9 @@ export interface EditorState {
   data?: DataState;
   vars?: VariablesState;
 }
+
+// ヒットテスト関連の（既存 or 参照用）型補助（必要なら拡張）
+export type HitTestAPI = {
+  updateHitIndex(tree: any[]): void
+  pickAt(x: number, y: number): string | null
+}
