@@ -24,6 +24,8 @@ import type {
   TextStyleDef,
   TextSelection,
   TextRun,
+  VariantSet,
+  VariantProps,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
@@ -136,6 +138,7 @@ interface EditorActions {
   logDev: (entry: { ts: number; type: string; payload: any }) => void;
   clearDevLog: () => void;
   // Variants
+  createVariantSet: (componentId: string, set: VariantSet) => void;
   defineVariantAxis: (
     componentId: string,
     axis: string,
@@ -151,6 +154,10 @@ interface EditorActions {
   ) => void;
   removeVariantRule: (componentId: string, index: number) => void;
   setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
+  setInstanceVariantProps: (
+    nodeId: string,
+    props: VariantProps,
+  ) => void;
   // Overrides
   setOverride: (nodeId: string, path: string, value: any) => void;
   clearOverride: (nodeId: string, path: string) => void;
@@ -854,6 +861,13 @@ export const useEditorStore = create<
           const y2 = Math.max(...boxes.map((b) => b.y + b.h));
           return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
         },
+        createVariantSet(componentId, set) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (!c) return;
+            c.variantSet = set;
+          });
+        },
         defineVariantAxis(componentId, axis, values) {
           apply((draft) => {
             const c = draft.components[componentId];
@@ -884,7 +898,43 @@ export const useEditorStore = create<
             inst.variant[axis] = value;
           });
         },
+        setInstanceVariantProps(nodeId, props) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.variant = { ...(inst.variant || {}), ...props };
+            const def = draft.components[inst.componentId];
+            if (def) {
+              const root = resolveVariant(def, inst.variant);
+              if (inst.overrides) {
+                const ids = new Set<string>();
+                (function collect(n: ComponentNode) {
+                  ids.add(n.id);
+                  n.children?.forEach(collect);
+                })(root);
+                Object.keys(inst.overrides).forEach((id) => {
+                  if (!ids.has(id)) delete inst.overrides![id];
+                });
+              }
+            }
+          });
+        },
         setOverride(nodeId, path, value) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.overrides = inst.overrides || ({} as any);
+            const parts = path.split(".");
+            let obj: any = inst.overrides;
+            for (let i = 0; i < parts.length - 1; i++) {
+              const k = parts[i];
+              obj[k] = obj[k] || {};
+              obj = obj[k];
+            }
+            obj[parts[parts.length - 1]] = value;
+          });
+        },
+
           apply((draft) => {
             const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
             if (!inst) return;
