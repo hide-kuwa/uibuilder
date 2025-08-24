@@ -33,22 +33,56 @@ export default function RightPane() {
   const link = inst.prototypeLink;
   const [linkKind, setLinkKind] = useState(link?.kind || "");
   const [linkTarget, setLinkTarget] = useState(link?.targetId || "");
+  const [triggerType, setTriggerType] = useState(link?.trigger?.type || 'click');
+  const [triggerMs, setTriggerMs] = useState(link?.trigger?.ms ?? 300);
   useEffect(() => {
     setLinkKind(link?.kind || "");
     setLinkTarget(link?.targetId || "");
-  }, [link?.kind, link?.targetId]);
+    setTriggerType(link?.trigger?.type || 'click');
+    setTriggerMs(link?.trigger?.ms ?? 300);
+  }, [link?.kind, link?.targetId, link?.trigger?.type, link?.trigger?.ms]);
+  const triggerObj = () =>
+    ({ type: triggerType as any, ...(triggerType === 'delay' ? { ms: triggerMs } : {}) });
   const handleKindChange = (k: string) => {
     setLinkKind(k);
     if (!k) updateNode(inst.id, { prototypeLink: undefined });
     else
       updateNode(inst.id, {
-        prototypeLink: { kind: k as PrototypeLink["kind"], targetId: linkTarget },
+        prototypeLink: {
+          kind: k as PrototypeLink["kind"],
+          targetId: linkTarget,
+          trigger: triggerObj(),
+        },
       });
   };
   const handleTargetChange = (t: string) => {
     setLinkTarget(t);
     updateNode(inst.id, {
-      prototypeLink: { kind: linkKind as PrototypeLink["kind"], targetId: t },
+      prototypeLink: {
+        kind: linkKind as PrototypeLink["kind"],
+        targetId: t,
+        trigger: triggerObj(),
+      },
+    });
+  };
+  const handleTriggerChange = (t: string) => {
+    setTriggerType(t);
+    updateNode(inst.id, {
+      prototypeLink: {
+        kind: linkKind as PrototypeLink['kind'],
+        targetId: linkTarget,
+        trigger: { type: t as any, ...(t === 'delay' ? { ms: triggerMs } : {}) },
+      },
+    });
+  };
+  const handleTriggerMsChange = (ms: number) => {
+    setTriggerMs(ms);
+    updateNode(inst.id, {
+      prototypeLink: {
+        kind: linkKind as PrototypeLink['kind'],
+        targetId: linkTarget,
+        trigger: { type: 'delay', ms },
+      },
     });
   };
 
@@ -274,6 +308,29 @@ export default function RightPane() {
             ))}
           </select>
         )}
+        <div className="mt-1">
+          <label className="block">Trigger</label>
+          <div className="flex items-center gap-1">
+            <select
+              className="flex-1 bg-gray-700 p-1 text-white"
+              value={triggerType}
+              onChange={(e) => handleTriggerChange(e.target.value)}
+            >
+              <option value="click">click</option>
+              <option value="hover">hover</option>
+              <option value="delay">delay</option>
+            </select>
+            {triggerType === 'delay' && (
+              <input
+                type="number"
+                min={0}
+                className="w-16 bg-gray-700 p-1 text-white"
+                value={triggerMs}
+                onChange={(e) => handleTriggerMsChange(Number(e.target.value))}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       <div>

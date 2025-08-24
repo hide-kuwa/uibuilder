@@ -36,26 +36,55 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   if (node.props?.w !== undefined) style.width = node.props.w;
   if (node.props?.h !== undefined) style.height = node.props.h;
   const link = node.prototypeLink;
-  const handle = (e: any) => {
+  const handleClick = (e: any) => {
+    if (!link) return;
     e.stopPropagation();
-    if (link) onLink(link);
+    const trig = link.trigger?.type || 'click';
+    if (trig === 'click') onLink(link);
   };
+  const handleHover = (e: any) => {
+    if (!link) return;
+    if (link.trigger?.type === 'hover') {
+      e.stopPropagation();
+      onLink(link);
+    }
+  };
+  useEffect(() => {
+    if (!link || link.trigger?.type !== 'delay') return;
+    const id = setTimeout(() => onLink(link), link.trigger.ms ?? 300);
+    return () => clearTimeout(id);
+  }, [link, onLink]);
   if (node.type === 'Image') {
     return (
-      <div style={style} onClick={handle} className={link ? 'cursor-pointer' : undefined}>
+      <div
+        style={style}
+        onClick={handleClick}
+        onMouseEnter={handleHover}
+        className={link ? 'cursor-pointer' : undefined}
+      >
         <div className="w-full h-full bg-gray-300" />
       </div>
     );
   }
   if (node.type === 'Text') {
     return (
-      <div style={style} onClick={handle} className={link ? 'cursor-pointer' : undefined}>
+      <div
+        style={style}
+        onClick={handleClick}
+        onMouseEnter={handleHover}
+        className={link ? 'cursor-pointer' : undefined}
+      >
         {node.props?.text}
       </div>
     );
   }
   return (
-    <div style={style} onClick={handle} className={link ? 'cursor-pointer' : undefined}>
+    <div
+      style={style}
+      onClick={handleClick}
+      onMouseEnter={handleHover}
+      className={link ? 'cursor-pointer' : undefined}
+    >
       {node.children?.map((c) => (
         <NodeRenderer key={c.id} node={c} onLink={onLink} />
       ))}

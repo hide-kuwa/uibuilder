@@ -317,10 +317,29 @@ export interface PropBinding {
   fallback?: string;
 }
 
+export type PrototypeTrigger =
+  | { type: 'click' }
+  | { type: 'hover' }
+  | { type: 'delay'; ms?: number };
+
 export type PrototypeLink =
-  | { kind: 'navigate'; targetId: string; animation?: 'instant' }
-  | { kind: 'overlay'; targetId: string; animation?: 'instant' }
-  | { kind: 'back'; animation?: 'instant' };
+  | {
+      kind: 'navigate';
+      targetId: string;
+      animation?: 'instant' | 'dissolve';
+      trigger?: PrototypeTrigger;
+    }
+  | {
+      kind: 'overlay';
+      targetId: string;
+      animation?: 'instant' | 'dissolve';
+      trigger?: PrototypeTrigger;
+    }
+  | {
+      kind: 'back';
+      animation?: 'instant' | 'dissolve';
+      trigger?: PrototypeTrigger;
+    };
 
 export interface EditorState {
   tree: ComponentNode[];
