@@ -6,10 +6,7 @@ import type { BooleanOp } from '@/lib/vector/boolean';
 import { saveImage } from '@/lib/assets';
 
 export default function TopBar() {
-    const prefs = useEditorStore((s) => s.prefs || {});
-    const toggleLayoutGrid = useEditorStore((s) => s.toggleLayoutGrid);
-    const togglePixelGrid = useEditorStore((s) => s.togglePixelGrid);
-    const toggleSnapToPixel = useEditorStore((s) => s.toggleSnapToPixel);
+    const togglePreferences = useEditorStore((s) => s.togglePreferences);
     const selection = useEditorStore((s) => s.selectedIds);
     const tree = useEditorStore((s) => s.tree);
   const toggleMask = useEditorStore((s) => s.toggleMask);
@@ -157,36 +154,11 @@ export default function TopBar() {
             />
             Replace originals
           </label>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.showLayoutGrid || false}
-                onChange={toggleLayoutGrid}
-              />
-              Layout Grid
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.showPixelGrid || false}
-                onChange={togglePixelGrid}
-              />
-              Pixel Grid
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.snapToPixel !== false}
-                onChange={toggleSnapToPixel}
-              />
-              Snap
-            </label>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <button>Share</button>
           <button>Present</button>
+          <button onClick={togglePreferences}>Preferences</button>
           <div className="w-6 h-6 bg-gray-500 rounded-full" />
         </div>
         {toast && (

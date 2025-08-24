@@ -106,8 +106,8 @@ interface EditorActions {
   toggleGuides: () => void;
   toggleOutline: () => void;
   toggleLayoutGrid: () => void;
-  togglePixelGrid: () => void;
   toggleSnapToPixel: () => void;
+  togglePreferences: () => void;
   setPrefs: (patch: Partial<EditorState['prefs']>) => void;
   ensureDominantColor: (assetId: string) => Promise<string>;
   booleanCombine: (
@@ -309,12 +309,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showSmartGuides: true,
           showOutline: false,
           activeTool: "select",
+          showPreferences: false,
         },
         prefs: {
-          showLayoutGrid: false,
-          showPixelGrid: false,
-          snapToPixel: true,
           showImageBadges: true,
+          reduceMotion: false,
+          snapPx: 4,
+          showGrid: false,
+          showPerfHud: false,
         },
         lastCommandId: undefined,
         recentCommands: [],
@@ -684,19 +686,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         toggleLayoutGrid() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.showLayoutGrid = !draft.prefs.showLayoutGrid;
-          });
-        },
-        togglePixelGrid() {
-          apply((draft) => {
-            draft.prefs = draft.prefs || {};
-            draft.prefs.showPixelGrid = !draft.prefs.showPixelGrid;
+            draft.prefs.showGrid = !draft.prefs.showGrid;
           });
         },
         toggleSnapToPixel() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
+            draft.prefs.snapPx = draft.prefs.snapPx ? 0 : 4;
+          });
+        },
+        togglePreferences() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showPreferences = !draft.ui.showPreferences;
           });
         },
         setPrefs(patch) {
