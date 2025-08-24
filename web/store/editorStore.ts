@@ -26,6 +26,7 @@ import type {
   TextRun,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
+import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariant } from "@/lib/variantResolver";
 import { applyOverrides } from "@/lib/overrideMerge";
@@ -224,6 +225,12 @@ interface EditorActions {
   ) => void;
 }
 
+interface EditorPersistState {
+  saveQueue: number[];
+  lastSavedAt: number | null;
+  isOffline: boolean;
+}
+
 export interface CropDraft {
   nodeId: string;
   rect: { x: number; y: number; w: number; h: number };
@@ -270,13 +277,16 @@ function lerp(
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
-export const useEditorStore = create<EditorState & EditorActions>()(
+export const useEditorStore = create<
+  EditorState & EditorActions & EditorPersistState
+>()(
   persist(
     (set, get) => {
       const apply = (recipe: (draft: EditorState) => void) => {
         const [next, patches, inverse] = produceWithPatches(get(), recipe);
         push(patches, inverse);
         set(next);
+        schedulePersist();
       };
 
       return {
@@ -309,6 +319,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         comments: { threads: {}, users: {} },
         styles: { text: {} },
         textSel: undefined,
+        saveQueue: [],
+        lastSavedAt: null,
+        isOffline: false,
         setHover(id) {
           set({ hoverId: id });
         },
@@ -1457,3 +1470,5 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
   ),
 );
+
+initPersist(useEditorStore);
