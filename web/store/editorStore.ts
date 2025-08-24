@@ -26,14 +26,13 @@ import type {
   TextRun,
   ComponentProp,
   VariantSet,
-  VariantProps,
+  VariantPropDef,
   OverrideMap,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
-import { resolveVariant } from "@/lib/variantResolver";
-import { applyOverrides } from "@/lib/overrideMerge";
+import { resolveVariantRoot } from "@/lib/variant/resolve";
 import { resolveBinding } from "@/lib/binding/resolve";
 import { migrateOverrides } from "@/lib/override/compat";
 import { resolveOverrides } from "@/lib/override/resolve";
@@ -167,25 +166,15 @@ interface EditorActions {
   logDev: (entry: { ts: number; type: string; payload: any }) => void;
   clearDevLog: () => void;
   // Variants
-  createVariantSet: (componentId: string, set: VariantSet) => void;
-  defineVariantAxis: (
-    componentId: string,
-    axis: string,
-    values: string[],
-  ) => void;
-  setVariantRule: (
-    componentId: string,
-    rule: {
-      when: Record<string, string>;
-      node: string;
-      patch: Partial<ComponentNode>;
-    },
-  ) => void;
-  removeVariantRule: (componentId: string, index: number) => void;
-  setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
+  createVariantSet: (defId: string, propDefs: VariantPropDef[]) => string;
+  addVariant: (
+    setId: string,
+    v: { name: string; props: Record<string, string | number | boolean>; rootId: string },
+  ) => string;
+  renameVariant: (setId: string, varId: string, name: string) => void;
   setInstanceVariantProps: (
-    nodeId: string,
-    props: VariantProps,
+    instId: string,
+    patch: Record<string, string | number | boolean>,
   ) => void;
   // Overrides
   setOverride: (
@@ -1028,60 +1017,48 @@ swapInstanceDef(nodeId, newDefId) {
           const y2 = Math.max(...boxes.map((b) => b.y + b.h));
           return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
         },
-        createVariantSet(componentId, set) {
+        createVariantSet(defId, propDefs) {
+          const id = nanoid();
           apply((draft) => {
-            const c = draft.components[componentId];
-            if (!c) return;
-            c.variantSet = set;
+            draft.variantSets[id] = { id, defId, propDefs, variants: [] } as VariantSet;
+            const c = draft.components[defId];
+            if (c) c.variantSetId = id;
+          });
+          return id;
+        },
+        addVariant(setId, v) {
+          const id = nanoid();
+          apply((draft) => {
+            const set = draft.variantSets[setId];
+            if (!set) return;
+            set.variants.push({ id, name: v.name, props: v.props, rootId: v.rootId });
+          });
+          return id;
+        },
+        renameVariant(setId, varId, name) {
+          apply((draft) => {
+            const set = draft.variantSets[setId];
+            const vr = set?.variants.find((vv) => vv.id === varId);
+            if (vr) vr.name = name;
           });
         },
-        defineVariantAxis(componentId, axis, values) {
+        setInstanceVariantProps(instId, patch) {
           apply((draft) => {
-            const c = draft.components[componentId];
-            if (!c) return;
-            c.axes = c.axes || {};
-            c.axes[axis] = values;
-          });
-        },
-        setVariantRule(componentId, rule) {
-          apply((draft) => {
-            const c = draft.components[componentId];
-            if (!c) return;
-            c.rules = c.rules || [];
-            c.rules.push(rule);
-          });
-        },
-        removeVariantRule(componentId, index) {
-          apply((draft) => {
-            const c = draft.components[componentId];
-            if (c?.rules) c.rules.splice(index, 1);
-          });
-        },
-        setInstanceVariant(nodeId, axis, value) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            const inst = findNode(draft.tree, instId) as InstanceNode | null;
             if (!inst) return;
-            inst.variant = inst.variant || {};
-            inst.variant[axis] = value;
-          });
-        },
-        setInstanceVariantProps(nodeId, props) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.variant = { ...(inst.variant || {}), ...props };
-            const def = draft.components[inst.componentId];
-            if (def) {
-              const root = resolveVariant(def, inst.variant);
-              if (inst.overrides) {
-                const ids = new Set<string>();
-                (function collect(n: ComponentNode) {
-                  ids.add(n.id);
-                  n.children?.forEach(collect);
-                })(root);
-                Object.keys(inst.overrides).forEach((id) => {
-                  if (!ids.has(id)) delete inst.overrides![id];
-                });
+            inst.variantProps = { ...(inst.variantProps || {}), ...patch };
+            const root = resolveVariantRoot(draft as EditorState, inst);
+            if (inst.overrides && root) {
+              const ids = new Set<string>();
+              (function collect(n: ComponentNode) {
+                ids.add(n.id);
+                n.children?.forEach(collect);
+              })(root);
+              for (const bucket of Object.values(inst.overrides)) {
+                if (!bucket) continue;
+                for (const id of Object.keys(bucket as any)) {
+                  if (!ids.has(id)) delete (bucket as any)[id];
+                }
               }
             }
           });
