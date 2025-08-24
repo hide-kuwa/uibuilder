@@ -1,17 +1,29 @@
+export { extractTokensFromTree, tokensToJSON, tokensToTS } from './tokens'
+export type { Tokens } from './tokens'
+
+import { buildAssetMap, extractAssetsFromTree, type AssetMap } from '@/lib/assets'
+
+/** ツリーからアセットマップ(JSON文字列)を生成して返す */
+export async function buildAssetMapJSON(tree: any[]): Promise<{ json: string; map: AssetMap }> {
+  const assets = extractAssetsFromTree(tree)
+  const map = await buildAssetMap(assets)
+  return { json: JSON.stringify(map, null, 2), map }
+}
+
 export interface ExportScope {
-  mode: 'selection' | 'frame' | 'page';
-  id?: string;
+  mode: 'selection' | 'frame' | 'page'
+  id?: string
 }
 
 export interface ExportOptions {
-  scale?: number; // 1..4, default 1
-  background?: 'transparent' | { color: string };
+  scale?: number // 1..4, default 1
+  background?: 'transparent' | { color: string }
 }
 
-export type ExportFormat = 'png' | 'svg' | 'html' | 'react';
+export type ExportFormat = 'png' | 'svg' | 'html' | 'react'
 
 export interface ExportPreset extends ExportOptions {
-  format: ExportFormat;
+  format: ExportFormat
 }
 
 export async function exportPNG(scope: ExportScope, opts?: ExportOptions) {
