@@ -851,6 +851,10 @@ swapInstanceDef(nodeId, newDefId, opts) {
 
     inst.defId = newDefId;
     inst.componentId = newDefId;
+
+    // bump usage counts and last used timestamp for components
+    nextDef.lastUsedAt = Date.now();
+    updateUsageCounts(draft);
   });
 },
 
