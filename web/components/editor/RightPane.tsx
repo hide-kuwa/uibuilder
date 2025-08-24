@@ -85,7 +85,7 @@ export default function RightPane() {
       id,
       name,
       type,
-      default: defVal,
+      defaultValue: defVal,
     });
   };
 
@@ -106,7 +106,7 @@ export default function RightPane() {
               {p.type === "boolean" ? (
                 <input
                   type="checkbox"
-                  checked={inst.propValues?.[p.id] ?? p.default ?? false}
+                  checked={inst.propValues?.[p.id] ?? p.defaultValue ?? false}
                   onChange={(e) =>
                     setInstanceProp(inst.id, p.id, e.target.checked)
                   }
@@ -115,7 +115,7 @@ export default function RightPane() {
                 <input
                   type="number"
                   className="w-full bg-gray-700 p-1 text-white"
-                  value={inst.propValues?.[p.id] ?? p.default ?? 0}
+                  value={inst.propValues?.[p.id] ?? p.defaultValue ?? 0}
                   onChange={(e) =>
                     setInstanceProp(inst.id, p.id, Number(e.target.value))
                   }
@@ -123,7 +123,7 @@ export default function RightPane() {
               ) : p.type === "color" ? (
                 <input
                   type="color"
-                  value={inst.propValues?.[p.id] ?? p.default ?? "#000000"}
+                  value={inst.propValues?.[p.id] ?? p.defaultValue ?? "#000000"}
                   onChange={(e) =>
                     setInstanceProp(inst.id, p.id, e.target.value)
                   }
@@ -132,7 +132,7 @@ export default function RightPane() {
                 <input
                   type="text"
                   className="w-full bg-gray-700 p-1 text-white"
-                  value={inst.propValues?.[p.id] ?? p.default ?? ""}
+                  value={inst.propValues?.[p.id] ?? p.defaultValue ?? ""}
                   onChange={(e) =>
                     setInstanceProp(inst.id, p.id, e.target.value)
                   }

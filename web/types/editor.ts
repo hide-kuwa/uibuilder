@@ -368,7 +368,8 @@ export interface ComponentProp {
   id: string;
   name: string;
   type: "boolean" | "text" | "number" | "color";
-  default?: any;
+  defaultValue?: any;
+  targetPath?: string;
 }
 
 // Variant Props & Definitions
