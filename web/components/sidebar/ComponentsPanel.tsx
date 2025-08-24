@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import InstanceView from "@/components/editor/InstanceView";
 import type { VariantProps } from "@/types/editor";
@@ -12,10 +12,16 @@ export default function ComponentsPanel() {
   const components = Object.values(componentsMap);
   const createInstance = useEditorStore((s) => s.createInstance);
   const placeInstance = useEditorStore((s) => s.placeInstance);
-
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortKey>("az");
+  const query = useEditorStore((s) => s.componentsQuery);
+  const sort = useEditorStore((s) => s.componentsSort as SortKey);
+  const setQuery = useEditorStore((s) => s.setComponentsQuery);
+  const setSort = useEditorStore((s) => s.setComponentsSort);
+  const hydrate = useEditorStore((s) => s.hydrateComponentsMeta);
   const [propsByComp, setPropsByComp] = useState<Record<string, VariantProps>>({});
+
+  useEffect(() => {
+    hydrate?.();
+  }, [hydrate]);
 
   const items = useMemo(() => {
     let list = components;
@@ -81,8 +87,17 @@ export default function ComponentsPanel() {
               }}
             >
               <div className="flex justify-between items-center mb-1">
-                <span className="font-medium">{c.name}</span>
-                <span className="text-xs opacity-70">{c.usageCount || 0}</span>
+                <span className="font-medium truncate">{c.name}</span>
+                <span className="text-xs opacity-70 flex items-center gap-2">
+                  <span title="使用数">↻ {c.usageCount ?? 0}</span>
+                  {c.lastUsedAt ? (
+                    <time dateTime={new Date(c.lastUsedAt).toISOString()}>
+                      {formatRelative(c.lastUsedAt)}
+                    </time>
+                  ) : (
+                    <span className="opacity-60">未使用</span>
+                  )}
+                </span>
               </div>
 
               {c.variantSet && (
@@ -115,4 +130,15 @@ export default function ComponentsPanel() {
       </div>
     </div>
   );
+}
+
+function formatRelative(ts: number) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "たった今";
+  if (m < 60) return `${m}分前`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}時間前`;
+  const d = Math.floor(h / 24);
+  return `${d}日前`;
 }

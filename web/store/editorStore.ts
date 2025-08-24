@@ -48,6 +48,7 @@ import { computeDominantColor } from "@/lib/color/dominant";
 import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
 import { applyRun, removeRun } from "@/lib/text/rangeOps";
+import { bumpComponentUsage, loadComponentsMeta } from "@/lib/persist/componentsMeta";
 
 const updateUsageCounts = (draft: EditorState) => {
   const counts: Record<string, number> = {};
@@ -119,6 +120,9 @@ interface EditorActions {
   placeInstance: (componentId: string, pos?: { x: number; y: number }) => void;
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
+  setComponentsQuery: (q: string) => void;
+  setComponentsSort: (m: 'az' | 'recent' | 'usage') => void;
+  hydrateComponentsMeta: () => Promise<void>;
   // Props
   addComponentProp: (componentId: string, prop: ComponentProp) => void;
   setInstanceProp: (nodeId: string, propId: string, value: any) => void;
@@ -349,6 +353,8 @@ export const useEditorStore = create<
         camera: { x: 0, y: 0, zoom: 1 },
         meta: { version: 1, updatedAt: Date.now() },
         components: {},
+        componentsQuery: '',
+        componentsSort: 'az',
         guides: [],
         assets: { images: {} },
         vector: { selection: {} },
@@ -664,56 +670,41 @@ export const useEditorStore = create<
           apply((draft) => {
             const def = draft.components[componentId];
             if (!def) return;
-            const id = Math.random().toString(36).slice(2);
+            const id = nanoid();
             const inst: InstanceNode = {
               id,
               type: "Instance",
               componentId,
+              props: {
+                x: pos?.x || 0,
+                y: pos?.y || 0,
+                w: def.root.props?.w || 100,
+                h: def.root.props?.h || 100,
+              },
+              children: [],
               variant: {},
               overrides: {},
-              props: { x: pos?.x || 0, y: pos?.y || 0 },
               propValues: {},
             };
-createInstance(componentId, pos) {
-  apply((draft) => {
-    const def = draft.components[componentId];
-    if (!def) return;
-    const id = nanoid();
-    const inst: InstanceNode = {
-      id,
-      type: "Instance",
-      componentId,
-      props: {
-        x: pos?.x || 0,
-        y: pos?.y || 0,
-        w: def.root.props?.w || 100,
-        h: def.root.props?.h || 100,
-      },
-      children: [],
-      variant: {},
-      overrides: {},
-      propValues: {},
-    };
 
-    // props のデフォルト値を埋める
-    def.props?.forEach((p) => {
-      inst.propValues![p.id] = p.defaultValue;
-    });
+            def.props?.forEach((p) => {
+              inst.propValues![p.id] = p.defaultValue;
+            });
 
-    // usage 情報更新
-    def.usageCount = (def.usageCount || 0) + 1;
-    def.lastUsedAt = Date.now();
+            def.usageCount = (def.usageCount || 0) + 1;
+            def.lastUsedAt = Date.now();
 
-    draft.tree.push(inst);
-    draft.selectedIds = [id];
-  });
-},
+            draft.tree.push(inst);
+            draft.selectedIds = [id];
+          });
+          bumpComponentUsage(componentId).catch(() => {});
+        },
 
-placeInstance(componentId, pos) {
-  get().createInstance(componentId, pos);
-},
+        placeInstance(componentId, pos) {
+          get().createInstance(componentId, pos);
+        },
 
-detachInstance(nodeId) {
+        detachInstance(nodeId) {
   apply((draft) => {
     const res = findNodeWithParent(draft.tree, nodeId);
     if (!res) return;
@@ -768,6 +759,24 @@ swapInstance(nodeId, nextComponentId) {
     }
 
     updateUsageCounts(draft);
+  });
+},
+
+setComponentsQuery(q) {
+  set({ componentsQuery: q });
+},
+setComponentsSort(m) {
+  set({ componentsSort: m });
+},
+async hydrateComponentsMeta() {
+  const meta = await loadComponentsMeta();
+  apply((draft) => {
+    for (const [id, m] of Object.entries(meta)) {
+      const def = draft.components[id];
+      if (!def) continue;
+      def.usageCount = m.usageCount;
+      def.lastUsedAt = m.lastUsedAt;
+    }
   });
 },
 
