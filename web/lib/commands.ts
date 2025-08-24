@@ -60,7 +60,6 @@ export const COMMANDS: Command[] = [
     run: () => useEditorStore.getState().toggleLayoutGrid(),
   },
   {
-
     id: 'view.togglePixelGrid',
     title: 'Toggle Pixel Grid',
     shortcut: "Ctrl+'",
@@ -73,8 +72,14 @@ export const COMMANDS: Command[] = [
     run: () => useEditorStore.getState().toggleSnapToPixel(),
   },
   {
+    id: 'view.eventLog',
+    title: 'Toggle Event Log',
+    shortcut: 'Ctrl+Alt+L',
+    run: () => window.dispatchEvent(new CustomEvent('uibuilder:toggleEventLog')),
+  },
+  {
     id: 'view.prefs',
-    label: 'Preferences',
+    title: 'Preferences',
     shortcut: 'Ctrl+,',
     run: () => useEditorStore.getState().togglePreferences(),
   },

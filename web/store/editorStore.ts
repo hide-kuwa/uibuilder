@@ -131,6 +131,8 @@ interface EditorActions {
     w: number;
     h: number;
   } | null;
+  logDev: (entry: { ts: number; type: string; payload: any }) => void;
+  clearDevLog: () => void;
   // Variants
   defineVariantAxis: (
     componentId: string,
@@ -330,6 +332,7 @@ export const useEditorStore = create<
           showPerfHud: false,
         },
         lastCommandId: undefined,
+        devLog: [],
         recentCommands: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
@@ -774,6 +777,11 @@ export const useEditorStore = create<
         setLastCommand(id) {
           set({ lastCommandId: id });
         },
+        logDev(entry) {
+          set((state) => ({ devLog: [...(state.devLog || []), entry] }));
+        },
+        clearDevLog() {
+          set({ devLog: [] });
         addRecentCommand(id) {
           set((state) => ({
             recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),

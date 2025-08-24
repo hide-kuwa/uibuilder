@@ -29,6 +29,7 @@ export type Command =
   | 'view.toggleOutline'
   | 'view.toggleLayoutGrid'
   | 'view.toggleSnapToPixel'
+  | 'view.eventLog'
   | 'view.prefs'
   | 'export'
   | 'annotation.pin'
@@ -75,6 +76,7 @@ export function getCommand(e: KeyboardEvent): Command | undefined {
     if (e.code === 'KeyB') return 'detachInstance';
     if (e.code === 'KeyS') return 'swapInstance';
     if (e.code === 'KeyH') return 'distribute.h';
+    if (e.code === 'KeyL') return 'view.eventLog';
   }
   if (mod) {
     if (e.code === 'KeyD') return 'duplicate';

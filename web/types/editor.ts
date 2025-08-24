@@ -344,6 +344,7 @@ export interface EditorState {
   textSel?: TextSelection;
   styles: { text: Record<string, TextStyleDef> };
   lastCommandId?: string;
+  devLog?: { ts: number; type: string; payload: any }[];
   recentCommands?: string[];
   review: {
     status: ReviewStatus;
