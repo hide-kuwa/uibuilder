@@ -370,11 +370,15 @@ export interface ComponentDefinition {
   }>;
 }
 
+// v10-1 component definitions
+export type ComponentDef = ComponentDefinition;
+export type OverrideMap = Record<string, any>;
+
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
   componentId: string;
   variant?: Record<string, string>;
-  overrides?: Record<string, Partial<ComponentNode>>;
+  overrides?: OverrideMap;
 }
 
 // v6 data binding and action types
