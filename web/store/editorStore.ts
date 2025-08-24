@@ -49,6 +49,10 @@ import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
 import { applyRun, removeRun } from "@/lib/text/rangeOps";
 import { bumpComponentUsage, loadComponentsMeta } from "@/lib/persist/componentsMeta";
+import {
+  saveLatestSnapshot,
+  type SnapshotDoc,
+} from "@/lib/persist/snapshot";
 
 const updateUsageCounts = (draft: EditorState) => {
   const counts: Record<string, number> = {};
@@ -284,6 +288,7 @@ interface EditorActions {
 interface EditorPersistState {
   saveQueue: number[];
   lastSavedAt: number | null;
+  lastSnapshotAt: number | null;
   isOffline: boolean;
 }
 
@@ -355,6 +360,7 @@ export const useEditorStore = create<
         components: {},
         componentsQuery: '',
         componentsSort: 'az',
+        prototypeLinks: {},
         guides: [],
         assets: { images: {} },
         vector: { selection: {} },
@@ -383,6 +389,7 @@ export const useEditorStore = create<
         textSel: undefined,
         saveQueue: [],
         lastSavedAt: null,
+        lastSnapshotAt: null,
         isOffline: false,
         setHover(id) {
           set({ hoverId: id });
@@ -1712,6 +1719,23 @@ swapInstanceDef(nodeId, newDefId, opts) {
         redo() {
           set((state) => redoStack(state));
         },
+        async snapshotNow() {
+          const s = get();
+          const doc: SnapshotDoc = {
+            tree: s.tree,
+            components: s.components,
+            prototypeLinks: s.prototypeLinks,
+          };
+          const ts = await saveLatestSnapshot(doc);
+          set({ lastSnapshotAt: ts });
+        },
+        restoreFromSnapshot(doc) {
+          set({
+            tree: doc.tree || [],
+            components: doc.components || {},
+            prototypeLinks: doc.prototypeLinks || {},
+          });
+        },
       };
     },
     {
@@ -1773,3 +1797,25 @@ swapInstanceDef(nodeId, newDefId, opts) {
 );
 
 initPersist(useEditorStore);
+
+// ===== v13-4: スナップショット自動保存（サブスクライブ） =====
+let _snapTimer: number | null = null;
+let _changed = false;
+const SCHEDULE_MS = 20000; // 20s ごとにまとめて保存
+useEditorStore.subscribe(() => {
+  _changed = true;
+  if (_snapTimer != null) return;
+  _snapTimer = window.setTimeout(async () => {
+    try {
+      if (_changed) {
+        _changed = false;
+        await useEditorStore.getState().snapshotNow();
+      }
+    } finally {
+      if (_snapTimer) {
+        clearTimeout(_snapTimer);
+        _snapTimer = null;
+      }
+    }
+  }, SCHEDULE_MS);
+});

@@ -351,6 +351,7 @@ export interface EditorState {
   components: Record<string, ComponentDef>;
   componentsQuery?: string;
   componentsSort?: 'az' | 'recent' | 'usage';
+  prototypeLinks?: Record<string, any>;
   guides: Guide[];
   assets?: { images: Record<string, AssetMeta> };
   vector?: {
