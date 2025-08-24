@@ -370,6 +370,12 @@ export interface ComponentDefinition {
   }>;
 }
 
+export interface OverrideMap {
+  text?: Record<string, string>;
+  image?: Record<string, string>;
+  visible?: Record<string, boolean>;
+  style?: Record<string, { fill?: string; stroke?: string }>;
+}
 // v10-1 component definitions
 export type ComponentDef = ComponentDefinition;
 export type OverrideMap = Record<string, any>;

@@ -29,10 +29,10 @@ export function animateZoomTo(
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const duration =
-    opts?.duration ??
-    parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--motion-base')
-    ) || 200;
+    (opts?.duration ??
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--motion-base')
+      )) || 200;
   if (prefersReduce || duration === 0) {
     store.setCamera(to);
     return Promise.resolve();
