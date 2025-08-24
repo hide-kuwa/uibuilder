@@ -17,6 +17,7 @@ import * as zoom from '@/lib/zoom';
 import { useRef, useState } from 'react';
 import { saveImageMulti } from '@/lib/assets';
 import DropOverlay from './DropOverlay';
+import MarqueeZoom from './MarqueeZoom';
 
 function NodeView({
   node,
@@ -182,6 +183,7 @@ export default function CanvasStage() {
   const last = useRef({ x: 0, y: 0, t: 0, vx: 0, vy: 0 });
 
   const [dragCount, setDragCount] = useState<number | null>(null);
+  const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
 
   const cursorMap: Record<string, string> = {
     pen: 'crosshair',
@@ -199,13 +201,17 @@ export default function CanvasStage() {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (e.shiftKey) {
+      setMarqueeStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
     panning.current = true;
     last.current = { x: e.clientX, y: e.clientY, t: performance.now(), vx: 0, vy: 0 };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!panning.current) return;
+    if (!panning.current || marqueeStart) return;
     const now = performance.now();
     const state = useEditorStore.getState();
     const dx = e.clientX - last.current.x;
@@ -222,7 +228,7 @@ export default function CanvasStage() {
   };
 
   const onPointerUp = () => {
-    if (panning.current) {
+    if (panning.current && !marqueeStart) {
       panning.current = false;
       zoom.panWithInertia(last.current.vx, last.current.vy);
     }
@@ -274,6 +280,9 @@ export default function CanvasStage() {
         <NodeView key={n.id} node={n} components={components} />
       ))}
       {dragCount !== null && <DropOverlay count={dragCount} />}
+      {marqueeStart && (
+        <MarqueeZoom start={marqueeStart} onEnd={() => setMarqueeStart(null)} />
+      )}
       <SVGLayer />
       <PathEditorOverlay />
       <ImageCropOverlay />
