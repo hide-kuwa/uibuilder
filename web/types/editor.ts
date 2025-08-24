@@ -251,6 +251,7 @@ export interface TextSelection {
   nodeId: string | null;
   start: number;
   end: number;
+  rect?: { x: number; y: number; w: number; h: number };
 }
 
 export type MaskTarget = "vector" | "frame" | "image";
