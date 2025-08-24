@@ -406,10 +406,15 @@ export interface ComponentDefinition {
 export type ComponentDef = ComponentDefinition;
 
 // Simple override map (details to be defined in later versions)
-export type OverrideMap = Record<string, unknown>;
+export type OverrideMap = {
+  text?: Record<string, { text: string }>;
+  image?: Record<string, { assetId: string }>;
+  visible?: Record<string, boolean>;
+  style?: Record<string, { fill?: string; stroke?: string; opacity?: number }>;
+};
 
-export interface InstanceNode extends ComponentNode {
-  type: "Instance";
+export interface InstanceNode extends FrameNode {
+  type: 'Instance';
   /** component definition id */
   defId: string;
   /** legacy alias */
