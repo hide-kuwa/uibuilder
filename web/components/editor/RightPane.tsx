@@ -1,7 +1,17 @@
 "use client";
 import { useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode, ImageNode, ImageAdjustments, BlendMode, TextNode, TextResizeMode } from "@/types/editor";
+import type {
+  PathNode,
+  ImageNode,
+  ImageAdjustments,
+  BlendMode,
+  TextNode,
+  TextResizeMode,
+  InstanceNode,
+  ComponentProp,
+} from "@/types/editor";
+import { nanoid } from "nanoid";
 import { normalizeAdjustments, DEFAULT_ADJ } from "@/lib/image/filters";
 import { getScaleInfo } from "@/lib/image/metrics";
 
@@ -19,6 +29,15 @@ export default function RightPane() {
   const prefs = useEditorStore((s) => s.prefs);
   const setPrefs = useEditorStore((s) => s.setPrefs);
   const ensureDominantColor = useEditorStore((s) => s.ensureDominantColor);
+  const addComponentProp = useEditorStore((s) => s.addComponentProp);
+  const setInstanceProp = useEditorStore((s) => s.setInstanceProp);
+  const componentId =
+    node && node.type === "Instance"
+      ? (node as InstanceNode).componentId
+      : undefined;
+  const component = useEditorStore((s) =>
+    componentId ? s.components[componentId] : undefined,
+  );
 
   useEffect(() => {
     if (node && node.type === "Image") {
@@ -26,6 +45,81 @@ export default function RightPane() {
       if (meta && !meta.dominant) ensureDominantColor(meta.id);
     }
   }, [node, assets, ensureDominantColor]);
+  if (node && node.type === "Instance" && component) {
+    const inst = node as InstanceNode;
+    const handleAdd = () => {
+      const name = prompt("Prop name?");
+      if (!name) return;
+      const type =
+        (prompt(
+          "Type (boolean,text,number,color)",
+          "text",
+        ) as ComponentProp["type"]) || "text";
+      const id = nanoid();
+      const defVal =
+        type === "boolean"
+          ? false
+          : type === "number"
+          ? 0
+          : type === "color"
+          ? "#000000"
+          : "";
+      addComponentProp(inst.componentId, {
+        id,
+        name,
+        type,
+        default: defVal,
+      });
+    };
+    return (
+      <div className="bg-gray-800 p-2 space-y-2 text-xs">
+        <div className="font-bold">Props</div>
+        {component.props?.map((p) => (
+          <div key={p.id} className="flex items-center gap-1">
+            <label className="flex-1">{p.name}</label>
+            {p.type === "boolean" ? (
+              <input
+                type="checkbox"
+                checked={inst.propValues?.[p.id] ?? p.default ?? false}
+                onChange={(e) =>
+                  setInstanceProp(inst.id, p.id, e.target.checked)
+                }
+              />
+            ) : p.type === "number" ? (
+              <input
+                type="number"
+                className="w-full bg-gray-700 p-1 text-white"
+                value={inst.propValues?.[p.id] ?? p.default ?? 0}
+                onChange={(e) =>
+                  setInstanceProp(inst.id, p.id, Number(e.target.value))
+                }
+              />
+            ) : p.type === "color" ? (
+              <input
+                type="color"
+                value={inst.propValues?.[p.id] ?? p.default ?? "#000000"}
+                onChange={(e) =>
+                  setInstanceProp(inst.id, p.id, e.target.value)
+                }
+              />
+            ) : (
+              <input
+                type="text"
+                className="w-full bg-gray-700 p-1 text-white"
+                value={inst.propValues?.[p.id] ?? p.default ?? ""}
+                onChange={(e) =>
+                  setInstanceProp(inst.id, p.id, e.target.value)
+                }
+              />
+            )}
+          </div>
+        ))}
+        <button className="p-1 bg-gray-700" onClick={handleAdd}>
+          + Prop
+        </button>
+      </div>
+    );
+  }
   if (node && (node as ImageNode).type === "Image") {
     const img = node as ImageNode;
     const meta = assets[img.props.assetId];

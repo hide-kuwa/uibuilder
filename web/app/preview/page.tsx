@@ -3,6 +3,7 @@ import { useEditorStore } from '@/store/editorStore';
 import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
+import { resolveBinding } from '@/lib/binding/resolve';
 import { DEVICE_PRESETS } from '@/lib/devicePresets';
 import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 import { useSearchParams } from 'next/navigation';
@@ -18,6 +19,7 @@ function renderNode(
     if (def) {
       let resolved = resolveVariant(def, inst.variant);
       if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
+      if (inst.propValues) resolved = resolveBinding(resolved, inst.propValues);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
       return renderNode(resolved, components);
     }

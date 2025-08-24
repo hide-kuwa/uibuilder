@@ -358,10 +358,18 @@ export interface EditorState {
   };
 }
 
+export interface ComponentProp {
+  id: string;
+  name: string;
+  type: "boolean" | "text" | "number" | "color";
+  default?: any;
+}
+
 export interface ComponentDefinition {
   id: string;
   name: string;
   root: ComponentNode;
+  props?: ComponentProp[];
   axes?: Record<string, string[]>;
   rules?: Array<{
     when: Record<string, string>;
@@ -375,6 +383,7 @@ export interface InstanceNode extends ComponentNode {
   componentId: string;
   variant?: Record<string, string>;
   overrides?: Record<string, Partial<ComponentNode>>;
+  propValues?: Record<string, any>;
 }
 
 // v6 data binding and action types

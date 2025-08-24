@@ -24,12 +24,14 @@ import type {
   TextStyleDef,
   TextSelection,
   TextRun,
+  ComponentProp,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariant } from "@/lib/variantResolver";
 import { applyOverrides } from "@/lib/overrideMerge";
+import { resolveBinding } from "@/lib/binding/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
 import { reflectHandle } from "@/lib/vector/bezier";
 import { flattenPath } from "@/lib/vector/flatten";
@@ -94,6 +96,8 @@ interface EditorActions {
   createInstance: (componentId: string, pos?: { x: number; y: number }) => void;
   detachInstance: (nodeId: string) => void;
   swapInstance: (nodeId: string, nextComponentId: string) => void;
+  addComponentProp: (componentId: string, prop: ComponentProp) => void;
+  setInstanceProp: (nodeId: string, propId: string, value: any) => void;
   // v3 additions
   align: (
     kind: "left" | "right" | "top" | "bottom" | "centerH" | "centerV",
@@ -606,7 +610,8 @@ export const useEditorStore = create<
         },
         createInstance(componentId, pos) {
           apply((draft) => {
-            if (!draft.components[componentId]) return;
+            const def = draft.components[componentId];
+            if (!def) return;
             const id = Math.random().toString(36).slice(2);
             const inst: InstanceNode = {
               id,
@@ -615,7 +620,11 @@ export const useEditorStore = create<
               variant: {},
               overrides: {},
               props: { x: pos?.x || 0, y: pos?.y || 0 },
+              propValues: {},
             };
+            def.props?.forEach((p) => {
+              inst.propValues![p.id] = p.default;
+            });
             draft.tree.push(inst);
             draft.selectedIds = [id];
           });
@@ -630,6 +639,9 @@ export const useEditorStore = create<
             let resolved = resolveVariant(def, inst.variant);
             if (inst.overrides) {
               resolved = applyOverrides(resolved, inst.overrides);
+            }
+            if (inst.propValues) {
+              resolved = resolveBinding(resolved, inst.propValues);
             }
             if (res.parent && res.parent.children)
               res.parent.children[res.index] = resolved;
@@ -652,6 +664,41 @@ export const useEditorStore = create<
                 if (!inst.variant![k]) inst.variant![k] = vals[0];
               });
             }
+            if (def?.props) {
+              inst.propValues = {};
+              def.props.forEach((p) => {
+                inst.propValues![p.id] = p.default;
+              });
+            } else {
+              inst.propValues = {};
+            }
+          });
+        },
+        addComponentProp(componentId, prop) {
+          apply((draft) => {
+            const comp = draft.components[componentId];
+            if (!comp) return;
+            comp.props = [...(comp.props || []), prop];
+            const addToInstances = (nodes: ComponentNode[]) => {
+              nodes.forEach((n) => {
+                if (n.type === 'Instance' && (n as InstanceNode).componentId === componentId) {
+                  const inst = n as InstanceNode;
+                  inst.propValues = {
+                    ...(inst.propValues || {}),
+                    [prop.id]: prop.default,
+                  };
+                }
+                if (n.children) addToInstances(n.children);
+              });
+            };
+            addToInstances(draft.tree);
+          });
+        },
+        setInstanceProp(nodeId, propId, value) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.propValues = { ...(inst.propValues || {}), [propId]: value };
           });
         },
         align(kind) {
