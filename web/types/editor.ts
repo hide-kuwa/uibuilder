@@ -384,11 +384,22 @@ export interface ComponentDefinition {
   variantSet?: VariantSet;
 }
 
+export interface OverrideMap {
+  text?: Record<string, string>;
+  image?: Record<string, string>;
+  visible?: Record<string, boolean>;
+  style?: Record<string, { fill?: string; stroke?: string }>;
+}
+// v10-1 component definitions
+export type ComponentDef = ComponentDefinition;
+export type OverrideMap = Record<string, any>;
+
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
   componentId: string;
   variant?: VariantProps;
-  overrides?: Record<string, Partial<ComponentNode>>;
+  overrides?: OverrideMap;
+
 }
 
 // v6 data binding and action types

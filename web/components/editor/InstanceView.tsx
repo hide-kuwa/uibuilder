@@ -1,9 +1,16 @@
-import type { ComponentNode, InstanceNode, VariantProps } from '@/types/editor';
+'use client';
+import type { InstanceNode, ComponentNode } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
 
-function renderNode(node: ComponentNode, components: Record<string, any>): JSX.Element {
+interface InstanceViewProps {
+  node: InstanceNode;
+  components?: Record<string, any>;
+  render?: (node: ComponentNode, components: Record<string, any>) => React.ReactNode;
+}
+
+function defaultRender(node: ComponentNode, components: Record<string, any>): JSX.Element {
   if (node.type === 'Instance') {
     const inst = node as InstanceNode;
     const def = components[inst.componentId];
@@ -11,7 +18,7 @@ function renderNode(node: ComponentNode, components: Record<string, any>): JSX.E
       let resolved = resolveVariant(def, inst.variant);
       if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
-      return renderNode(resolved, components);
+      return defaultRender(resolved, components);
     }
   }
   const style: React.CSSProperties = {
@@ -26,21 +33,23 @@ function renderNode(node: ComponentNode, components: Record<string, any>): JSX.E
   return (
     <div key={node.id} style={style} className={node.props?.className}>
       {node.props?.text}
-      {node.children?.map((c) => renderNode(c, components))}
+      {node.children?.map((c) => defaultRender(c, components))}
     </div>
   );
 }
 
-export default function InstanceView({
-  defId,
-  props,
-}: {
-  defId: string;
-  props?: VariantProps;
-}) {
-  const components = useEditorStore((s) => s.components);
-  const def = components[defId];
+export default function InstanceView({ node, components, render }: InstanceViewProps) {
+  const storeComponents = useEditorStore((s) => s.components);
+  const compMap = components || storeComponents;
+  const def = compMap[node.componentId];
   if (!def) return null;
-  let root = resolveVariant(def, props);
-  return <div style={{ position: 'relative' }}>{renderNode(root, components)}</div>;
+
+  let resolved = resolveVariant(def, node.variant);
+  if (node.overrides) {
+    resolved = applyOverrides(resolved, node.overrides);
+  }
+  resolved.props = { ...(resolved.props || {}), ...(node.props || {}) };
+
+  const renderer = render || defaultRender;
+  return <>{renderer(resolved, compMap)}</>;
 }
