@@ -8,7 +8,7 @@ import ExportPanel from './ExportPanel';
 import ShareButton from './ShareButton';
 import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
-import { COMMANDS } from '@/lib/commands';
+import { COMMANDS, runCommand } from '@/lib/commands';
 import { useEditorStore } from '@/store/editorStore';
 
 export default function EditorShell() {
@@ -52,7 +52,7 @@ export default function EditorShell() {
       const found = COMMANDS.find((c) => c.id === cmd);
       if (found) {
         e.preventDefault();
-        found.run();
+        runCommand(found.id);
       }
     };
     window.addEventListener('keydown', handler);

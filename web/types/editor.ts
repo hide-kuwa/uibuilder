@@ -251,6 +251,7 @@ export interface TextSelection {
   nodeId: string | null;
   start: number;
   end: number;
+  rect?: { x: number; y: number; w: number; h: number };
 }
 
 export type MaskTarget = "vector" | "frame" | "image";
@@ -331,17 +332,20 @@ export interface EditorState {
     showSmartGuides?: boolean;
     showOutline?: boolean;
     activeTool?: "select" | "pen" | "text" | string;
+    showPreferences?: boolean;
   };
   prefs?: {
-    showLayoutGrid?: boolean;
-    showPixelGrid?: boolean;
-    snapToPixel?: boolean;
     showImageBadges?: boolean;
+    reduceMotion?: boolean;
+    snapPx?: number;
+    showGrid?: boolean;
+    showPerfHud?: boolean;
   };
   textSel?: TextSelection;
   styles: { text: Record<string, TextStyleDef> };
   lastCommandId?: string;
   devLog?: { ts: number; type: string; payload: any }[];
+  recentCommands?: string[];
   review: {
     status: ReviewStatus;
     requireApprovedToShare: boolean;

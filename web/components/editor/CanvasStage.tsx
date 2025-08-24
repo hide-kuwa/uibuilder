@@ -20,6 +20,7 @@ import { useRef, useState, useEffect } from 'react';
 import { saveImageMulti } from '@/lib/assets';
 import DropOverlay from './DropOverlay';
 import MarqueeZoom from './MarqueeZoom';
+import Minimap from '@/components/hud/Minimap';
 
 function NodeView({
   node,
@@ -320,15 +321,13 @@ export default function CanvasStage() {
       <PathEditorOverlay />
       <ImageCropOverlay />
       {activeTool === 'pen' && <PenTool />}
-      {prefs.showLayoutGrid && (
+      {prefs.showGrid && (
         <div className="absolute inset-0 pointer-events-none layout-grid" />
-      )}
-      {prefs.showPixelGrid && (
-        <div className="absolute inset-0 pointer-events-none pixel-grid" />
       )}
       {selected.length === 1 && <SelectionOutline />}
       {selected.length === 1 && <ResizeHandles />}
       <div className="absolute top-2 right-2"><ZoomControls /></div>
+      <div className="minimap"><Minimap /></div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import type {
   TextRun,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
+import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariant } from "@/lib/variantResolver";
 import { applyOverrides } from "@/lib/overrideMerge";
@@ -40,6 +41,7 @@ import { saveImage, loadImage } from "@/lib/assets";
 import { computeDominantColor } from "@/lib/color/dominant";
 import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
+import { applyRun, removeRun } from "@/lib/text/rangeOps";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -105,8 +107,8 @@ interface EditorActions {
   toggleGuides: () => void;
   toggleOutline: () => void;
   toggleLayoutGrid: () => void;
-  togglePixelGrid: () => void;
   toggleSnapToPixel: () => void;
+  togglePreferences: () => void;
   setPrefs: (patch: Partial<EditorState['prefs']>) => void;
   ensureDominantColor: (assetId: string) => Promise<string>;
   booleanCombine: (
@@ -115,11 +117,13 @@ interface EditorActions {
     opts?: { replace?: boolean; flatness?: number; simplify?: number },
   ) => string;
   setLastCommand: (id: string) => void;
+  addRecentCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (
     cam: Camera | Partial<Camera>,
     opts?: { duration?: number },
   ) => void;
+  centerOn: (pt: { x: number; y: number }) => void;
   getViewportRect: () => { x: number; y: number; w: number; h: number };
   getSelectionBounds: () => {
     x: number;
@@ -216,7 +220,7 @@ interface EditorActions {
   detachTextStyle: (nodeId: string) => void;
   removeTextStyle: (id: string) => void;
   syncTextStyles: (styleId: string) => void;
-  setTextSelection: (sel: TextSelection) => void;
+  setTextSelection: (sel: EditorState['textSel']) => void;
   clearTextSelection: () => void;
   updateTextRuns: (id: string, runs: TextRun[]) => void;
   applyRunStyle: (
@@ -224,6 +228,22 @@ interface EditorActions {
     range: { from: number; to: number },
     style: Partial<TextStyle> & { link?: string },
   ) => void;
+  removeRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    keys: (keyof TextStyle | 'link')[],
+  ) => void;
+  toggleRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    style: Partial<TextStyle> & { link?: string },
+  ) => void;
+}
+
+interface EditorPersistState {
+  saveQueue: number[];
+  lastSavedAt: number | null;
+  isOffline: boolean;
 }
 
 export interface CropDraft {
@@ -272,13 +292,16 @@ function lerp(
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
-export const useEditorStore = create<EditorState & EditorActions>()(
+export const useEditorStore = create<
+  EditorState & EditorActions & EditorPersistState
+>()(
   persist(
     (set, get) => {
       const apply = (recipe: (draft: EditorState) => void) => {
         const [next, patches, inverse] = produceWithPatches(get(), recipe);
         push(patches, inverse);
         set(next);
+        schedulePersist();
       };
 
       return {
@@ -299,19 +322,25 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showSmartGuides: true,
           showOutline: false,
           activeTool: "select",
+          showPreferences: false,
         },
         prefs: {
-          showLayoutGrid: false,
-          showPixelGrid: false,
-          snapToPixel: true,
           showImageBadges: true,
+          reduceMotion: false,
+          snapPx: 4,
+          showGrid: false,
+          showPerfHud: false,
         },
         lastCommandId: undefined,
         devLog: [],
+        recentCommands: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         styles: { text: {} },
         textSel: undefined,
+        saveQueue: [],
+        lastSavedAt: null,
+        isOffline: false,
         setHover(id) {
           set({ hoverId: id });
         },
@@ -674,19 +703,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         toggleLayoutGrid() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.showLayoutGrid = !draft.prefs.showLayoutGrid;
-          });
-        },
-        togglePixelGrid() {
-          apply((draft) => {
-            draft.prefs = draft.prefs || {};
-            draft.prefs.showPixelGrid = !draft.prefs.showPixelGrid;
+            draft.prefs.showGrid = !draft.prefs.showGrid;
           });
         },
         toggleSnapToPixel() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
+            draft.prefs.snapPx = draft.prefs.snapPx ? 0 : 4;
+          });
+        },
+        togglePreferences() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showPreferences = !draft.ui.showPreferences;
           });
         },
         setPrefs(patch) {
@@ -753,6 +782,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         clearDevLog() {
           set({ devLog: [] });
+        addRecentCommand(id) {
+          set((state) => ({
+            recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),
+          }));
         },
         setCamera(cam) {
           set((state) => {
@@ -770,6 +803,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             next.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
           }
           set({ camera: next });
+        },
+        centerOn(pt) {
+          const cam = get().camera;
+          const vw = window.innerWidth / cam.zoom;
+          const vh = window.innerHeight / cam.zoom;
+          set({ camera: { ...cam, x: pt.x - vw / 2, y: pt.y - vh / 2 } });
         },
         getViewportRect() {
           const { camera } = get();
@@ -1401,6 +1440,30 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             n.runs.sort((a, b) => a.from - b.from);
           });
         },
+        removeRunStyle(id, range, keys) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            n.runs = removeRun(n.runs, from, to, keys);
+          });
+        },
+        toggleRunStyle(id, range, style) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            const applied = applyRun(n.runs, from, to, style);
+            const same = JSON.stringify(applied) === JSON.stringify(n.runs || []);
+            n.runs = same
+              ? removeRun(n.runs, from, to, Object.keys(style) as (keyof TextStyle | 'link')[])
+              : applied;
+          });
+        },
         undo() {
           set((state) => undoStack(state));
         },
@@ -1466,3 +1529,5 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
   ),
 );
+
+initPersist(useEditorStore);
