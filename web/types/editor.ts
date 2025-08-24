@@ -303,6 +303,8 @@ export interface ComponentNode {
   isContainer?: boolean;
   locked?: boolean;
   visible?: boolean;
+  /** When this node represents a Component or Instance, reference definition id */
+  defId?: string;
 }
 
 export interface PropBinding {
@@ -319,7 +321,7 @@ export interface EditorState {
   pressId: string | null;
   camera: Camera;
   meta: { version: number; updatedAt: number };
-  components: Record<string, ComponentDefinition>;
+  components: Record<string, ComponentDef>;
   guides: Guide[];
   assets?: { images: Record<string, AssetMeta> };
   vector?: {
@@ -383,7 +385,12 @@ export interface VariantSet {
 export interface ComponentDefinition {
   id: string;
   name: string;
-  root: ComponentNode;
+  /** id of the root Frame node in the document tree */
+  rootId: string;
+  /** creation timestamp */
+  createdAt: number;
+  // legacy fields kept for backward compatibility
+  root?: ComponentNode;
   usageCount?: number;
   /** timestamp of last instance placement */
   lastUsedAt?: number;
@@ -396,23 +403,17 @@ export interface ComponentDefinition {
   }>;
   variantSet?: VariantSet; // variant 設定
 }
-
-// Overrides
-export interface OverrideMap {
-  text?: Record<string, string>;
-  image?: Record<string, string>;
-  visible?: Record<string, boolean>;
-  style?: Record<string, { fill?: string; stroke?: string }>;
-}
-
-// v10-1 component definitions
 export type ComponentDef = ComponentDefinition;
-// 柔軟に何でも持てる override map（上の定義を包括）
-export type OverrideMap = Record<string, any>;
+
+// Simple override map (details to be defined in later versions)
+export type OverrideMap = Record<string, unknown>;
 
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
-  componentId: string;
+  /** component definition id */
+  defId: string;
+  /** legacy alias */
+  componentId?: string;
   variant?: VariantProps; // バリアント
   overrides?: OverrideMap; // オーバーライド
   propValues?: Record<string, any>; // ComponentProp の値
