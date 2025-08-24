@@ -342,6 +342,7 @@ export interface EditorState {
   textSel?: TextSelection;
   styles: { text: Record<string, TextStyleDef> };
   lastCommandId?: string;
+  recentCommands?: string[];
   review: {
     status: ReviewStatus;
     requireApprovedToShare: boolean;
