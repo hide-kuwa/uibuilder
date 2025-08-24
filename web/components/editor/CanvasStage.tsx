@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { CanvasTiler, type Camera, type WorldRect } from '@/lib/render/tiler'
 import { useEditorStore } from '@/store/editorStore'
 import RecoveryPrompt from '@/components/hud/RecoveryPrompt'
+import SaveIndicator from '@/components/hud/SaveIndicator'
 
 /**
  * v13-1: タイル描画ステージ実装（MVP）
@@ -128,6 +129,10 @@ export default function CanvasStage() {
       {/* HUD: FPS */}
       <div className="absolute top-2 right-2 z-10 text-xs px-2 py-1 rounded bg-zinc-900/80 border border-zinc-700 text-zinc-300">
         FPS: {fps}
+      </div>
+      <div className="absolute top-2 left-2 z-10">
+        {/* v13-5: 保存状態 */}
+        <SaveIndicator />
       </div>
       <RecoveryPrompt />
       {/* ヒント */}

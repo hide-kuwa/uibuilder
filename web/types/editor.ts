@@ -389,6 +389,16 @@ export interface EditorState {
     filter?: { status?: ThreadStatus[]; onlySelection?: boolean };
   };
   variantSets: Record<string, VariantSet>;
+  /** v12-4: 差分エクスポート用 */
+  dirtyNodes: Record<string, number>;
+  lastExportAt: number | null;
+  lastSnapshotAt: number | null;
+  /** v13-5: 二段階コミット保存 */
+  pendingVersion: number;
+  committedVersion: number;
+  commitState: 'idle' | 'committing' | 'error';
+  lastCommittedAt: number | null;
+  lastCommitError: string | null;
 }
 
 // Component Props (ユーザー定義プロパティ)
