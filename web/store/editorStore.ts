@@ -29,7 +29,7 @@ import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariant } from "@/lib/variantResolver";
-import { applyOverrides } from "@/lib/overrideMerge";
+import { resolveOverrides } from "@/lib/override/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
 import { reflectHandle } from "@/lib/vector/bezier";
 import { flattenPath } from "@/lib/vector/flatten";
@@ -150,12 +150,9 @@ interface EditorActions {
   removeVariantRule: (componentId: string, index: number) => void;
   setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
   // Overrides
-  setInstanceOverride: (
-    nodeId: string,
-    targetId: string,
-    patch: Partial<ComponentNode>,
-  ) => void;
-  resetInstanceOverride: (nodeId: string, targetId?: string) => void;
+  setOverride: (nodeId: string, path: string, value: any) => void;
+  clearOverride: (nodeId: string, path: string) => void;
+  clearAllOverrides: (nodeId: string) => void;
   // v5 comments and review
   startPinAnnotation: () => void;
   startRectAnnotation: () => void;
@@ -629,7 +626,7 @@ export const useEditorStore = create<
             if (!def) return;
             let resolved = resolveVariant(def, inst.variant);
             if (inst.overrides) {
-              resolved = applyOverrides(resolved, inst.overrides);
+              resolved = resolveOverrides(resolved, inst.overrides);
             }
             if (res.parent && res.parent.children)
               res.parent.children[res.index] = resolved;
@@ -782,6 +779,7 @@ export const useEditorStore = create<
         },
         clearDevLog() {
           set({ devLog: [] });
+        },
         addRecentCommand(id) {
           set((state) => ({
             recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),
@@ -878,21 +876,40 @@ export const useEditorStore = create<
             inst.variant[axis] = value;
           });
         },
-        setInstanceOverride(nodeId, targetId, patch) {
+        setOverride(nodeId, path, value) {
           apply((draft) => {
             const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
             if (!inst) return;
-            inst.overrides = inst.overrides || {};
-            const prev = inst.overrides[targetId] || {};
-            inst.overrides[targetId] = { ...prev, ...patch };
+            inst.overrides = inst.overrides || {} as any;
+            const parts = path.split('.');
+            let obj: any = inst.overrides;
+            for (let i = 0; i < parts.length - 1; i++) {
+              const k = parts[i];
+              obj[k] = obj[k] || {};
+              obj = obj[k];
+            }
+            obj[parts[parts.length - 1]] = value;
           });
         },
-        resetInstanceOverride(nodeId, targetId) {
+        clearOverride(nodeId, path) {
           apply((draft) => {
             const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
             if (!inst || !inst.overrides) return;
-            if (targetId) delete inst.overrides[targetId];
-            else inst.overrides = {};
+            const parts = path.split('.');
+            let obj: any = inst.overrides;
+            for (let i = 0; i < parts.length - 1; i++) {
+              const k = parts[i];
+              if (!obj[k]) return;
+              obj = obj[k];
+            }
+            delete obj[parts[parts.length - 1]];
+          });
+        },
+        clearAllOverrides(nodeId) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.overrides = {};
           });
         },
         // --- v5 comments & review ---

@@ -19,6 +19,23 @@ export default function RightPane() {
   const prefs = useEditorStore((s) => s.prefs);
   const setPrefs = useEditorStore((s) => s.setPrefs);
   const ensureDominantColor = useEditorStore((s) => s.ensureDominantColor);
+  const clearAllOverrides = useEditorStore((s) => s.clearAllOverrides);
+
+  if (node && node.type === "Instance") {
+    return (
+      <div className="bg-gray-800 p-2 space-y-2 text-xs">
+        <div className="font-bold flex items-center">
+          Overrides
+          <button
+            className="ml-auto px-1 bg-gray-700"
+            onClick={() => clearAllOverrides(node.id)}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (node && node.type === "Image") {

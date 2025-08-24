@@ -12,7 +12,7 @@ import ImageCropOverlay from './ImageCropOverlay';
 import type { ComponentNode, InstanceNode, PathNode, ImageNode, TextNode } from '@/types/editor';
 import { sizeStyle } from '@/lib/flex';
 import { resolveVariant } from '@/lib/variantResolver';
-import { applyOverrides } from '@/lib/overrideMerge';
+import { resolveOverrides } from '@/lib/override/resolve';
 import ZoomControls from './ZoomControls';
 import { wheelRouter } from '@/lib/input/wheelRouter';
 import * as zoom from '@/lib/zoom';
@@ -45,7 +45,7 @@ function NodeView({
     const def = components[inst.componentId];
     if (def) {
       let resolved = resolveVariant(def, inst.variant);
-      if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
+      if (inst.overrides) resolved = resolveOverrides(resolved, inst.overrides);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
       return (
         <NodeView

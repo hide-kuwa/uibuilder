@@ -370,11 +370,18 @@ export interface ComponentDefinition {
   }>;
 }
 
+export interface OverrideMap {
+  text?: Record<string, string>;
+  image?: Record<string, string>;
+  visible?: Record<string, boolean>;
+  style?: Record<string, { fill?: string; stroke?: string }>;
+}
+
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
   componentId: string;
   variant?: Record<string, string>;
-  overrides?: Record<string, Partial<ComponentNode>>;
+  overrides?: OverrideMap;
 }
 
 // v6 data binding and action types
