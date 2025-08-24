@@ -358,6 +358,19 @@ export interface EditorState {
   };
 }
 
+export type VariantProps = Record<string, string>;
+
+export interface VariantDef {
+  id: string;
+  props: VariantProps;
+  root: ComponentNode;
+}
+
+export interface VariantSet {
+  props: Record<string, string[]>;
+  defs: VariantDef[];
+}
+
 export interface ComponentDefinition {
   id: string;
   name: string;
@@ -368,12 +381,13 @@ export interface ComponentDefinition {
     node: string;
     patch: Partial<ComponentNode>;
   }>;
+  variantSet?: VariantSet;
 }
 
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
   componentId: string;
-  variant?: Record<string, string>;
+  variant?: VariantProps;
   overrides?: Record<string, Partial<ComponentNode>>;
 }
 

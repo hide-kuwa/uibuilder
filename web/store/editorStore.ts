@@ -24,6 +24,8 @@ import type {
   TextStyleDef,
   TextSelection,
   TextRun,
+  VariantSet,
+  VariantProps,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
@@ -134,6 +136,7 @@ interface EditorActions {
   logDev: (entry: { ts: number; type: string; payload: any }) => void;
   clearDevLog: () => void;
   // Variants
+  createVariantSet: (componentId: string, set: VariantSet) => void;
   defineVariantAxis: (
     componentId: string,
     axis: string,
@@ -149,6 +152,10 @@ interface EditorActions {
   ) => void;
   removeVariantRule: (componentId: string, index: number) => void;
   setInstanceVariant: (nodeId: string, axis: string, value: string) => void;
+  setInstanceVariantProps: (
+    nodeId: string,
+    props: VariantProps,
+  ) => void;
   // Overrides
   setInstanceOverride: (
     nodeId: string,
@@ -848,6 +855,13 @@ export const useEditorStore = create<
           const y2 = Math.max(...boxes.map((b) => b.y + b.h));
           return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
         },
+        createVariantSet(componentId, set) {
+          apply((draft) => {
+            const c = draft.components[componentId];
+            if (!c) return;
+            c.variantSet = set;
+          });
+        },
         defineVariantAxis(componentId, axis, values) {
           apply((draft) => {
             const c = draft.components[componentId];
@@ -876,6 +890,27 @@ export const useEditorStore = create<
             if (!inst) return;
             inst.variant = inst.variant || {};
             inst.variant[axis] = value;
+          });
+        },
+        setInstanceVariantProps(nodeId, props) {
+          apply((draft) => {
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
+            if (!inst) return;
+            inst.variant = { ...(inst.variant || {}), ...props };
+            const def = draft.components[inst.componentId];
+            if (def) {
+              const root = resolveVariant(def, inst.variant);
+              if (inst.overrides) {
+                const ids = new Set<string>();
+                (function collect(n: ComponentNode) {
+                  ids.add(n.id);
+                  n.children?.forEach(collect);
+                })(root);
+                Object.keys(inst.overrides).forEach((id) => {
+                  if (!ids.has(id)) delete inst.overrides![id];
+                });
+              }
+            }
           });
         },
         setInstanceOverride(nodeId, targetId, patch) {
