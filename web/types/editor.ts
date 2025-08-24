@@ -324,6 +324,8 @@ export interface EditorState {
   camera: Camera;
   meta: { version: number; updatedAt: number };
   components: Record<string, ComponentDef>;
+  componentsQuery?: string;
+  componentsSort?: 'az' | 'recent' | 'usage';
   guides: Guide[];
   assets?: { images: Record<string, AssetMeta> };
   vector?: {
