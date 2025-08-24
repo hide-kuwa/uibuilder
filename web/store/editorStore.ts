@@ -115,6 +115,7 @@ interface EditorActions {
     opts?: { replace?: boolean; flatness?: number; simplify?: number },
   ) => string;
   setLastCommand: (id: string) => void;
+  addRecentCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (
     cam: Camera | Partial<Camera>,
@@ -305,6 +306,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showImageBadges: true,
         },
         lastCommandId: undefined,
+        recentCommands: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         styles: { text: {} },
@@ -744,6 +746,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
+        },
+        addRecentCommand(id) {
+          set((state) => ({
+            recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),
+          }));
         },
         setCamera(cam) {
           set((state) => {

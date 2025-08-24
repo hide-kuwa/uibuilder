@@ -16,7 +16,7 @@ export default function CommandPalette({ open, onClose }: Props) {
   const results = useMemo(() => {
     const q = query.toLowerCase();
     return COMMANDS.filter((c) =>
-      c.label.toLowerCase().includes(q) || c.keywords?.some((k) => k.includes(q))
+      c.title.toLowerCase().includes(q) || c.keywords?.some((k) => k.includes(q))
     );
   }, [query]);
 
@@ -67,7 +67,7 @@ export default function CommandPalette({ open, onClose }: Props) {
               onMouseEnter={() => setIndex(i)}
               onClick={() => run(c)}
             >
-              <span>{c.label}</span>
+              <span>{c.title}</span>
               {c.shortcut && <span className="float-right opacity-60">{c.shortcut}</span>}
             </li>
           ))}
