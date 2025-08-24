@@ -1,6 +1,19 @@
 export type LayoutMode = "free" | "auto";
 export type Axis = "horizontal" | "vertical";
 export type SizeMode = "HUG" | "FIXED" | "FILL";
+export type AlignMain = "start" | "center" | "end" | "space-between";
+export type AlignCross = "start" | "center" | "end" | "stretch";
+
+export interface LayoutProps {
+  enabled: boolean;
+  axis: Axis;
+  gap: number;
+  padding: { top: number; right: number; bottom: number; left: number };
+  alignMain: AlignMain;
+  alignCross: AlignCross;
+  wrap?: boolean;
+  maxPerLine?: number;
+}
 
 export type ConstraintH = "LEFT" | "RIGHT" | "LEFT_RIGHT" | "CENTER" | "SCALE";
 export type ConstraintV = "TOP" | "BOTTOM" | "TOP_BOTTOM" | "CENTER" | "SCALE";
@@ -223,6 +236,7 @@ export interface ComponentNode {
       | "space-around"
       | "space-evenly";
     wrap?: boolean;
+    maxPerLine?: number;
     widthMode?: SizeMode;
     heightMode?: SizeMode;
     minW?: number;

@@ -82,19 +82,47 @@ export default function RightInspector() {
           </select>
         </label>
         {node?.props?.layout === 'auto' && (
-          <label className="block text-xs">
-            Direction:
-            <select
-              className="w-full bg-gray-700 ml-1 p-1 text-white"
-              value={node?.props?.axis || 'vertical'}
-              onChange={(e) =>
-                setLayout(selected, { axis: e.target.value as any })
-              }
-            >
-              <option value="horizontal">Row</option>
-              <option value="vertical">Column</option>
-            </select>
-          </label>
+          <div className="space-y-1">
+            <label className="block text-xs">
+              Direction:
+              <select
+                className="w-full bg-gray-700 ml-1 p-1 text-white"
+                value={node?.props?.axis || 'vertical'}
+                onChange={(e) =>
+                  setLayout(selected, { axis: e.target.value as any })
+                }
+              >
+                <option value="horizontal">Row</option>
+                <option value="vertical">Column</option>
+              </select>
+            </label>
+            <label className="block text-xs">
+              Wrap:
+              <input
+                type="checkbox"
+                className="ml-1"
+                checked={node?.props?.wrap || false}
+                onChange={(e) =>
+                  setLayout(selected, { wrap: e.target.checked })
+                }
+              />
+            </label>
+            {node?.props?.wrap && (
+              <label className="block text-xs">
+                Max per line:
+                <input
+                  type="number"
+                  className="w-full bg-gray-700 ml-1 p-1 text-white"
+                  value={node?.props?.maxPerLine ?? 0}
+                  onChange={(e) =>
+                    setLayout(selected, {
+                      maxPerLine: Number(e.target.value),
+                    })
+                  }
+                />
+              </label>
+            )}
+          </div>
         )}
         <div className="mt-2 space-y-1">
           <h3 className="text-xs font-bold">Constraints</h3>
