@@ -1,9 +1,18 @@
 "use client";
 import { useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
-import type { PathNode, ImageNode, ImageAdjustments, BlendMode, TextNode, TextResizeMode } from "@/types/editor";
+import type {
+  PathNode,
+  ImageNode,
+  ImageAdjustments,
+  BlendMode,
+  TextNode,
+  TextResizeMode,
+  InstanceNode,
+} from "@/types/editor";
 import { normalizeAdjustments, DEFAULT_ADJ } from "@/lib/image/filters";
 import { getScaleInfo } from "@/lib/image/metrics";
+import { isCompatible } from "@/lib/override/compat";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -19,6 +28,8 @@ export default function RightPane() {
   const prefs = useEditorStore((s) => s.prefs);
   const setPrefs = useEditorStore((s) => s.setPrefs);
   const ensureDominantColor = useEditorStore((s) => s.ensureDominantColor);
+  const components = useEditorStore((s) => s.components);
+  const swap = useEditorStore((s) => s.swapInstanceDef);
 
   useEffect(() => {
     if (node && node.type === "Image") {
@@ -26,6 +37,32 @@ export default function RightPane() {
       if (meta && !meta.dominant) ensureDominantColor(meta.id);
     }
   }, [node, assets, ensureDominantColor]);
+  if (node && node.type === "Instance") {
+    const inst = node as InstanceNode;
+    const curr = components[inst.componentId];
+    const opts = Object.values(components).filter(
+      (c) => curr && isCompatible(curr, c),
+    );
+    return (
+      <div className="bg-gray-800 p-2 space-y-2 text-xs">
+        <div className="font-bold">Instance</div>
+        <label className="block">
+          Swap
+          <select
+            className="w-full bg-gray-700 p-1 text-white"
+            value={inst.componentId}
+            onChange={(e) => swap(inst.id, e.target.value)}
+          >
+            {opts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    );
+  }
   if (node && (node as ImageNode).type === "Image") {
     const img = node as ImageNode;
     const meta = assets[img.props.assetId];
