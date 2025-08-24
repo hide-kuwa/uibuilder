@@ -2,7 +2,7 @@
 import { useEditorStore } from '@/store/editorStore';
 import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
-import { applyOverrides } from '@/lib/overrideMerge';
+import { resolveOverrides } from '@/lib/override/resolve';
 import { DEVICE_PRESETS } from '@/lib/devicePresets';
 import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 import { useSearchParams } from 'next/navigation';
@@ -17,7 +17,7 @@ function renderNode(
     const def = components[inst.componentId];
     if (def) {
       let resolved = resolveVariant(def, inst.variant);
-      if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
+      if (inst.overrides) resolved = resolveOverrides(resolved, inst.overrides);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
       return renderNode(resolved, components);
     }

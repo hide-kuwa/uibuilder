@@ -1,4 +1,8 @@
-import type { ComponentDefinition, ComponentNode } from '@/types/editor';
+import type {
+  ComponentDefinition,
+  ComponentNode,
+  VariantProps,
+} from '@/types/editor';
 
 function findNode(node: ComponentNode, id: string): ComponentNode | null {
   if (node.id === id) return node;
@@ -21,13 +25,20 @@ function applyPatch(target: ComponentNode, patch: Partial<ComponentNode>) {
 
 export function resolveVariant(
   def: ComponentDefinition,
-  variant?: Record<string, string>
+  variant?: VariantProps,
 ): ComponentNode {
+  if (def.variantSet) {
+    const match = def.variantSet.defs.find((d) =>
+      Object.entries(variant || {}).every(([k, v]) => d.props[k] === v),
+    );
+    const chosen = match || def.variantSet.defs[0];
+    return JSON.parse(JSON.stringify(chosen.root));
+  }
   const root: ComponentNode = JSON.parse(JSON.stringify(def.root));
   if (!def.rules) return root;
   def.rules.forEach((r) => {
     const ok = Object.entries(r.when).every(
-      ([k, v]) => variant && variant[k] === v
+      ([k, v]) => variant && (variant as any)[k] === v,
     );
     if (ok) {
       const target = findNode(root, r.node);
