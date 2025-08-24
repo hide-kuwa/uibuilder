@@ -321,11 +321,8 @@ export default function CanvasStage() {
       <PathEditorOverlay />
       <ImageCropOverlay />
       {activeTool === 'pen' && <PenTool />}
-      {prefs.showLayoutGrid && (
+      {prefs.showGrid && (
         <div className="absolute inset-0 pointer-events-none layout-grid" />
-      )}
-      {prefs.showPixelGrid && (
-        <div className="absolute inset-0 pointer-events-none pixel-grid" />
       )}
       {selected.length === 1 && <SelectionOutline />}
       {selected.length === 1 && <ResizeHandles />}

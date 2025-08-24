@@ -40,6 +40,7 @@ import { saveImage, loadImage } from "@/lib/assets";
 import { computeDominantColor } from "@/lib/color/dominant";
 import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
+import { applyRun, removeRun } from "@/lib/text/rangeOps";
 
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -105,8 +106,8 @@ interface EditorActions {
   toggleGuides: () => void;
   toggleOutline: () => void;
   toggleLayoutGrid: () => void;
-  togglePixelGrid: () => void;
   toggleSnapToPixel: () => void;
+  togglePreferences: () => void;
   setPrefs: (patch: Partial<EditorState['prefs']>) => void;
   ensureDominantColor: (assetId: string) => Promise<string>;
   booleanCombine: (
@@ -115,6 +116,7 @@ interface EditorActions {
     opts?: { replace?: boolean; flatness?: number; simplify?: number },
   ) => string;
   setLastCommand: (id: string) => void;
+  addRecentCommand: (id: string) => void;
   setCamera: (cam: Partial<Camera>) => void;
   tweenCamera: (
     cam: Camera | Partial<Camera>,
@@ -215,10 +217,20 @@ interface EditorActions {
   detachTextStyle: (nodeId: string) => void;
   removeTextStyle: (id: string) => void;
   syncTextStyles: (styleId: string) => void;
-  setTextSelection: (sel: TextSelection) => void;
+  setTextSelection: (sel: EditorState['textSel']) => void;
   clearTextSelection: () => void;
   updateTextRuns: (id: string, runs: TextRun[]) => void;
   applyRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    style: Partial<TextStyle> & { link?: string },
+  ) => void;
+  removeRunStyle: (
+    id: string,
+    range: { from: number; to: number },
+    keys: (keyof TextStyle | 'link')[],
+  ) => void;
+  toggleRunStyle: (
     id: string,
     range: { from: number; to: number },
     style: Partial<TextStyle> & { link?: string },
@@ -298,14 +310,17 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           showSmartGuides: true,
           showOutline: false,
           activeTool: "select",
+          showPreferences: false,
         },
         prefs: {
-          showLayoutGrid: false,
-          showPixelGrid: false,
-          snapToPixel: true,
           showImageBadges: true,
+          reduceMotion: false,
+          snapPx: 4,
+          showGrid: false,
+          showPerfHud: false,
         },
         lastCommandId: undefined,
+        recentCommands: [],
         review: { status: "DRAFT", requireApprovedToShare: false },
         comments: { threads: {}, users: {} },
         styles: { text: {} },
@@ -672,19 +687,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         toggleLayoutGrid() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.showLayoutGrid = !draft.prefs.showLayoutGrid;
-          });
-        },
-        togglePixelGrid() {
-          apply((draft) => {
-            draft.prefs = draft.prefs || {};
-            draft.prefs.showPixelGrid = !draft.prefs.showPixelGrid;
+            draft.prefs.showGrid = !draft.prefs.showGrid;
           });
         },
         toggleSnapToPixel() {
           apply((draft) => {
             draft.prefs = draft.prefs || {};
-            draft.prefs.snapToPixel = !draft.prefs.snapToPixel;
+            draft.prefs.snapPx = draft.prefs.snapPx ? 0 : 4;
+          });
+        },
+        togglePreferences() {
+          apply((draft) => {
+            draft.ui = draft.ui || {};
+            draft.ui.showPreferences = !draft.ui.showPreferences;
           });
         },
         setPrefs(patch) {
@@ -745,6 +760,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         },
         setLastCommand(id) {
           set({ lastCommandId: id });
+        },
+        addRecentCommand(id) {
+          set((state) => ({
+            recentCommands: [id, ...state.recentCommands.filter((c) => c !== id)].slice(0, 10),
+          }));
         },
         setCamera(cam) {
           set((state) => {
@@ -1397,6 +1417,30 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             n.runs = n.runs?.filter((r) => !(r.from >= from && r.to <= to)) || [];
             n.runs.push({ from, to, style });
             n.runs.sort((a, b) => a.from - b.from);
+          });
+        },
+        removeRunStyle(id, range, keys) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            n.runs = removeRun(n.runs, from, to, keys);
+          });
+        },
+        toggleRunStyle(id, range, style) {
+          apply((draft) => {
+            const n = findNode(draft.tree, id) as TextNode | null;
+            if (!n) return;
+            const from = Math.max(0, Math.min(range.from, range.to));
+            const to = Math.min(n.text.length, Math.max(range.from, range.to));
+            if (from === to) return;
+            const applied = applyRun(n.runs, from, to, style);
+            const same = JSON.stringify(applied) === JSON.stringify(n.runs || []);
+            n.runs = same
+              ? removeRun(n.runs, from, to, Object.keys(style) as (keyof TextStyle | 'link')[])
+              : applied;
           });
         },
         undo() {

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { TextNode } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
+import { readSelection } from '@/lib/text/selection';
+import TextToolbar from './TextToolbar';
 
 export default function TextEditor({ node }: { node: TextNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -8,6 +10,8 @@ export default function TextEditor({ node }: { node: TextNode }) {
   const toggleEdit = useEditorStore((s) => s.toggleEditText);
   const setSel = useEditorStore((s) => s.setTextSelection);
   const clearSel = useEditorStore((s) => s.clearTextSelection);
+  const sel = useEditorStore((s) => s.textSel);
+  const toggleRun = useEditorStore((s) => s.toggleRunStyle);
   const composing = useRef(false);
 
   useEffect(() => {
@@ -35,10 +39,15 @@ export default function TextEditor({ node }: { node: TextNode }) {
         fontWeight: node.style.fontWeight,
         color: node.style.color,
       }}
-      onCompositionStart={() => (composing.current = true)}
+      onCompositionStart={() => {
+        composing.current = true;
+        clearSel();
+      }}
       onCompositionEnd={(e) => {
         composing.current = false;
         updateText(node.id, (e.target as HTMLDivElement).innerText);
+        const r = readSelection(ref.current!);
+        setSel({ nodeId: node.id, start: r.start, end: r.end, rect: r.rect ?? undefined });
       }}
       onInput={(e) => {
         if (!composing.current) {
@@ -46,17 +55,26 @@ export default function TextEditor({ node }: { node: TextNode }) {
         }
       }}
       onSelect={() => {
-        const sel = window.getSelection();
-        if (sel) {
-          const start = sel.anchorOffset || 0;
-          const end = sel.focusOffset || 0;
-          setSel({ nodeId: node.id, start, end });
-        }
+        const r = readSelection(ref.current!);
+        setSel({ nodeId: node.id, start: r.start, end: r.end, rect: r.rect ?? undefined });
       }}
       onBlur={() => clearSel()}
+      onKeyUp={() => {
+        const r = readSelection(ref.current!);
+        setSel({ nodeId: node.id, start: r.start, end: r.end, rect: r.rect ?? undefined });
+      }}
       onKeyDown={(e) => {
         if (composing.current) return;
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          toggleRun(node.id, { from: sel?.start || 0, to: sel?.end || 0 }, { fontWeight: 700 });
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'i') {
+          e.preventDefault();
+          toggleRun(node.id, { from: sel?.start || 0, to: sel?.end || 0 }, { italic: true });
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'u') {
+          e.preventDefault();
+          toggleRun(node.id, { from: sel?.start || 0, to: sel?.end || 0 }, { underline: true });
+        } else if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           toggleEdit(node.id, false);
         } else if (e.key === 'Escape') {
@@ -66,6 +84,9 @@ export default function TextEditor({ node }: { node: TextNode }) {
       }}
     >
       {node.text}
+      {node.edit?.active && sel?.nodeId === node.id && sel.start !== sel.end ? (
+        <TextToolbar />
+      ) : null}
     </div>
   );
 }

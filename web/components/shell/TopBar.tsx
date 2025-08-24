@@ -4,12 +4,10 @@ import { useEditorStore } from '@/store/editorStore';
 import { useState, useRef, useEffect } from 'react';
 import type { BooleanOp } from '@/lib/vector/boolean';
 import { saveImage } from '@/lib/assets';
+import AssetBrowser from '@/components/panels/AssetBrowser';
 
 export default function TopBar() {
-    const prefs = useEditorStore((s) => s.prefs || {});
-    const toggleLayoutGrid = useEditorStore((s) => s.toggleLayoutGrid);
-    const togglePixelGrid = useEditorStore((s) => s.togglePixelGrid);
-    const toggleSnapToPixel = useEditorStore((s) => s.toggleSnapToPixel);
+    const togglePreferences = useEditorStore((s) => s.togglePreferences);
     const selection = useEditorStore((s) => s.selectedIds);
     const tree = useEditorStore((s) => s.tree);
   const toggleMask = useEditorStore((s) => s.toggleMask);
@@ -19,6 +17,7 @@ export default function TopBar() {
   const activeTool = useEditorStore((s) => s.ui.activeTool);
     const [replace, setReplace] = useState(false);
     const [toast, setToast] = useState(false);
+    const [showAssets, setShowAssets] = useState(false);
     const fileInput = useRef<HTMLInputElement | null>(null);
     const replaceInput = useRef<HTMLInputElement | null>(null);
 
@@ -60,6 +59,8 @@ export default function TopBar() {
       }
     };
   return (
+    <>
+      {showAssets && <AssetBrowser onClose={() => setShowAssets(false)} />}
       <div
         className="flex items-center justify-between px-3 gap-2 bg-gray-800 text-white relative"
         style={{ height: TOP_BAR_HEIGHT }}
@@ -73,6 +74,7 @@ export default function TopBar() {
           <button onClick={() => window.dispatchEvent(new CustomEvent('uibuilder:export'))}>
             Export
           </button>
+          <button onClick={() => setShowAssets(true)}>Assets</button>
           <button onClick={() => fileInput.current?.click()}>Place Image</button>
           <input
             ref={fileInput}
@@ -157,36 +159,11 @@ export default function TopBar() {
             />
             Replace originals
           </label>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.showLayoutGrid || false}
-                onChange={toggleLayoutGrid}
-              />
-              Layout Grid
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.showPixelGrid || false}
-                onChange={togglePixelGrid}
-              />
-              Pixel Grid
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={prefs.snapToPixel !== false}
-                onChange={toggleSnapToPixel}
-              />
-              Snap
-            </label>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <button>Share</button>
           <button>Present</button>
+          <button onClick={togglePreferences}>Preferences</button>
           <div className="w-6 h-6 bg-gray-500 rounded-full" />
         </div>
         {toast && (
@@ -195,5 +172,6 @@ export default function TopBar() {
           </div>
         )}
       </div>
-    );
-  }
+    </>
+  );
+}
