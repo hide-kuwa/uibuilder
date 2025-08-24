@@ -697,7 +697,7 @@ createInstance(componentId, pos) {
 
     // props のデフォルト値を埋める
     def.props?.forEach((p) => {
-      inst.propValues![p.id] = p.default;
+      inst.propValues![p.id] = p.defaultValue;
     });
 
     // usage 情報更新
@@ -721,11 +721,11 @@ detachInstance(nodeId) {
     const def = draft.components[inst.componentId];
     if (!def) return;
     let resolved = resolveVariant(def, inst.variant);
+    if (inst.propValues) {
+      resolved = resolveBinding(resolved, def.props, inst.propValues || {});
+    }
     if (inst.overrides) {
       resolved = resolveOverrides(resolved, inst.overrides);
-    }
-    if (inst.propValues) {
-      resolved = resolveBinding(resolved, inst.propValues);
     }
     if (res.parent && res.parent.children)
       res.parent.children[res.index] = resolved;
@@ -760,7 +760,7 @@ swapInstance(nodeId, nextComponentId) {
       if (def.props) {
         inst.propValues = {};
         def.props.forEach((p) => {
-          inst.propValues![p.id] = p.default;
+          inst.propValues![p.id] = p.defaultValue;
         });
       } else {
         inst.propValues = {};
@@ -782,7 +782,7 @@ addComponentProp(componentId, prop) {
           const inst = n as InstanceNode;
           inst.propValues = {
             ...(inst.propValues || {}),
-            [prop.id]: prop.default,
+            [prop.id]: prop.defaultValue,
           };
         }
         if (n.children) addToInstances(n.children);

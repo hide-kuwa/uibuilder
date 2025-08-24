@@ -1,32 +1,29 @@
-import type { ComponentNode } from '@/types/editor';
+import type { ComponentNode, ComponentProp } from '@/types/editor'
 
+// Apply component prop values to the cloned node tree
 export function resolveBinding(
   root: ComponentNode,
-  props: Record<string, any> = {}
+  props: ComponentProp[] | undefined,
+  values: Record<string, any> = {},
 ): ComponentNode {
-  const clone: ComponentNode = JSON.parse(JSON.stringify(root));
-  const apply = (node: any) => {
-    if (node.bindings) {
-      Object.entries(node.bindings).forEach(([key, b]: any) => {
-        try {
-          const fn = new Function('props', `return (${b.expr});`);
-          const val = fn(props);
-          if (key === 'text') node.text = val;
-          else if (key === 'visible')
-            node.props = { ...(node.props || {}), visible: val };
-          else node.props = { ...(node.props || {}), [key]: val };
-        } catch (e) {
-          if (b.fallback !== undefined) {
-            if (key === 'text') node.text = b.fallback;
-            else if (key === 'visible')
-              node.props = { ...(node.props || {}), visible: b.fallback };
-            else node.props = { ...(node.props || {}), [key]: b.fallback };
-          }
-        }
-      });
-    }
-    if (node.children) node.children.forEach(apply);
-  };
-  apply(clone);
-  return clone;
+  const clone: ComponentNode = JSON.parse(JSON.stringify(root))
+  if (!props) return clone
+  for (const p of props) {
+    if (!p.targetPath) continue
+    const val = values[p.id] ?? p.defaultValue
+    if (val === undefined) continue
+    setByPath(clone, p.targetPath, val)
+  }
+  return clone
 }
+
+function setByPath(obj: any, path: string, value: any) {
+  const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+  let cur = obj
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (cur == null) return
+    cur = cur[keys[i]]
+  }
+  if (cur) cur[keys[keys.length - 1]] = value
+}
+

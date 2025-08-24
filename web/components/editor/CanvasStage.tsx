@@ -47,9 +47,9 @@ function NodeView({
     const def = components[inst.componentId];
     if (def) {
       let resolved = resolveVariant(def, inst.variant);
-      if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
       if (inst.propValues)
-        resolved = resolveBinding(resolved, inst.propValues);
+        resolved = resolveBinding(resolved, def.props, inst.propValues || {});
+      if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
       return (
         <NodeView
