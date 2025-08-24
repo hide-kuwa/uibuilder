@@ -5,6 +5,7 @@ import { deserialize } from '@/lib/deserialize';
 import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
+import { resolveBinding } from '@/lib/binding/resolve';
 import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 
 function renderNode(node: ComponentNode, components: Record<string, any>): JSX.Element {
@@ -14,6 +15,7 @@ function renderNode(node: ComponentNode, components: Record<string, any>): JSX.E
     if (def) {
       let resolved = resolveVariant(def, inst.variant);
       if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
+      if (inst.propValues) resolved = resolveBinding(resolved, inst.propValues);
       resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
       return renderNode(resolved, components);
     }

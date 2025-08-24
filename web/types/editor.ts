@@ -358,6 +358,28 @@ export interface EditorState {
   };
 }
 
+// Component Props (ユーザー定義プロパティ)
+export interface ComponentProp {
+  id: string;
+  name: string;
+  type: "boolean" | "text" | "number" | "color";
+  default?: any;
+}
+
+// Variant Props & Definitions
+export type VariantProps = Record<string, string>;
+
+export interface VariantDef {
+  id: string;
+  props: VariantProps;
+  root: ComponentNode;
+}
+
+export interface VariantSet {
+  props: Record<string, string[]>;
+  defs: VariantDef[];
+}
+
 export interface ComponentDefinition {
   id: string;
   name: string;
@@ -365,19 +387,35 @@ export interface ComponentDefinition {
   usageCount?: number;
   /** timestamp of last instance placement */
   lastUsedAt?: number;
+  props?: ComponentProp[]; // インスタンスに渡せる props
   axes?: Record<string, string[]>;
   rules?: Array<{
     when: Record<string, string>;
     node: string;
     patch: Partial<ComponentNode>;
   }>;
+  variantSet?: VariantSet; // variant 設定
 }
+
+// Overrides
+export interface OverrideMap {
+  text?: Record<string, string>;
+  image?: Record<string, string>;
+  visible?: Record<string, boolean>;
+  style?: Record<string, { fill?: string; stroke?: string }>;
+}
+
+// v10-1 component definitions
+export type ComponentDef = ComponentDefinition;
+// 柔軟に何でも持てる override map（上の定義を包括）
+export type OverrideMap = Record<string, any>;
 
 export interface InstanceNode extends ComponentNode {
   type: "Instance";
   componentId: string;
-  variant?: Record<string, string>;
-  overrides?: Record<string, Partial<ComponentNode>>;
+  variant?: VariantProps; // バリアント
+  overrides?: OverrideMap; // オーバーライド
+  propValues?: Record<string, any>; // ComponentProp の値
 }
 
 // v6 data binding and action types
