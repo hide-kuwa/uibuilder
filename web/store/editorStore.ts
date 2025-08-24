@@ -27,6 +27,7 @@ import type {
   ComponentProp,
   VariantSet,
   VariantProps,
+  OverrideMap,
 } from "@/types/editor";
 import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
@@ -187,8 +188,17 @@ interface EditorActions {
     props: VariantProps,
   ) => void;
   // Overrides
-  setOverride: (nodeId: string, path: string, value: any) => void;
-  clearOverride: (nodeId: string, path: string) => void;
+  setOverride: (
+    nodeId: string,
+    kind: keyof OverrideMap,
+    targetNodeId: string,
+    payload: any,
+  ) => void;
+  clearOverride: (
+    nodeId: string,
+    kind: keyof OverrideMap,
+    targetNodeId: string,
+  ) => void;
   clearAllOverrides: (nodeId: string) => void;
   // v5 comments and review
   startPinAnnotation: () => void;
@@ -1076,56 +1086,32 @@ swapInstanceDef(nodeId, newDefId) {
             }
           });
         },
-        setOverride(nodeId, path, value) {
+        setOverride(nodeId, kind, targetNodeId, payload) {
           apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.overrides = inst.overrides || ({} as any);
-            const parts = path.split(".");
-            let obj: any = inst.overrides;
-            for (let i = 0; i < parts.length - 1; i++) {
-              const k = parts[i];
-              obj[k] = obj[k] || {};
-              obj = obj[k];
-            }
-            obj[parts[parts.length - 1]] = value;
-          });
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null
+            if (!inst) return
+            ;(inst.overrides ||= {} as any)
+            const bucket: any = (inst.overrides as any)[kind] || {}
+            bucket[targetNodeId] = payload
+            ;(inst.overrides as any)[kind] = bucket
+          })
         },
-
+        clearOverride(nodeId, kind, targetNodeId) {
           apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.overrides = inst.overrides || {} as any;
-            const parts = path.split('.');
-            let obj: any = inst.overrides;
-            for (let i = 0; i < parts.length - 1; i++) {
-              const k = parts[i];
-              obj[k] = obj[k] || {};
-              obj = obj[k];
-            }
-            obj[parts[parts.length - 1]] = value;
-          });
-        },
-        clearOverride(nodeId, path) {
-          apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst || !inst.overrides) return;
-            const parts = path.split('.');
-            let obj: any = inst.overrides;
-            for (let i = 0; i < parts.length - 1; i++) {
-              const k = parts[i];
-              if (!obj[k]) return;
-              obj = obj[k];
-            }
-            delete obj[parts[parts.length - 1]];
-          });
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null
+            if (!inst || !inst.overrides) return
+            const bucket: any = (inst.overrides as any)[kind]
+            if (!bucket) return
+            delete bucket[targetNodeId]
+            if (Object.keys(bucket).length === 0) delete (inst.overrides as any)[kind]
+          })
         },
         clearAllOverrides(nodeId) {
           apply((draft) => {
-            const inst = findNode(draft.tree, nodeId) as InstanceNode | null;
-            if (!inst) return;
-            inst.overrides = {};
-          });
+            const inst = findNode(draft.tree, nodeId) as InstanceNode | null
+            if (!inst) return
+            inst.overrides = {}
+          })
         },
         // --- v5 comments & review ---
         startPinAnnotation() {
