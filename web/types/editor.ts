@@ -362,6 +362,9 @@ export interface ComponentDefinition {
   id: string;
   name: string;
   root: ComponentNode;
+  usageCount?: number;
+  /** timestamp of last instance placement */
+  lastUsedAt?: number;
   axes?: Record<string, string[]>;
   rules?: Array<{
     when: Record<string, string>;

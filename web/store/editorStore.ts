@@ -43,6 +43,23 @@ import { nanoid } from "nanoid";
 import { layoutText } from "@/lib/text/layout";
 import { applyRun, removeRun } from "@/lib/text/rangeOps";
 
+const updateUsageCounts = (draft: EditorState) => {
+  const counts: Record<string, number> = {};
+  const walk = (nodes: ComponentNode[]) => {
+    for (const n of nodes) {
+      if ((n as any).type === "Instance") {
+        const compId = (n as InstanceNode).componentId;
+        counts[compId] = (counts[compId] || 0) + 1;
+      }
+      if ((n as any).children) walk((n as any).children!);
+    }
+  };
+  walk(draft.tree);
+  Object.keys(draft.components).forEach((id) => {
+    draft.components[id].usageCount = counts[id] || 0;
+  });
+};
+
 interface EditorActions {
   select: (ids: string[] | ((prev: string[]) => string[])) => void;
   setHover: (id: string | null) => void;
@@ -391,15 +408,27 @@ export const useEditorStore = create<
         duplicate(ids) {
           apply((draft) => {
             const targets = ids ?? draft.selectedIds;
+            const touched = new Set<string>();
+            const collect = (n: ComponentNode) => {
+              if ((n as any).type === "Instance")
+                touched.add((n as InstanceNode).componentId);
+              if (n.children) n.children.forEach(collect);
+            };
             targets.forEach((id) => {
               const node = findNode(draft.tree, id);
               if (node) {
+                collect(node);
                 const copy: ComponentNode = JSON.parse(JSON.stringify(node));
                 copy.id = Math.random().toString(36).slice(2);
                 draft.tree.push(copy);
                 draft.selectedIds = [copy.id];
               }
             });
+            touched.forEach((cid) => {
+              const def = draft.components[cid];
+              if (def) def.lastUsedAt = Date.now();
+            });
+            updateUsageCounts(draft);
           });
         },
         remove(ids) {
@@ -413,6 +442,7 @@ export const useEditorStore = create<
               });
             draft.tree = removeRec(draft.tree);
             draft.selectedIds = [];
+            updateUsageCounts(draft);
           });
         },
         addImageAsset(meta) {
@@ -580,6 +610,8 @@ export const useEditorStore = create<
               id: compId,
               name: name || node.name || "Component",
               root: node,
+              usageCount: 0,
+              lastUsedAt: Date.now(),
             } as ComponentDefinition;
             const instId = Math.random().toString(36).slice(2);
             const instance: InstanceNode = {
@@ -591,6 +623,7 @@ export const useEditorStore = create<
             if (parent && parent.children) parent.children[index] = instance;
             else draft.tree[index] = instance;
             draft.selectedIds = [instId];
+            updateUsageCounts(draft);
           });
         },
         deleteComponent(componentId) {
@@ -606,7 +639,8 @@ export const useEditorStore = create<
         },
         createInstance(componentId, pos) {
           apply((draft) => {
-            if (!draft.components[componentId]) return;
+            const def = draft.components[componentId];
+            if (!def) return;
             const id = Math.random().toString(36).slice(2);
             const inst: InstanceNode = {
               id,
@@ -616,6 +650,8 @@ export const useEditorStore = create<
               overrides: {},
               props: { x: pos?.x || 0, y: pos?.y || 0 },
             };
+            def.usageCount = (def.usageCount || 0) + 1;
+            def.lastUsedAt = Date.now();
             draft.tree.push(inst);
             draft.selectedIds = [id];
           });
@@ -634,6 +670,7 @@ export const useEditorStore = create<
             if (res.parent && res.parent.children)
               res.parent.children[res.index] = resolved;
             else draft.tree[res.index] = resolved;
+            updateUsageCounts(draft);
           });
         },
         swapInstance(nodeId, nextComponentId) {
@@ -642,6 +679,7 @@ export const useEditorStore = create<
             if (!inst) return;
             inst.componentId = nextComponentId;
             const def = draft.components[nextComponentId];
+            if (def) def.lastUsedAt = Date.now();
             if (def?.axes) {
               inst.variant = inst.variant || {};
               // remove axes not in new component
@@ -652,6 +690,7 @@ export const useEditorStore = create<
                 if (!inst.variant![k]) inst.variant![k] = vals[0];
               });
             }
+            updateUsageCounts(draft);
           });
         },
         align(kind) {
