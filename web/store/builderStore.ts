@@ -17,6 +17,12 @@ export type Elm = {
     color?: string
     bg?: string
     align?: 'left' | 'center' | 'right'
+    loginButton?: {
+      enabled: boolean
+      label: string
+      variant: 'solid' | 'outline'
+      href?: string
+    }
   }
 }
 
