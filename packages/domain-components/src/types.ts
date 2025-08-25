@@ -1,5 +1,6 @@
 import type { FC, ReactNode } from "react";
 import { z } from "zod";
+import type { DataBindings } from "@data";
 
 export type EventsMap = Record<string, z.ZodTypeAny>;
 
@@ -21,4 +22,6 @@ export type ComponentNode = {
   componentId: string;
   props: Record<string, any>;
   children?: ComponentNode[];
+  locked?: boolean;
+  dataBindings?: DataBindings;
 };
