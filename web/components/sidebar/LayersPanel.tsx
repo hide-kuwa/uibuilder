@@ -162,18 +162,43 @@ function Row(props: {
   )
 }
 
+function useSetState<T>(initial: Set<T>) {
+  const [setVal, setSetVal] = React.useState<Set<T>>(initial)
+
+  const apply = React.useCallback(
+    (next: Set<T> | ((prev: Set<T>) => Set<T>)) => {
+      setSetVal((prev) => {
+        try {
+          if (typeof next === 'function') {
+            return (next as (p: Set<T>) => Set<T>)(prev)
+          }
+          return new Set(next)
+        } catch {
+          return prev
+        }
+      })
+    },
+    []
+  )
+
+  return [setVal, apply] as const
+}
+
 // ===== localStorage 永続化（Set<string>） =====
 function useLocalCollapsed(key: string) {
-  const [setVal, setSetVal] = useState<Set<string>>(() => {
+  const initial = React.useMemo(() => {
     try {
       const raw = localStorage.getItem(key)
-      if (!raw) return new Set()
+      if (!raw) return new Set<string>()
       const arr: string[] = JSON.parse(raw)
       return new Set(arr)
     } catch {
-      return new Set()
+      return new Set<string>()
     }
-  })
+  }, [key])
+
+  const [setVal, apply] = useSetState(initial)
+
   useEffect(() => {
     const id = setTimeout(() => {
       try {
@@ -185,9 +210,6 @@ function useLocalCollapsed(key: string) {
     return () => clearTimeout(id)
   }, [key, setVal])
 
-  return [
-    setVal,
-    (updater: (prev: Set<string>) => Set<string>) => setSetVal((prev) => updater(prev)),
-  ] as const
+  return [setVal, apply] as const
 }
 
