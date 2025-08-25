@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { TOP_BAR_HEIGHT } from '@/lib/layout/constants';
 import { useEditorStore } from '@/store/editorStore';
 import { useState, useRef, useEffect } from 'react';
@@ -175,6 +176,11 @@ export default function TopBar() {
           </label>
         </div>
         <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-2">
+            <Link href="/dev/pages" className="px-2 py-0.5 text-xs rounded border border-zinc-700 hover:bg-zinc-800">
+              Dev
+            </Link>
+          </nav>
           <button>Share</button>
           <button>Present</button>
           <button onClick={togglePreferences}>Preferences</button>
