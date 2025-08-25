@@ -1,130 +1,83 @@
-import type { TextNode, TextStyle } from '@/types/editor';
-import { splitGraphemes, measureWidth, computeLetterSpacing, calcLineHeight } from './measure';
-
-export interface LaidOutRun {
-  text: string;
-  style: Partial<TextStyle> & { link?: string };
-}
-export interface LaidOutLine {
-  x: number;
-  y: number;
-  width: number;
-  runs: LaidOutRun[];
-}
-export interface TextLayout {
-  lines: LaidOutLine[];
-  box: { w: number; h: number };
+// Lightweight text layout helper (MVP)
+// - Provides a named export `layoutText` used by editorStore.
+// - Safe on server: falls back to a rough width estimate when `document` is not available.
+export type LayoutResult = {
+  lines: string[]
+  width: number
+  height: number
+  lineHeight: number
 }
 
-interface Token {
-  char: string;
-  width: number;
-  spacing: number;
-  runStyle: Partial<TextStyle> & { link?: string };
+type StyleLike = {
+  fontSize?: number
+  lineHeight?: number
+  fontFamily?: string
+  fontWeight?: number | string
+  letterSpacing?: number
 }
 
-export function layoutTextNode(node: TextNode, opts?: { dpr?: number }): TextLayout {
-  const base = node.style;
-  const lineHeight = calcLineHeight(base);
-  const chars = splitGraphemes(node.text);
-  const runs = (node.runs ?? []).slice().sort((a, b) => a.from - b.from);
-  const tokens: Token[] = [];
-  const emptyStyle: Partial<TextStyle> = {};
-  let runIdx = 0;
-  for (let i = 0; i < chars.length; i++) {
-    while (runIdx < runs.length && i >= runs[runIdx].to) runIdx++;
-    const run = runIdx < runs.length && i >= runs[runIdx].from ? runs[runIdx] : null;
-    const runStyle = run ? run.style : emptyStyle;
-    const merged: TextStyle = { ...base, ...runStyle } as TextStyle;
-    const width = measureWidth(chars[i], merged);
-    const spacing = computeLetterSpacing(merged);
-    tokens.push({ char: chars[i], width, spacing, runStyle });
+function makeFont(style: StyleLike) {
+  const fontSize = style.fontSize ?? 14
+  const fontFamily = style.fontFamily ?? 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto'
+  const fontWeight = style.fontWeight ?? 400
+  return { css: `${fontWeight} ${fontSize}px ${fontFamily}`, fontSize }
+}
+
+export function layoutText(
+  text: string,
+  style: StyleLike = {},
+  maxWidth?: number,
+): LayoutResult {
+  const { css, fontSize } = makeFont(style)
+  const lineH = Math.round(style.lineHeight ?? fontSize * 1.4)
+  const letter = style.letterSpacing ?? 0
+
+  // Try real measure with canvas when in browser
+  let ctx: CanvasRenderingContext2D | null = null
+  if (typeof document !== 'undefined') {
+    const c = document.createElement('canvas')
+    ctx = c.getContext('2d')
+    if (ctx) ctx.font = css
   }
-  const maxWidth =
-    node.resizeMode === 'AUTO_HEIGHT' || node.resizeMode === 'FIXED'
-      ? node.props?.w ?? Infinity
-      : Infinity;
 
-  const lines: { tokens: Token[]; width: number }[] = [];
-  let lineStart = 0;
-  let lineWidth = 0;
-  let lastBreak = -1;
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    if (t.char === '\n') {
-      finalize(lineStart, i);
-      lineStart = i + 1;
-      lineWidth = 0;
-      lastBreak = -1;
-      continue;
+  const measure = (s: string) => {
+    if (!s) return 0
+    if (ctx) {
+      // add simple letter-spacing compensation
+      return ctx.measureText(s).width + letter * Math.max(0, s.length - 1)
     }
-    const adv = t.width + t.spacing;
-    if (maxWidth !== Infinity && lineWidth + adv > maxWidth && i > lineStart) {
-      const breakIdx = lastBreak >= lineStart ? lastBreak + 1 : i;
-      finalize(lineStart, breakIdx);
-      i = breakIdx - 1;
-      lineStart = breakIdx;
-      lineWidth = 0;
-      lastBreak = -1;
-      continue;
-    }
-    lineWidth += adv;
-    if (/\s/.test(t.char)) lastBreak = i;
-  }
-  finalize(lineStart, tokens.length);
-
-  function finalize(start: number, end: number) {
-    const slice = tokens.slice(start, end);
-    let width = 0;
-    slice.forEach((tok, idx) => {
-      width += tok.width;
-      if (idx < slice.length - 1) width += tok.spacing;
-    });
-    lines.push({ tokens: slice, width });
+    // server-side fallback: rough estimate
+    return s.length * (fontSize * 0.6) + letter * Math.max(0, s.length - 1)
   }
 
-  const laidLines: LaidOutLine[] = [];
-  lines.forEach((l, idx) => {
-    const runsArr: LaidOutRun[] = [];
-    if (l.tokens.length) {
-      let current = l.tokens[0].runStyle;
-      let txt = '';
-      for (const tok of l.tokens) {
-        if (tok.runStyle !== current) {
-          runsArr.push({ text: txt, style: current });
-          current = tok.runStyle;
-          txt = tok.char;
+  // Split into lines
+  let lines: string[] = []
+  const hardLines = String(text ?? '').split('\n')
+
+  if (!maxWidth || !isFinite(maxWidth) || maxWidth <= 0) {
+    // No wrapping: keep hard breaks only
+    lines = hardLines
+  } else {
+    // Greedy word wrap per hard line
+    for (const hard of hardLines) {
+      const words = hard.split(/\s+/)
+      let cur = ''
+      for (const w of words) {
+        const cand = cur ? cur + ' ' + w : w
+        if (measure(cand) <= maxWidth || cur === '') {
+          cur = cand
         } else {
-          txt += tok.char;
+          lines.push(cur)
+          cur = w
         }
       }
-      runsArr.push({ text: txt, style: current });
+      if (cur) lines.push(cur)
+      if (hard === '' && words.length === 1) lines.push('') // preserve blank lines
     }
-    laidLines.push({ x: 0, y: (idx + 1) * lineHeight, width: l.width, runs: runsArr });
-  });
-
-  let boxW: number;
-  let boxH: number;
-  if (node.resizeMode === 'AUTO_WIDTH') {
-    boxW = lines[0]?.width ?? 0;
-    boxH = lineHeight;
-  } else if (node.resizeMode === 'AUTO_HEIGHT') {
-    boxW = node.props?.w ?? Math.max(0, ...lines.map((l) => l.width));
-    boxH = lines.length * lineHeight;
-  } else if (node.resizeMode === 'FIXED') {
-    boxW = node.props?.w ?? Math.max(0, ...lines.map((l) => l.width));
-    boxH = node.props?.h ?? lines.length * lineHeight;
-  } else {
-    boxW = Math.max(0, ...lines.map((l) => l.width));
-    boxH = lines.length * lineHeight;
   }
 
-  const align = base.textAlign || 'left';
-  laidLines.forEach((l) => {
-    if (align === 'center') l.x = (boxW - l.width) / 2;
-    else if (align === 'right') l.x = boxW - l.width;
-    else l.x = 0; // left & justify minimal
-  });
-
-  return { lines: laidLines, box: { w: boxW, h: boxH } };
+  const width = lines.reduce((m, s) => Math.max(m, measure(s)), 0)
+  const height = Math.max(1, lines.length) * lineH
+  return { lines, width, height, lineHeight: lineH }
 }
+
