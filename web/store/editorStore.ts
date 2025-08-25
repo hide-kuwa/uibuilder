@@ -139,7 +139,9 @@ interface EditorActions {
   ) => void;
 }
 
-  // v3 additions
+/* v3 additions (TEMP DISABLE)
+ * 型シグネチャの羅列が値コンテキストに混入してビルドが落ちていたため、一旦コメントアウト。
+ * TODO: types/editor.ts の interface へ移設してから再配線する。
   align: (
     kind: "left" | "right" | "top" | "bottom" | "centerH" | "centerV",
   ) => void;
@@ -285,6 +287,7 @@ interface EditorActions {
     style: Partial<TextStyle> & { link?: string },
   ) => void;
 }
+*/
 
 interface EditorPersistState {
   saveQueue: number[];
