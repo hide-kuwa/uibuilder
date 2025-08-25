@@ -74,6 +74,7 @@ type BuilderActions = {
   bringToFront: (id: string) => void
   sendToBack: (id: string) => void
   nudge: (dx: number, dy: number) => void
+  setElements: (els: Elm[]) => void
 }
 
 const SNAP = 8
@@ -270,6 +271,14 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     const el = get().elements.find((x) => x.id === id)
     if (!el) return
     get().move(id, { x: el.x + dx, y: el.y + dy })
+  },
+
+  setElements(els) {
+    set(
+      produce((draft: BuilderState) => {
+        draft.elements = els
+      }),
+    )
   },
 }))
 
