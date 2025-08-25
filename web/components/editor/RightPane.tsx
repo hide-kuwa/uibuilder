@@ -12,7 +12,7 @@ import type {
 import { mapNodesForSwap } from "@/lib/override/compat";
 import { listOverridable } from "@/lib/override/util";
 import { findNode } from "@/lib/tree";
-import TokensExportPanel from "@/components/editor/TokensExportPanel";
+import ExportPanel from "@/components/editor/ExportPanel";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -438,7 +438,7 @@ export default function RightPane() {
       </div>
       {/* v12-2: Export（Design Tokens） */}
       <div className="pt-2 border-t border-zinc-800">
-        <TokensExportPanel />
+        <ExportPanel />
       </div>
     </div>
   );

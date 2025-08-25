@@ -71,3 +71,20 @@ export const PRESETS: Record<string, ExportPreset> = {
   html: { format: 'html' },
   react: { format: 'react' },
 };
+
+// ===== Diff Export (MVP) =====
+export function exportChanged(tree: any[], ids: string[]) {
+  const idSet = new Set(ids)
+  const nodes: any[] = []
+  traverse(tree, (n: any) => { if (idSet.has(n?.id)) nodes.push(n) })
+  const meta = { exportedAt: Date.now(), ids: Array.from(idSet) }
+  const json = JSON.stringify({ meta, nodes }, null, 2)
+  return { json, meta }
+}
+
+function traverse(nodes: any[], fn: (n: any) => void) {
+  for (const n of nodes || []) {
+    fn(n)
+    if (n?.children) traverse(n.children, fn)
+  }
+}
