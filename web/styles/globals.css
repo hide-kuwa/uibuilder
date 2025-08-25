@@ -1,3 +1,10 @@
+/* Tailwind 必須ディレクティブ（←これが無いと @layer が使えずビルドエラーになります） */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ここから先は既存のスタイル・@layer base 等をそのまま置いてOK */
+/* （既存の内容があるはず。なければこの下に @layer base {...} 等を置く） */
 @import './motion.css';
 
 :root {
