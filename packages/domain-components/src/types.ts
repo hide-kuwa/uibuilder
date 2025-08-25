@@ -27,10 +27,9 @@ export type ComponentNode = {
   id: string;
   componentId: string;
   props: Record<string, PropValue>;
-  userCode?: Record<string, string>;
-  children?: ComponentNode[];
   /** user-defined expression props retained separately from serializable props */
   userCode?: Record<string, string>;
+  children?: ComponentNode[];
   locked?: boolean;
   dataBindings?: DataBindings;
 };
