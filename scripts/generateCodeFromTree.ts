@@ -11,11 +11,15 @@ function jsxPropValue(val: any): string {
 
 function renderNode(node: ComponentNode): string {
   const tag = node.componentId;
-  const props = Object.entries(node.props || {})
-    .map(([k, v]) => `${k}=${jsxPropValue(v)}`)
-    .join(" ");
+  const propEntries = Object.entries(node.props || {}).map(
+    ([k, v]) => `${k}=${jsxPropValue(v)}`
+  );
+  const userCodeEntries = Object.entries(node.userCode ?? {}).map(
+    ([k, code]) => `${k}={${code}} // @user-code:${node.id}:${k}`
+  );
+  const allProps = [...propEntries, ...userCodeEntries].join(" ");
+  const propsStr = allProps ? ` ${allProps}` : "";
   const children = (node.children ?? []).map(renderNode).join("\n");
-  const propsStr = props ? ` ${props}` : "";
   if (!children) {
     return `<${tag}${propsStr} />`;
   } else {
