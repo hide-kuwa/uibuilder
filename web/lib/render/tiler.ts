@@ -47,9 +47,16 @@ export class CanvasTiler {
     if (!ctx) throw new Error('2D context unavailable')
     this.canvas = canvas
     this.ctx = ctx
+    // SSRでも落ちないようにwindow存在チェックしつつ、
+    // ?? と || の混在を避けて括弧で明示。
+    const defaultDpr =
+      typeof window !== 'undefined'
+        ? (window.devicePixelRatio ?? 1)
+        : 1
+
     this.opts = {
       tileSize: opts?.tileSize ?? 768,
-      dpr: opts?.dpr ?? window.devicePixelRatio || 1,
+      dpr: opts?.dpr ?? defaultDpr,
       maxConcurrentRenders: opts?.maxConcurrentRenders ?? 2,
     }
     this.setupResize()
