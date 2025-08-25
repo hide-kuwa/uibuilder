@@ -2,6 +2,7 @@
 import React from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
+import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 
 const GRID = 8
 function bgGridStyle() {
@@ -95,6 +96,9 @@ type HandleDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'
 function ResizeHandles({ elm }: { elm: Elm }) {
   const move = useBuilderStore((s) => s.move)
   const resize = useBuilderStore((s) => s.resize)
+  const setDragDraft = useBuilderStore((s) => s.setDragDraft)
+  const setGuides = useBuilderStore((s) => s.setGuides)
+  const clearGuides = useBuilderStore((s) => s.clearGuides)
   const [resizing, setResizing] = React.useState(false)
   const startRef = React.useRef({
     x: 0,
@@ -106,11 +110,7 @@ function ResizeHandles({ elm }: { elm: Elm }) {
     aspect: 1,
     dir: 'e' as HandleDir,
   })
-
-  const snap = React.useCallback((n: number) => {
-    const step = useBuilderStore.getState().snap
-    return Math.round(n / step) * step
-  }, [])
+  const snapPointsRef = React.useRef<ReturnType<typeof collectSnapPoints> | null>(null)
 
   const cursors: Record<HandleDir, string> = {
     n: 'ns-resize',
@@ -138,6 +138,12 @@ function ResizeHandles({ elm }: { elm: Elm }) {
     }
     setResizing(true)
     document.body.style.cursor = cursors[dir]
+    setDragDraft({ id: elm.id, rect: { x: elm.x, y: elm.y, w: elm.w, h: elm.h } })
+    setGuides([])
+    snapPointsRef.current = collectSnapPoints(
+      useBuilderStore.getState().elements,
+      elm.id,
+    )
 
     const onMove = (ev: PointerEvent) => {
       const s = startRef.current
@@ -166,8 +172,8 @@ function ResizeHandles({ elm }: { elm: Elm }) {
         }
       }
 
-      w = Math.max(16, snap(w))
-      h = Math.max(16, snap(h))
+      w = Math.max(16, w)
+      h = Math.max(16, h)
 
       let x = s.x
       let y = s.y
@@ -182,14 +188,24 @@ function ResizeHandles({ elm }: { elm: Elm }) {
         }
       }
 
-      x = snap(x)
-      y = snap(y)
-
-      move(elm.id, { x, y })
-      resize(elm.id, { w, h })
+      const { rect, guides } = snapRect(
+        { x, y, w, h },
+        snapPointsRef.current!,
+        {
+        mode: 'resize',
+        },
+      )
+      setDragDraft({ id: elm.id, rect })
+      setGuides(guides)
     }
 
     const onUp = () => {
+      const draft = useBuilderStore.getState().ui.dragDraft
+      const r = draft?.rect || { x: elm.x, y: elm.y, w: elm.w, h: elm.h }
+      move(elm.id, { x: r.x, y: r.y }, false)
+      resize(elm.id, { w: r.w, h: r.h }, false)
+      setDragDraft(undefined)
+      clearGuides()
       setResizing(false)
       document.body.style.cursor = ''
       window.removeEventListener('pointermove', onMove)
@@ -233,6 +249,7 @@ function ElmView({ elm }: { elm: Elm }) {
   const select = useBuilderStore((s) => s.select)
   const selectedId = useBuilderStore((s) => s.selectedId)
   const isSel = selectedId === elm.id
+  const dragDraft = useBuilderStore((s) => s.ui.dragDraft)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `elm_${elm.id}`,
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
@@ -242,14 +259,18 @@ function ElmView({ elm }: { elm: Elm }) {
   const border = isSel ? 'border-amber-400' : 'border-zinc-700'
   const shadow = isSel ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.6)]' : ''
 
+  const preview = dragDraft && dragDraft.id === elm.id ? dragDraft.rect : null
   const baseStyle: React.CSSProperties = {
     left: elm.x,
     top: elm.y,
-    width: elm.w,
-    height: elm.h,
+    width: preview ? preview.w : elm.w,
+    height: preview ? preview.h : elm.h,
     background: elm.props?.bg,
     color: elm.props?.color ?? '#e5e7eb',
     opacity: elm.visible === false ? 0.4 : 1,
+    transform: preview
+      ? `translate3d(${preview.x - elm.x}px, ${preview.y - elm.y}px, 0)`
+      : undefined,
   }
 
   return (
@@ -279,6 +300,30 @@ function ElmView({ elm }: { elm: Elm }) {
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
       {elm.type === 'code' && <CodePreview elm={elm} />}
       {isSel && <ResizeHandles elm={elm} />}
+    </div>
+  )
+}
+
+function GuideOverlay() {
+  const guides = useBuilderStore((s) => s.ui.guides)
+  if (!guides.length) return null
+  return (
+    <div className="absolute inset-0 pointer-events-none z-50">
+      {guides.map((g, i) =>
+        g.axis === 'x' ? (
+          <div
+            key={i}
+            className="absolute top-0 bottom-0 border-l border-amber-400/70"
+            style={{ left: g.pos }}
+          />
+        ) : (
+          <div
+            key={i}
+            className="absolute left-0 right-0 border-t border-amber-400/70"
+            style={{ top: g.pos }}
+          />
+        ),
+      )}
     </div>
   )
 }
@@ -324,6 +369,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         {els.map((e) => (
           <ElmView key={e.id} elm={e} />
         ))}
+        <GuideOverlay />
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
           drag to move • drop from Palette • arrows to nudge • click empty = unselect
         </div>
