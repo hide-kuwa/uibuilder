@@ -5,7 +5,12 @@ import path from "path";
 function jsxPropValue(val: any): string {
   if (typeof val === "string") return `"${val}"`;
   if (typeof val === "number" || typeof val === "boolean") return `{${val}}`;
-  if (typeof val === "object") return `{${JSON.stringify(val)}}`;
+  if (typeof val === "object") {
+    if (val && typeof val === "object" && "__expr" in val) {
+      return `{${(val as any).__expr}}`;
+    }
+    return `{${JSON.stringify(val)}}`;
+  }
   return `{${String(val)}}`;
 }
 
