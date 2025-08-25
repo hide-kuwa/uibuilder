@@ -177,6 +177,9 @@ export default function TopBar() {
         </div>
         <div className="flex items-center gap-2">
           <nav className="flex items-center gap-2">
+            <Link href="/builder" className="px-2 py-0.5 text-xs rounded border border-zinc-700 hover:bg-zinc-800">
+              Builder
+            </Link>
             <Link href="/dev/pages" className="px-2 py-0.5 text-xs rounded border border-zinc-700 hover:bg-zinc-800">
               Dev
             </Link>
