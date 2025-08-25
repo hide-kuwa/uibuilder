@@ -2,10 +2,17 @@ import { Project, SyntaxKind } from "ts-morph";
 import path from "path";
 import fs from "fs";
 
+export type PropValue =
+  | string
+  | number
+  | boolean
+  | { __expr: string };
+
 export type ComponentNode = {
   id: string;
   componentId: string;
-  props: Record<string, any>;
+  props: Record<string, PropValue>;
+  userCode?: Record<string, string>;
   children?: ComponentNode[];
 };
 
@@ -18,7 +25,8 @@ function parseJsxElement(el: any): ComponentNode | null {
     : el.getOpeningElement().getTagNameNode();
   const componentId = tagNode.getText();
   const attrs = isSelf ? el.getAttributes() : el.getOpeningElement().getAttributes();
-  const props: Record<string, any> = {};
+  const props: Record<string, PropValue> = {};
+  const userCode: Record<string, string> = {};
   attrs.forEach((attr: any) => {
     if (attr.getKind() === SyntaxKind.JsxAttribute) {
       const name = attr.getNameNode().getText();
@@ -28,7 +36,17 @@ function parseJsxElement(el: any): ComponentNode | null {
           props[name] = initializer.getLiteralText();
         } else if (initializer.getKind() === SyntaxKind.JsxExpression) {
           const expr = initializer.getExpression();
-          if (expr) props[name] = expr.getText();
+          const exprText = expr?.getText();
+          if (exprText) {
+            const comment =
+              attr.getTrailingCommentRanges()?.[0]?.getText?.() ?? "";
+            const matched = comment.match(/@user-code:(.+?):(.+)/);
+            if (matched) {
+              userCode[name] = exprText;
+            } else {
+              props[name] = { __expr: exprText };
+            }
+          }
         }
       }
     }
@@ -49,6 +67,7 @@ function parseJsxElement(el: any): ComponentNode | null {
     id: "id_" + Math.random().toString(36).slice(2, 8),
     componentId,
     props,
+    userCode: Object.keys(userCode).length ? userCode : undefined,
     children: children.length ? children : undefined,
   };
 }
