@@ -90,6 +90,145 @@ function CodePreview({ elm }: { elm: Elm }) {
   )
 }
 
+type HandleDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'
+
+function ResizeHandles({ elm }: { elm: Elm }) {
+  const move = useBuilderStore((s) => s.move)
+  const resize = useBuilderStore((s) => s.resize)
+  const [resizing, setResizing] = React.useState(false)
+  const startRef = React.useRef({
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+    startX: 0,
+    startY: 0,
+    aspect: 1,
+    dir: 'e' as HandleDir,
+  })
+
+  const snap = React.useCallback((n: number) => {
+    const step = useBuilderStore.getState().snap
+    return Math.round(n / step) * step
+  }, [])
+
+  const cursors: Record<HandleDir, string> = {
+    n: 'ns-resize',
+    ne: 'nesw-resize',
+    e: 'ew-resize',
+    se: 'nwse-resize',
+    s: 'ns-resize',
+    sw: 'nesw-resize',
+    w: 'ew-resize',
+    nw: 'nwse-resize',
+  }
+
+  const onPointerDown = (dir: HandleDir) => (e: React.PointerEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    startRef.current = {
+      x: elm.x,
+      y: elm.y,
+      w: elm.w,
+      h: elm.h,
+      startX: e.clientX,
+      startY: e.clientY,
+      aspect: elm.w / elm.h,
+      dir,
+    }
+    setResizing(true)
+    document.body.style.cursor = cursors[dir]
+
+    const onMove = (ev: PointerEvent) => {
+      const s = startRef.current
+      let dx = ev.clientX - s.startX
+      let dy = ev.clientY - s.startY
+
+      let w = s.w
+      let h = s.h
+      if (dir.includes('e')) w = s.w + dx
+      if (dir.includes('s')) h = s.h + dy
+      if (dir.includes('w')) w = s.w - dx
+      if (dir.includes('n')) h = s.h - dy
+
+      if (ev.shiftKey) {
+        const ratio = s.w / s.h
+        if (dir === 'e' || dir === 'w') {
+          h = w / ratio
+        } else if (dir === 'n' || dir === 's') {
+          w = h * ratio
+        } else {
+          if (Math.abs(dx) > Math.abs(dy)) {
+            h = w / ratio
+          } else {
+            w = h * ratio
+          }
+        }
+      }
+
+      w = Math.max(16, snap(w))
+      h = Math.max(16, snap(h))
+
+      let x = s.x
+      let y = s.y
+      if (dir.includes('w')) x = s.x + s.w - w
+      if (dir.includes('n')) y = s.y + s.h - h
+      if (ev.altKey) {
+        if (dir.includes('e') || dir.includes('w')) {
+          x = s.x + (s.w - w) / 2
+        }
+        if (dir.includes('n') || dir.includes('s')) {
+          y = s.y + (s.h - h) / 2
+        }
+      }
+
+      x = snap(x)
+      y = snap(y)
+
+      move(elm.id, { x, y })
+      resize(elm.id, { w, h })
+    }
+
+    const onUp = () => {
+      setResizing(false)
+      document.body.style.cursor = ''
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  const pos: Record<HandleDir, string> = {
+    n: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    ne: 'top-0 right-0 translate-x-1/2 -translate-y-1/2',
+    e: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2',
+    se: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
+    s: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
+    sw: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
+    w: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2',
+    nw: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
+  }
+
+  const dirs: HandleDir[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-20">
+      {resizing && (
+        <div className="absolute inset-0 border border-amber-200 pointer-events-none" />
+      )}
+      {dirs.map((d) => (
+        <div
+          key={d}
+          onPointerDown={onPointerDown(d)}
+          className={`absolute w-2 h-2 bg-amber-400 border border-black rounded-sm pointer-events-auto ${pos[d]} cursor-${cursors[d]}`}
+        />
+      ))}
+    </div>
+  )
+}
+
 function ElmView({ elm }: { elm: Elm }) {
   const select = useBuilderStore((s) => s.select)
   const selectedId = useBuilderStore((s) => s.selectedId)
@@ -139,6 +278,7 @@ function ElmView({ elm }: { elm: Elm }) {
       )}
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
       {elm.type === 'code' && <CodePreview elm={elm} />}
+      {isSel && <ResizeHandles elm={elm} />}
     </div>
   )
 }
