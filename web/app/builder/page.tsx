@@ -14,6 +14,8 @@ import { Canvas } from '@/components/builder/Canvas'
 import { Inspector } from '@/components/builder/Inspector'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
+import { PagesPanel } from '@/components/builder/PagesPanel'
+import { usePageStore } from '@/store/pageStore'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -24,6 +26,11 @@ export default function BuilderPage() {
   const setDragDraft = useBuilderStore((s) => s.setDragDraft)
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
+  const setElements = useBuilderStore((s) => s.setElements)
+
+  const currentPageId = usePageStore((s) => s.currentPageId)
+  const getTree = usePageStore((s) => s.getTree)
+  const setTree = usePageStore((s) => s.setTree)
 
   const startRectRef = React.useRef<{ x: number; y: number; w: number; h: number } | null>(null)
   const snapPointsRef = React.useRef<ReturnType<typeof collectSnapPoints> | null>(null)
@@ -146,6 +153,14 @@ export default function BuilderPage() {
     URL.revokeObjectURL(a.href)
   }, [elements])
 
+  React.useEffect(() => {
+    setElements(getTree())
+  }, [currentPageId, getTree, setElements])
+
+  React.useEffect(() => {
+    setTree(elements)
+  }, [elements, setTree])
+
   return (
     <div className="flex h-[calc(100vh-40px)]">
       <DndContext
@@ -154,6 +169,9 @@ export default function BuilderPage() {
         onDragMove={onDragMove}
         onDragEnd={onDragEnd}
       >
+        <aside className="w-48 border-r border-zinc-800 bg-zinc-950/40 p-3">
+          <PagesPanel />
+        </aside>
         <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-3">
           <h2 className="text-sm font-semibold mb-2">パレット</h2>
           <Palette />
