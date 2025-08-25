@@ -17,10 +17,18 @@ export interface RegisteredComp<TProps = any> {
 
 export type Registry = Record<string, RegisteredComp<any>>;
 
+export type PropValue =
+  | string
+  | number
+  | boolean
+  | { __expr: string };
+
 export type ComponentNode = {
   id: string;
   componentId: string;
-  props: Record<string, any>;
+  props: Record<string, PropValue>;
+  /** user-defined expression props retained separately from serializable props */
+  userCode?: Record<string, string>;
   children?: ComponentNode[];
   locked?: boolean;
   dataBindings?: DataBindings;
