@@ -43,20 +43,20 @@ export function layoutText(
   const measure = (s: string) => {
     if (!s) return 0
     if (ctx) {
-      // add simple letter-spacing compensation
+      // letter-spacing compensation
       return ctx.measureText(s).width + letter * Math.max(0, s.length - 1)
     }
     // server-side fallback: rough estimate
     return s.length * (fontSize * 0.6) + letter * Math.max(0, s.length - 1)
   }
 
-  // Split into lines
-  let lines: string[] = []
+  // Split into lines (preserve hard breaks)
   const hardLines = String(text ?? '').split('\n')
+  const lines: string[] = []
 
   if (!maxWidth || !isFinite(maxWidth) || maxWidth <= 0) {
-    // No wrapping: keep hard breaks only
-    lines = hardLines
+    // No wrapping
+    lines.push(...hardLines)
   } else {
     // Greedy word wrap per hard line
     for (const hard of hardLines) {
@@ -80,4 +80,7 @@ export function layoutText(
   const height = Math.max(1, lines.length) * lineH
   return { lines, width, height, lineHeight: lineH }
 }
+
+// also provide default export for robustness
+export default layoutText
 
