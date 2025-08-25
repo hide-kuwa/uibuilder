@@ -51,4 +51,20 @@ export const Registry: RegistryType = {
     events: { onClick: z.object({}).optional() },
     load: () => import("./components/Button").then((m) => m.Button),
   },
+  JournalForm: {
+    id: "JournalForm",
+    displayName: "仕訳フォーム",
+    tags: ["domain", "form"],
+    propsSchema: z.object({
+      initial: z.any().optional(),
+      suggestTax: z.boolean().default(false),
+      className: z.string().optional(),
+    }),
+    defaultProps: { suggestTax: false },
+    events: {
+      onSaved: z.object({ journalId: z.string() }),
+      onCancel: z.object({}).optional(),
+    },
+    load: () => import("./components/JournalForm").then((m) => m.JournalForm),
+  },
 };
