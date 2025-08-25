@@ -5,6 +5,7 @@ import LayersPanel from '@/components/sidebar/LayersPanel'
 import ExportPanel from '@/components/editor/ExportPanel'
 import { seedToStore, markPreviousCrashedForTest } from '@/dev/seed'
 import { useEditorStore } from '@/store/editorStore'
+import { LoadFromCode } from '@/components/LoadFromCode'
 
 export default function DevPages() {
   const s = useEditorStore()
@@ -13,6 +14,7 @@ export default function DevPages() {
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Dev / Pages</h1>
         <div className="flex gap-2">
+          <LoadFromCode />
           <button className="px-2 py-1 text-sm rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700" onClick={() => seedToStore(100)}>
             Seed 100
           </button>
