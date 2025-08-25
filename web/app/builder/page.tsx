@@ -1,10 +1,19 @@
 'use client'
 import React from 'react'
-import { DndContext, useSensor, useSensors, PointerSensor, DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
+} from '@dnd-kit/core'
 import { Palette } from '@/components/builder/Palette'
 import { Canvas } from '@/components/builder/Canvas'
 import { Inspector } from '@/components/builder/Inspector'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
+import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -12,39 +21,86 @@ export default function BuilderPage() {
   const addFromPalette = useBuilderStore((s) => s.addFromPalette)
   const moveExisting = useBuilderStore((s) => s.move)
   const elements = useBuilderStore((s) => s.elements)
+  const setDragDraft = useBuilderStore((s) => s.setDragDraft)
+  const setGuides = useBuilderStore((s) => s.setGuides)
+  const clearGuides = useBuilderStore((s) => s.clearGuides)
+
+  const startRectRef = React.useRef<{ x: number; y: number; w: number; h: number } | null>(null)
+  const snapPointsRef = React.useRef<ReturnType<typeof collectSnapPoints> | null>(null)
+
+  const onDragStart = React.useCallback(
+    (e: DragStartEvent) => {
+      const data: any = e.active?.data?.current
+      if (data?.from === 'canvas' && typeof data.id === 'string') {
+        const elm = useBuilderStore.getState().elements.find((el) => el.id === data.id)
+        if (!elm) return
+        startRectRef.current = { x: elm.x, y: elm.y, w: elm.w, h: elm.h }
+        setDragDraft({ id: data.id, rect: { x: elm.x, y: elm.y, w: elm.w, h: elm.h } })
+        snapPointsRef.current = collectSnapPoints(
+          useBuilderStore.getState().elements,
+          data.id,
+        )
+      }
+    },
+    [setDragDraft],
+  )
+
+  const onDragMove = React.useCallback(
+    (e: DragMoveEvent) => {
+      const data: any = e.active?.data?.current
+      if (!data) return
+      if (data.from === 'canvas' && startRectRef.current && snapPointsRef.current) {
+        const s = startRectRef.current
+        const candidate = { x: s.x + e.delta.x, y: s.y + e.delta.y, w: s.w, h: s.h }
+        const { rect, guides } = snapRect(candidate, snapPointsRef.current, {
+          mode: 'move',
+        })
+        setDragDraft({ id: data.id, rect })
+        setGuides(guides)
+      }
+    },
+    [setDragDraft, setGuides],
+  )
 
   const onDragEnd = React.useCallback(
     (e: DragEndEvent) => {
       const data: any = e.active?.data?.current
       if (!data) return
       const overId = e.over?.id
-      if (overId !== 'CANVAS') return
-
-      const evt = (e.activatorEvent || e.activator || {}) as any
-      const clientX =
-        evt?.clientX ??
-        (evt?.touches && evt.touches[0]?.clientX) ??
-        (evt?.changedTouches && evt.changedTouches[0]?.clientX)
-      const clientY =
-        evt?.clientY ??
-        (evt?.touches && evt.touches[0]?.clientY) ??
-        (evt?.changedTouches && evt.changedTouches[0]?.clientY)
-      const rect = canvasRef.current?.getBoundingClientRect()
-      const x = rect ? clientX - rect.left : 40
-      const y = rect ? clientY - rect.top : 40
 
       if (data.from === 'palette') {
+        if (overId !== 'CANVAS') return
+        const evt = (e.activatorEvent || e.activator || {}) as any
+        const clientX =
+          evt?.clientX ??
+          (evt?.touches && evt.touches[0]?.clientX) ??
+          (evt?.changedTouches && evt.changedTouches[0]?.clientX)
+        const clientY =
+          evt?.clientY ??
+          (evt?.touches && evt.touches[0]?.clientY) ??
+          (evt?.changedTouches && evt.changedTouches[0]?.clientY)
+        const rect = canvasRef.current?.getBoundingClientRect()
+        const x = rect ? clientX - rect.left : 40
+        const y = rect ? clientY - rect.top : 40
         if (data.type === 'code') {
           addFromPalette('code', { x, y }, data.meta)
         } else {
           addFromPalette(data.type as any, { x, y })
         }
       } else if (data.from === 'canvas' && typeof data.id === 'string') {
-        // existing element drag end (dnd-kit coordinates are delta-based, so Canvas handles move())
-        moveExisting(data.id, { x: x - (data.anchorX ?? 0), y: y - (data.anchorY ?? 0) })
+        if (overId === 'CANVAS') {
+          const draft = useBuilderStore.getState().ui.dragDraft
+          if (draft && draft.id === data.id) {
+            moveExisting(data.id, { x: draft.rect.x, y: draft.rect.y }, false)
+          }
+        }
       }
+      setDragDraft(undefined)
+      clearGuides()
+      startRectRef.current = null
+      snapPointsRef.current = null
     },
-    [addFromPalette, moveExisting],
+    [addFromPalette, moveExisting, setDragDraft, clearGuides],
   )
 
   const onExport = React.useCallback(() => {
@@ -92,7 +148,12 @@ export default function BuilderPage() {
 
   return (
     <div className="flex h-[calc(100vh-40px)]">
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragMove={onDragMove}
+        onDragEnd={onDragEnd}
+      >
         <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-3">
           <h2 className="text-sm font-semibold mb-2">パレット</h2>
           <Palette />

@@ -46,6 +46,10 @@ type BuilderState = {
   elements: Elm[]
   selectedId: string | null
   snap: number
+  ui: {
+    dragDraft?: { id: string; rect: { x: number; y: number; w: number; h: number } }
+    guides: Array<{ axis: 'x' | 'y'; pos: number }>
+  }
 }
 
 type BuilderActions = {
@@ -54,8 +58,13 @@ type BuilderActions = {
     at?: { x: number; y: number },
     meta?: DocgenMetaItem,
   ) => void
-  move: (id: string, to: { x: number; y: number }) => void
-  resize: (id: string, to: { w: number; h: number }) => void
+  move: (id: string, to: { x: number; y: number }, snapGrid?: boolean) => void
+  resize: (id: string, to: { w: number; h: number }, snapGrid?: boolean) => void
+  setDragDraft: (
+    d?: { id: string; rect: { x: number; y: number; w: number; h: number } },
+  ) => void
+  setGuides: (lines: Array<{ axis: 'x' | 'y'; pos: number }>) => void
+  clearGuides: () => void
   select: (id: string | null) => void
   updateProps: (
     id: string,
@@ -98,6 +107,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   elements: [],
   selectedId: null,
   snap: SNAP,
+  ui: { guides: [] },
 
   addFromPalette(type, at, meta) {
     const id = `elm_${Date.now().toString(36)}`
@@ -148,24 +158,48 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     )
   },
 
-  move(id, to) {
+  move(id, to, snapGrid = true) {
     set(
       produce((draft: BuilderState) => {
         const e = draft.elements.find((x) => x.id === id)
         if (!e) return
-        e.x = snap(to.x)
-        e.y = snap(to.y)
+        e.x = snapGrid ? snap(to.x) : to.x
+        e.y = snapGrid ? snap(to.y) : to.y
       }),
     )
   },
 
-  resize(id, to) {
+  resize(id, to, snapGrid = true) {
     set(
       produce((draft: BuilderState) => {
         const e = draft.elements.find((x) => x.id === id)
         if (!e) return
-        e.w = Math.max(16, snap(to.w))
-        e.h = Math.max(16, snap(to.h))
+        e.w = Math.max(16, snapGrid ? snap(to.w) : to.w)
+        e.h = Math.max(16, snapGrid ? snap(to.h) : to.h)
+      }),
+    )
+  },
+
+  setDragDraft(d) {
+    set(
+      produce((draft: BuilderState) => {
+        draft.ui.dragDraft = d
+      }),
+    )
+  },
+
+  setGuides(lines) {
+    set(
+      produce((draft: BuilderState) => {
+        draft.ui.guides = lines
+      }),
+    )
+  },
+
+  clearGuides() {
+    set(
+      produce((draft: BuilderState) => {
+        draft.ui.guides = []
       }),
     )
   },
