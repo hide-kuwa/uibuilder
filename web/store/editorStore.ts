@@ -891,7 +891,6 @@ swapInstanceDef(nodeId, newDefId, opts) {
   });
 },
 
-        },
         align(kind) {
           // TODO: implement alignment logic
         },
