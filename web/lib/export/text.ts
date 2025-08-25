@@ -1,4 +1,4 @@
-import { layoutTextNode } from '../text/layout';
+import { layoutTextNode } from '../text/layoutNode';
 import type { TextNode, TextStyle } from '@/types/editor';
 import { splitGraphemes, measureWidth, computeLetterSpacing, calcLineHeight } from '../text/measure';
 
