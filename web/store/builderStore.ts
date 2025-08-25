@@ -1,8 +1,18 @@
 'use client'
 import { create } from 'zustand'
 import { produce } from 'immer'
+import type { DocgenMetaItem } from '@/lib/builder/docgen'
+import { parseValue } from '@/lib/builder/docgen'
 
-export type ElmType = 'header' | 'footer' | 'sidebar' | 'hud' | 'button' | 'text' | 'container'
+export type ElmType =
+  | 'header'
+  | 'footer'
+  | 'sidebar'
+  | 'hud'
+  | 'button'
+  | 'text'
+  | 'container'
+  | 'code'
 
 export type Elm = {
   id: string
@@ -24,6 +34,12 @@ export type Elm = {
       href?: string
     }
   }
+  code?: {
+    displayName: string
+    importPath: string
+    exportName?: string
+    props: Record<string, unknown>
+  }
 }
 
 type BuilderState = {
@@ -33,11 +49,18 @@ type BuilderState = {
 }
 
 type BuilderActions = {
-  addFromPalette: (type: ElmType, at?: { x: number; y: number }) => void
+  addFromPalette: (
+    type: ElmType,
+    at?: { x: number; y: number },
+    meta?: DocgenMetaItem,
+  ) => void
   move: (id: string, to: { x: number; y: number }) => void
   resize: (id: string, to: { w: number; h: number }) => void
   select: (id: string | null) => void
-  updateProps: (id: string, patch: Partial<Elm['props']>) => void
+  updateProps: (
+    id: string,
+    patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
+  ) => void
   deleteSelected: () => void
   bringToFront: (id: string) => void
   sendToBack: (id: string) => void
@@ -63,6 +86,8 @@ function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
       return { w: 120, h: 36, text: 'Button' }
     case 'text':
       return { w: 200, h: 24, text: 'Text' }
+    case 'code':
+      return { w: 160, h: 40 }
     case 'container':
     default:
       return { w: 320, h: 200, text: 'Container' }
@@ -74,23 +99,50 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   selectedId: null,
   snap: SNAP,
 
-  addFromPalette(type, at) {
+  addFromPalette(type, at, meta) {
     const id = `elm_${Date.now().toString(36)}`
     const { w, h, text } = defaultSize(type)
     const x = snap(at?.x ?? 40)
     const y = snap(at?.y ?? 40)
     set(
       produce((draft: BuilderState) => {
-        draft.elements.push({
-          id,
-          type,
-          x,
-          y,
-          w,
-          h,
-          visible: true,
-          props: { text, bg: type === 'button' ? '#0ea5e9' : '#111827', color: '#e5e7eb' },
-        })
+        if (type === 'code') {
+          const initProps: Record<string, unknown> = {}
+          meta?.props?.forEach((p) => {
+            const v = parseValue(p.defaultValue?.value)
+            if (v !== undefined) initProps[p.name] = v
+          })
+          draft.elements.push({
+            id,
+            type,
+            x,
+            y,
+            w,
+            h,
+            visible: true,
+            code: {
+              displayName: meta?.displayName ?? 'Component',
+              importPath: meta?.importPath ?? '',
+              exportName: meta?.exportName,
+              props: initProps,
+            },
+          })
+        } else {
+          draft.elements.push({
+            id,
+            type,
+            x,
+            y,
+            w,
+            h,
+            visible: true,
+            props: {
+              text,
+              bg: type === 'button' ? '#0ea5e9' : '#111827',
+              color: '#e5e7eb',
+            },
+          })
+        }
         draft.selectedId = id
       }),
     )
@@ -127,7 +179,20 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       produce((draft: BuilderState) => {
         const e = draft.elements.find((x) => x.id === id)
         if (!e) return
-        e.props = { ...(e.props ?? {}), ...patch }
+        const { code, ...rest } = patch as any
+        if (Object.keys(rest).length) {
+          e.props = { ...(e.props ?? {}), ...rest }
+        }
+        if (code) {
+          e.code = {
+            ...(e.code ?? { displayName: '', importPath: '', props: {} }),
+            ...code,
+            props: {
+              ...(e.code?.props ?? {}),
+              ...(code.props ?? {}),
+            },
+          }
+        }
       }),
     )
   },

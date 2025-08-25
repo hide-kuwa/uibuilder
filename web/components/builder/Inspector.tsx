@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { useBuilderStore } from '@/store/builderStore'
+import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docgen'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -11,6 +12,16 @@ export function Inspector() {
   const sendToBack = useBuilderStore((s) => s.sendToBack)
   const move = useBuilderStore((s) => s.move)
   const resize = useBuilderStore((s) => s.resize)
+  const [docgen, setDocgen] = React.useState<any[]>([])
+  React.useEffect(() => {
+    loadDocgenMeta().then(setDocgen)
+  }, [])
+  const codeMeta = React.useMemo(() => {
+    if (!elm || elm.type !== 'code' || !elm.code) return null
+    return docgen.find(
+      (m) => m.displayName === elm.code?.displayName && m.importPath === elm.code?.importPath,
+    )
+  }, [docgen, elm])
 
   if (!selId || !elm) {
     return <div className="text-xs text-zinc-400">要素を選択すると編集できます。</div>
@@ -58,38 +69,116 @@ export function Inspector() {
         </label>
       </div>
 
-      <div className="text-sm font-medium">見た目</div>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <label className="flex flex-col gap-1 col-span-2">
-          text
-          <input
-            className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-            value={elm.props?.text ?? ''}
-            onChange={(e) => updateProps(elm.id, { text: e.target.value })}
-            type="text"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          bg
-          <input
-            className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-            value={elm.props?.bg ?? ''}
-            onChange={(e) => updateProps(elm.id, { bg: e.target.value })}
-            type="text"
-            placeholder="#0ea5e9"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          color
-          <input
-            className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-            value={elm.props?.color ?? ''}
-            onChange={(e) => updateProps(elm.id, { color: e.target.value })}
-            type="text"
-            placeholder="#e5e7eb"
-          />
-        </label>
-      </div>
+      {elm.type !== 'code' && (
+        <>
+          <div className="text-sm font-medium">見た目</div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <label className="flex flex-col gap-1 col-span-2">
+              text
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={elm.props?.text ?? ''}
+                onChange={(e) => updateProps(elm.id, { text: e.target.value })}
+                type="text"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              bg
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={elm.props?.bg ?? ''}
+                onChange={(e) => updateProps(elm.id, { bg: e.target.value })}
+                type="text"
+                placeholder="#0ea5e9"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              color
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={elm.props?.color ?? ''}
+                onChange={(e) => updateProps(elm.id, { color: e.target.value })}
+                type="text"
+                placeholder="#e5e7eb"
+              />
+            </label>
+          </div>
+        </>
+      )}
+      {elm.type === 'code' && codeMeta && (
+        <>
+          <div className="text-sm font-medium">Code</div>
+          <div className="text-xs text-zinc-400">
+            {elm.code?.displayName} ({elm.code?.importPath})
+          </div>
+          <div className="space-y-2 text-xs mt-2">
+            {codeMeta.props?.map((p: DocgenProp) => {
+              const val = (elm.code?.props ?? {})[p.name]
+              const onChange = (v: unknown) =>
+                updateProps(elm.id, { code: { props: { [p.name]: v } } })
+              if (p.type.name === 'boolean') {
+                return (
+                  <label key={p.name} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(val)}
+                      onChange={(e) => onChange(e.target.checked)}
+                    />
+                    {p.name}
+                  </label>
+                )
+              }
+              if (p.type.name === 'number') {
+                return (
+                  <label key={p.name} className="flex flex-col gap-1">
+                    {p.name}
+                    <input
+                      className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                      value={val ?? ''}
+                      onChange={(e) => onChange(Number(e.target.value))}
+                      type="number"
+                    />
+                  </label>
+                )
+              }
+              if (p.type.name === 'enum' || p.type.name === 'union') {
+                const opts = (p.type.value || []).map((v) => parseValue(v.value))
+                if (opts.every((o) => ['string', 'number', 'boolean'].includes(typeof o))) {
+                  return (
+                    <label key={p.name} className="flex flex-col gap-1">
+                      {p.name}
+                      <select
+                        className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                        value={val === undefined ? '' : String(val)}
+                        onChange={(e) => onChange(parseValue(e.target.value))}
+                      >
+                        <option value="" />
+                        {opts.map((o) => (
+                          <option key={String(o)} value={String(o)}>
+                            {String(o)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )
+                }
+              }
+              // string or fallback
+              return (
+                <label key={p.name} className="flex flex-col gap-1">
+                  {p.name}
+                  <input
+                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                    value={val ?? ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    type="text"
+                  />
+                </label>
+              )
+            })}
+          </div>
+        </>
+      )}
 
       {elm.type === 'header' && (
         <>
