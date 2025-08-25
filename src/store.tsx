@@ -4,6 +4,7 @@ export interface ComponentNode {
   id: string;
   type: string;
   props?: Record<string, any>;
+  userCode?: Record<string, string>;
   bindings?: Record<string, PropBinding>;
   variants?: { hover?: { className?: string } };
   children?: ComponentNode[];

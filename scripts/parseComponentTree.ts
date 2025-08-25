@@ -7,6 +7,7 @@ export type ComponentNode = {
   componentId: string;
   props: Record<string, any>;
   children?: ComponentNode[];
+  userCode?: Record<string, string>;
 };
 
 function parseJsxElement(el: any): ComponentNode | null {
@@ -19,6 +20,7 @@ function parseJsxElement(el: any): ComponentNode | null {
   const componentId = tagNode.getText();
   const attrs = isSelf ? el.getAttributes() : el.getOpeningElement().getAttributes();
   const props: Record<string, any> = {};
+  const userCode: Record<string, string> = {};
   attrs.forEach((attr: any) => {
     if (attr.getKind() === SyntaxKind.JsxAttribute) {
       const name = attr.getNameNode().getText();
@@ -28,7 +30,13 @@ function parseJsxElement(el: any): ComponentNode | null {
           props[name] = initializer.getLiteralText();
         } else if (initializer.getKind() === SyntaxKind.JsxExpression) {
           const expr = initializer.getExpression();
-          if (expr) props[name] = expr.getText();
+          const comment = attr.getTrailingCommentRanges?.()[0];
+          const commentText = comment?.getText?.() ?? "";
+          if (commentText.includes("@user-code:")) {
+            userCode[name] = expr?.getText() || "";
+          } else if (expr) {
+            props[name] = expr.getText();
+          }
         }
       }
     }
@@ -50,6 +58,7 @@ function parseJsxElement(el: any): ComponentNode | null {
     componentId,
     props,
     children: children.length ? children : undefined,
+    userCode: Object.keys(userCode).length ? userCode : undefined,
   };
 }
 

@@ -296,6 +296,7 @@ export interface ComponentNode {
     constraints?: Constraints;
     layoutGrids?: LayoutGrid[];
   };
+  userCode?: Record<string, string>;
   bindings?: Record<string, PropBinding>;
   prototypeLink?: PrototypeLink;
   variants?: {

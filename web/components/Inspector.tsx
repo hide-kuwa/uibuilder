@@ -65,6 +65,19 @@ export default function Inspector() {
           }}
         />
       </div>
+      {node.userCode && (
+        <div className="space-y-1">
+          <div className="text-xs font-semibold text-gray-500">User Code</div>
+          {Object.entries(node.userCode).map(([k, code]) => (
+            <div key={k}>
+              <div className="text-xs text-gray-500">{k}</div>
+              <pre className="text-xs bg-gray-100 dark:bg-zinc-900 border border-zinc-800 rounded px-2 py-1 overflow-auto">
+                {code}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
