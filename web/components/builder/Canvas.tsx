@@ -39,6 +39,57 @@ function HeaderLoginButton({ data }: { data: LoginButton }) {
   )
 }
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch() {}
+  render() {
+    if (this.state.hasError) {
+      return <div className="text-[11px] text-red-400">failed to load</div>
+    }
+    return this.props.children
+  }
+}
+
+function CodePreview({ elm }: { elm: Elm }) {
+  const Comp = React.useMemo(() => {
+    if (!elm.code?.importPath) return null
+    return React.lazy(async () => {
+      try {
+        const mod: any = await import(/* @vite-ignore */ elm.code.importPath)
+        return {
+          default: elm.code.exportName ? mod[elm.code.exportName] : mod.default,
+        }
+      } catch {
+        return {
+          default: () => (
+            <div className="text-[11px] text-red-400">load error</div>
+          ),
+        }
+      }
+    })
+  }, [elm.code?.importPath, elm.code?.exportName])
+  if (!Comp) {
+    return <div className="text-[11px] text-zinc-400">no component</div>
+  }
+  return (
+    <ErrorBoundary>
+      <React.Suspense
+        fallback={<div className="text-[11px] text-zinc-400">loading...</div>}
+      >
+        <div className="w-full h-full pointer-events-none">
+          <Comp {...(elm.code?.props ?? {})} />
+        </div>
+      </React.Suspense>
+    </ErrorBoundary>
+  )
+}
+
 function ElmView({ elm }: { elm: Elm }) {
   const select = useBuilderStore((s) => s.select)
   const selectedId = useBuilderStore((s) => s.selectedId)
@@ -87,6 +138,7 @@ function ElmView({ elm }: { elm: Elm }) {
         <div className="h-full flex items-center justify-center font-medium">{elm.props?.text ?? 'Button'}</div>
       )}
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
+      {elm.type === 'code' && <CodePreview elm={elm} />}
     </div>
   )
 }
