@@ -4,7 +4,6 @@ import CanvasStage from './CanvasStage';
 import RightPane from './RightPane';
 import CommandPalette from './CommandPalette';
 import ContextMenu from './ContextMenu';
-import ExportPanel from './ExportPanel';
 import ShareButton from './ShareButton';
 import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
@@ -13,7 +12,6 @@ import { useEditorStore } from '@/store/editorStore';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -56,11 +54,8 @@ export default function EditorShell() {
       }
     };
     window.addEventListener('keydown', handler);
-    const openListener = () => setExportOpen(true);
-    window.addEventListener('uibuilder:export', openListener as any);
     return () => {
       window.removeEventListener('keydown', handler);
-      window.removeEventListener('uibuilder:export', openListener as any);
     };
   }, []);
 
@@ -74,7 +69,6 @@ export default function EditorShell() {
       <RightPane />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
-      <ExportPanel open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
