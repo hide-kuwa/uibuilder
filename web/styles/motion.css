@@ -1,3 +1,5 @@
+/* Ensure Tailwind's utilities layer is declared in this file's scope */
+@tailwind utilities;
 @layer utilities {
   .u-fade-in   { opacity: 0; animation: fadeIn var(--motion-fast) var(--easing-standard) forwards; }
   .u-fade-out  { opacity: 1; animation: fadeOut var(--motion-fast) var(--easing-standard) forwards; }
