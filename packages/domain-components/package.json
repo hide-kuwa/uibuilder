@@ -6,6 +6,10 @@
   "types": "src/index.ts",
   "dependencies": {
     "zod": "^3.23.8",
-    "@core": "workspace:*"
+    "@core": "workspace:*",
+    "@data": "workspace:*",
+    "@schemas": "workspace:*",
+    "react-hook-form": "^7.62.0",
+    "@hookform/resolvers": "^5.2.1"
   }
 }

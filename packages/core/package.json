@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    "./action-bus": "./src/action-bus.ts"
+    "./action-bus": "./src/action-bus.ts",
+    "./action-engine": "./src/action-engine.ts"
+  },
+  "dependencies": {
+    "@data": "workspace:*"
   }
 }
