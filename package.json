@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
     "gen:component-meta": "ts-node scripts/gen-component-meta.ts --root ./src/components --out ./public/component-meta.json",
     "test": "npm install --no-save --prefix .tmp jest ts-jest @testing-library/react @testing-library/jest-dom react-test-renderer @types/jest jest-environment-jsdom > /dev/null && NODE_PATH=\"$(pwd)/.tmp/node_modules\" node .tmp/node_modules/jest/bin/jest.js --config jest.config.cjs --coverage",
     "run:prompts": "node scripts/run-prompts.mjs",
