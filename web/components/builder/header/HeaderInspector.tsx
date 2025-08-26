@@ -2,10 +2,100 @@
 import React from 'react'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 
+type NavItem = { id: string; label: string; href?: string; active?: boolean }
+
 export function HeaderInspector({ elm }: { elm: Elm }) {
   const updateProps = useBuilderStore((s) => s.updateProps)
+  const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
+  const setNavItems = (items: NavItem[]) =>
+    updateProps(elm.id, { navItems: items } as any)
+  const addItem = () =>
+    setNavItems([...(navItems ?? []), { id: `nav_${Date.now().toString(36)}`, label: 'Item' }])
+  const updateItem = (idx: number, patch: Partial<NavItem>) => {
+    const next = [...(navItems ?? [])]
+    next[idx] = { ...next[idx], ...patch }
+    setNavItems(next)
+  }
+  const removeItem = (idx: number) => {
+    const next = [...(navItems ?? [])]
+    next.splice(idx, 1)
+    setNavItems(next)
+  }
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    const next = [...(navItems ?? [])]
+    const [it] = next.splice(idx, 1)
+    next.splice(idx + dir, 0, it)
+    setNavItems(next)
+  }
   return (
     <>
+      <div className="text-sm font-medium">Navigation</div>
+      <div className="space-y-2 text-xs">
+        {navItems?.map((item, i) => (
+          <div key={item.id} className="border border-zinc-800 rounded p-2 space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Item {i + 1}</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => moveItem(i, -1)}
+                  disabled={i === 0}
+                  className="px-1 rounded bg-zinc-900 border border-zinc-800 disabled:opacity-50"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => moveItem(i, 1)}
+                  disabled={i === (navItems?.length ?? 0) - 1}
+                  className="px-1 rounded bg-zinc-900 border border-zinc-800 disabled:opacity-50"
+                >
+                  ↓
+                </button>
+                <button
+                  onClick={() => removeItem(i)}
+                  className="px-1 rounded bg-zinc-900 border border-zinc-800"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <label className="flex flex-col gap-1">
+              Label
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={item.label}
+                onChange={(e) => updateItem(i, { label: e.target.value })}
+                type="text"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              Link
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={item.href ?? ''}
+                onChange={(e) =>
+                  updateItem(i, { href: e.target.value || undefined })
+                }
+                type="text"
+                placeholder="/path"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={item.active ?? false}
+                onChange={(e) => updateItem(i, { active: e.target.checked })}
+              />
+              Active
+            </label>
+          </div>
+        ))}
+        <button
+          className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+          onClick={addItem}
+        >
+          Add item
+        </button>
+      </div>
       <div className="text-sm font-medium">Login Button</div>
       <div className="space-y-2 text-xs">
         <label className="flex items-center gap-2">

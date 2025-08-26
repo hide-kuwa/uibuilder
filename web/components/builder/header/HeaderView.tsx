@@ -2,6 +2,8 @@
 import React from 'react'
 import type { Elm } from '@/store/builderStore'
 
+type NavItem = { id: string; label: string; href?: string; active?: boolean }
+
 type LoginButton = NonNullable<Elm['props']>['loginButton']
 
 function HeaderLoginButton({ data }: { data: LoginButton }) {
@@ -28,9 +30,29 @@ function HeaderLoginButton({ data }: { data: LoginButton }) {
 }
 
 export function HeaderView({ elm }: { elm: Elm }) {
+  const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
   return (
     <>
-      <div className="h-full flex items-center px-3">Header</div>
+      <div className="h-full flex items-center px-3">
+        {navItems?.length ? (
+          <nav className="flex gap-4">
+            {navItems.map((item) => {
+              const Tag: any = item.href ? 'a' : 'span'
+              const tagProps = item.href ? { href: item.href } : {}
+              const active = item.active
+                ? 'font-bold underline'
+                : undefined
+              return (
+                <Tag key={item.id} {...tagProps} className={active}>
+                  {item.label}
+                </Tag>
+              )
+            })}
+          </nav>
+        ) : (
+          'Header'
+        )}
+      </div>
       {elm.props?.loginButton?.enabled && (
         <HeaderLoginButton data={elm.props.loginButton} />
       )}
