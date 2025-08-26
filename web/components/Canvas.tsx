@@ -7,9 +7,10 @@ import Viewport from './canvas/Viewport'
 import HUDContainer from './hud/HUDContainer'
 import { ViewportProvider } from './canvas/ViewportStore'
 import GridOverlay from './canvas/GridOverlay'
-import Rulers from './canvas/Rulers'
+import { Rulers } from './Rulers'
 import { RectsProvider, useRects } from './canvas/RectsStore'
 import SmartGuidesOverlay from './canvas/SmartGuidesOverlay'
+import { GuidesOverlay } from './overlays/GuidesOverlay'
 import type { Guide } from './canvas/snap'
 
 function NodeRenderer({ node }: { node: ComponentNode }) {
@@ -62,9 +63,10 @@ export default function Canvas() {
             </div>
           </Viewport>
           <GridOverlay />
-          <Rulers />
+          <Rulers width={2000} height={2000} />
           <HUDContainer />
           <SmartGuidesOverlay guides={guides} />
+          <GuidesOverlay width={2000} height={2000} />
         </div>
       </RectsProvider>
     </ViewportProvider>
