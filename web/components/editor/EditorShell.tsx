@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react';
 import { getCommand } from '@/lib/keymap';
 import { COMMANDS, runCommand } from '@/lib/commands';
 import { useEditorStore } from '@/store/editorStore';
+import { DeviceFrame } from '@/components/hud/DeviceFrame';
+import { GridOverlay } from '@/components/hud/GridOverlay';
+import { BuilderHUD } from '@/components/hud/BuilderHUD';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -60,15 +63,23 @@ export default function EditorShell() {
   }, []);
 
   return (
-    <div className="grid grid-cols-[280px_1fr_320px] h-screen text-white">
-      <LeftPanel />
-      <div className="relative">
-        <div className="absolute top-2 right-2 z-10"><ShareButton /></div>
-        <CanvasStage />
+    <>
+      <div className="grid grid-cols-[280px_1fr_320px] h-screen text-white">
+        <LeftPanel />
+        <div className="relative h-full bg-[#0b1220]">
+          <div className="absolute top-2 right-2 z-10"><ShareButton /></div>
+          <DeviceFrame>
+            <div className="relative w-full h-full">
+              <CanvasStage />
+              <GridOverlay />
+            </div>
+          </DeviceFrame>
+        </div>
+        <RightPane />
       </div>
-      <RightPane />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
-    </div>
+      <BuilderHUD />
+    </>
   );
 }
