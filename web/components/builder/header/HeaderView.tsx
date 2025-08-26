@@ -11,6 +11,11 @@ type Logo = {
   w?: number
   h?: number
 }
+type SearchProps = {
+  enabled: boolean
+  placeholder?: string
+  width?: number
+}
 
 function HeaderButton({ data }: { data: ButtonProps }) {
   const Tag: any = data.href ? 'a' : 'button'
@@ -34,10 +39,23 @@ function HeaderButton({ data }: { data: ButtonProps }) {
   )
 }
 
+function HeaderSearch({ data }: { data: SearchProps }) {
+  return (
+    <input
+      type="text"
+      placeholder={data.placeholder ?? ''}
+      className="h-8 rounded-lg border border-[#94a3b8] bg-transparent px-2 text-sm text-[#e5e7eb]"
+      style={{ width: data.width ?? 200 }}
+      onPointerDown={(e) => e.stopPropagation()}
+    />
+  )
+}
+
 export function HeaderView({ elm }: { elm: Elm }) {
   const props = elm.props as any
   const navItems: NavItem[] | undefined = props?.navItems
   const logo = props?.logo as Logo | undefined
+  const search = props?.search as SearchProps | undefined
 
   // --- Logo handling ---
   const [imgErr, setImgErr] = React.useState(false)
@@ -93,8 +111,9 @@ export function HeaderView({ elm }: { elm: Elm }) {
         )}
       </div>
 
-      {/* 右: CTA + Login */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+      {/* 右: Search + CTA + Login */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+        {search?.enabled && <HeaderSearch data={search} />}
         {props?.cta?.enabled && <HeaderButton data={props.cta} />}
         {props?.loginButton?.enabled && (
           <HeaderButton data={props.loginButton} />
