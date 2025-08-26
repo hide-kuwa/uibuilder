@@ -56,6 +56,12 @@ export function HeaderView({ elm }: { elm: Elm }) {
   const navItems: NavItem[] | undefined = props?.navItems
   const logo = props?.logo as Logo | undefined
   const search = props?.search as SearchProps | undefined
+  const sticky: boolean | undefined = props?.sticky
+  const shadowOnScroll: boolean | undefined = props?.shadowOnScroll
+  const shadowPreview: boolean | undefined = props?.shadowPreview
+
+  const shadowCls = shadowOnScroll && shadowPreview ? 'shadow-md' : 'shadow-none'
+  const stickyCls = sticky ? 'sticky top-0 z-10' : ''
 
   // --- Logo handling ---
   const [imgErr, setImgErr] = React.useState(false)
@@ -87,7 +93,10 @@ export function HeaderView({ elm }: { elm: Elm }) {
   }
 
   return (
-    <div className="h-full w-full flex items-center px-3 relative">
+    <div
+      className={`h-full w-full flex items-center px-3 relative ${shadowCls} ${stickyCls}`}
+      style={sticky ? { position: 'sticky', top: 0, zIndex: 10 } : undefined}
+    >
       {/* 左: Logo */}
       {logoEl && <div className="mr-3 flex items-center">{logoEl}</div>}
 
