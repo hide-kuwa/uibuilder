@@ -2,6 +2,7 @@
 import React from 'react'
 import { useBuilderStore } from '@/store/builderStore'
 import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docgen'
+import { HeaderInspector } from './header/HeaderInspector'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -180,89 +181,7 @@ export function Inspector() {
         </>
       )}
 
-      {elm.type === 'header' && (
-        <>
-          <div className="text-sm font-medium">Login Button</div>
-          <div className="space-y-2 text-xs">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={elm.props?.loginButton?.enabled ?? false}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    const cur = elm.props?.loginButton
-                    updateProps(elm.id, {
-                      loginButton: {
-                        enabled: true,
-                        label: cur?.label ?? 'Log in',
-                        variant: cur?.variant ?? 'solid',
-                        href: cur?.href,
-                      },
-                    })
-                  } else {
-                    updateProps(elm.id, {
-                      loginButton: { ...(elm.props?.loginButton ?? {}), enabled: false },
-                    })
-                  }
-                }}
-              />
-              Enable
-            </label>
-            {elm.props?.loginButton?.enabled && (
-              <>
-                <label className="flex flex-col gap-1">
-                  Label
-                  <input
-                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-                    value={elm.props?.loginButton?.label ?? ''}
-                    onChange={(e) =>
-                      updateProps(elm.id, {
-                        loginButton: { ...(elm.props?.loginButton ?? {}), label: e.target.value },
-                      })
-                    }
-                    type="text"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  Variant
-                  <select
-                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-                    value={elm.props?.loginButton?.variant ?? 'solid'}
-                    onChange={(e) =>
-                      updateProps(elm.id, {
-                        loginButton: {
-                          ...(elm.props?.loginButton ?? {}),
-                          variant: e.target.value as 'solid' | 'outline',
-                        },
-                      })
-                    }
-                  >
-                    <option value="solid">solid</option>
-                    <option value="outline">outline</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1">
-                  Link
-                  <input
-                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
-                    value={elm.props?.loginButton?.href ?? ''}
-                    onChange={(e) =>
-                      updateProps(elm.id, {
-                        loginButton: {
-                          ...(elm.props?.loginButton ?? {}),
-                          href: e.target.value || undefined,
-                        },
-                      })
-                    }
-                    type="text"
-                    placeholder="/login"
-                  />
-                </label>
-              </>
-            )}
-          </div>
-        </>
-      )}
+      {elm.type === 'header' && <HeaderInspector elm={elm} />}
 
       <div className="flex gap-2">
         <button
