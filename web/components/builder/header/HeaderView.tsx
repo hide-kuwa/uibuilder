@@ -2,6 +2,7 @@
 import React from 'react'
 import type { Elm } from '@/store/builderStore'
 
+type NavItem = { id: string; label: string; href?: string; active?: boolean }
 type ButtonProps = NonNullable<Elm['props']>['loginButton']
 
 function HeaderButton({ data }: { data: ButtonProps }) {
@@ -27,10 +28,32 @@ function HeaderButton({ data }: { data: ButtonProps }) {
 }
 
 export function HeaderView({ elm }: { elm: Elm }) {
+  const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
   const props = elm.props as any
+
   return (
     <>
-      <div className="h-full flex items-center px-3">Header</div>
+      {/* 左側: Navigation */}
+      <div className="h-full flex items-center px-3">
+        {navItems?.length ? (
+          <nav className="flex gap-4">
+            {navItems.map((item) => {
+              const Tag: any = item.href ? 'a' : 'span'
+              const tagProps = item.href ? { href: item.href } : {}
+              const active = item.active ? 'font-bold underline' : undefined
+              return (
+                <Tag key={item.id} {...tagProps} className={active}>
+                  {item.label}
+                </Tag>
+              )
+            })}
+          </nav>
+        ) : (
+          'Header'
+        )}
+      </div>
+
+      {/* 右側: CTA (Sign up) + Login */}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
         {props?.cta?.enabled && <HeaderButton data={props.cta} />}
         {elm.props?.loginButton?.enabled && (
@@ -40,4 +63,3 @@ export function HeaderView({ elm }: { elm: Elm }) {
     </>
   )
 }
-
