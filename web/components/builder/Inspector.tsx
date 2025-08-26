@@ -4,6 +4,7 @@ import { useBuilderStore } from '@/store/builderStore'
 import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docgen'
 import { HeaderInspector } from './header/HeaderInspector'
 import { FooterInspector } from './footer/FooterInspector'
+import { SidebarInspector } from '@/components/app/SidebarInspector'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -184,6 +185,7 @@ export function Inspector() {
 
       {elm.type === 'header' && <HeaderInspector elm={elm} />}
       {elm.type === 'footer' && <FooterInspector elm={elm} />}
+      {elm.type === 'sidebar' && <SidebarInspector elm={elm} />}
 
       <div className="flex gap-2">
         <button
