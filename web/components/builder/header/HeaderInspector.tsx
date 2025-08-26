@@ -6,33 +6,50 @@ type NavItem = { id: string; label: string; href?: string; active?: boolean }
 
 export function HeaderInspector({ elm }: { elm: Elm }) {
   const updateProps = useBuilderStore((s) => s.updateProps)
+
+  // ---- Navigation ----
   const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
   const setNavItems = (items: NavItem[]) =>
     updateProps(elm.id, { navItems: items } as any)
+
   const addItem = () =>
-    setNavItems([...(navItems ?? []), { id: `nav_${Date.now().toString(36)}`, label: 'Item' }])
+    setNavItems([
+      ...(navItems ?? []),
+      { id: `nav_${Date.now().toString(36)}`, label: 'Item' },
+    ])
+
   const updateItem = (idx: number, patch: Partial<NavItem>) => {
     const next = [...(navItems ?? [])]
     next[idx] = { ...next[idx], ...patch }
     setNavItems(next)
   }
+
   const removeItem = (idx: number) => {
     const next = [...(navItems ?? [])]
     next.splice(idx, 1)
     setNavItems(next)
   }
+
   const moveItem = (idx: number, dir: -1 | 1) => {
     const next = [...(navItems ?? [])]
     const [it] = next.splice(idx, 1)
     next.splice(idx + dir, 0, it)
     setNavItems(next)
   }
+
+  // ---- CTA (Sign up) ----
+  const props = elm.props as any
+
   return (
     <>
+      {/* Navigation */}
       <div className="text-sm font-medium">Navigation</div>
       <div className="space-y-2 text-xs">
         {navItems?.map((item, i) => (
-          <div key={item.id} className="border border-zinc-800 rounded p-2 space-y-1">
+          <div
+            key={item.id}
+            className="border border-zinc-800 rounded p-2 space-y-1"
+          >
             <div className="flex justify-between items-center">
               <span className="font-medium">Item {i + 1}</span>
               <div className="flex gap-1">
@@ -58,6 +75,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 </button>
               </div>
             </div>
+
             <label className="flex flex-col gap-1">
               Label
               <input
@@ -67,6 +85,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 type="text"
               />
             </label>
+
             <label className="flex flex-col gap-1">
               Link
               <input
@@ -79,6 +98,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 placeholder="/path"
               />
             </label>
+
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -96,7 +116,93 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
           Add item
         </button>
       </div>
-      <div className="text-sm font-medium">Login Button</div>
+
+      {/* CTA: Sign up */}
+      <div className="text-sm font-medium mt-4">Sign Up Button</div>
+      <div className="space-y-2 text-xs">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={props?.cta?.enabled ?? false}
+            onChange={(e) => {
+              if (e.target.checked) {
+                const cur = props?.cta
+                updateProps(elm.id, {
+                  cta: {
+                    enabled: true,
+                    label: cur?.label ?? 'Sign up',
+                    variant: cur?.variant ?? 'solid',
+                    href: cur?.href,
+                  },
+                } as any)
+              } else {
+                updateProps(
+                  elm.id,
+                  { cta: { ...(props?.cta ?? {}), enabled: false } } as any,
+                )
+              }
+            }}
+          />
+          Enable
+        </label>
+        {props?.cta?.enabled && (
+          <>
+            <label className="flex flex-col gap-1">
+              Label
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={props?.cta?.label ?? ''}
+                onChange={(e) =>
+                  updateProps(elm.id, {
+                    cta: { ...(props?.cta ?? {}), label: e.target.value },
+                  } as any)
+                }
+                type="text"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              Variant
+              <select
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={props?.cta?.variant ?? 'solid'}
+                onChange={(e) =>
+                  updateProps(elm.id, {
+                    cta: {
+                      ...(props?.cta ?? {}),
+                      variant: e.target.value as 'solid' | 'outline',
+                    },
+                  } as any)
+                }
+              >
+                <option value="solid">solid</option>
+                <option value="outline">outline</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              Link
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={props?.cta?.href ?? ''}
+                onChange={(e) =>
+                  updateProps(elm.id, {
+                    cta: {
+                      ...(props?.cta ?? {}),
+                      href: e.target.value || undefined,
+                    },
+                  } as any)
+                }
+                type="text"
+                placeholder="/signup"
+              />
+            </label>
+          </>
+        )}
+      </div>
+
+      {/* Login */}
+      <div className="text-sm font-medium mt-4">Login Button</div>
       <div className="space-y-2 text-xs">
         <label className="flex items-center gap-2">
           <input
@@ -115,7 +221,10 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 })
               } else {
                 updateProps(elm.id, {
-                  loginButton: { ...(elm.props?.loginButton ?? {}), enabled: false },
+                  loginButton: {
+                    ...(elm.props?.loginButton ?? {}),
+                    enabled: false,
+                  },
                 })
               }
             }}
@@ -140,6 +249,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 type="text"
               />
             </label>
+
             <label className="flex flex-col gap-1">
               Variant
               <select
@@ -158,6 +268,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
                 <option value="outline">outline</option>
               </select>
             </label>
+
             <label className="flex flex-col gap-1">
               Link
               <input
@@ -181,4 +292,3 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
     </>
   )
 }
-
