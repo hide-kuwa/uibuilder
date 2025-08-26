@@ -6,9 +6,13 @@ type NavItem = { id: string; label: string; href?: string; active?: boolean }
 
 export function HeaderInspector({ elm }: { elm: Elm }) {
   const updateProps = useBuilderStore((s) => s.updateProps)
+  const props = elm.props as any
+  const sticky: boolean = props?.sticky ?? false
+  const shadowOnScroll: boolean = props?.shadowOnScroll ?? false
+  const shadowPreview: boolean = props?.shadowPreview ?? false
 
   // ---- Logo ----
-  const logo = (elm.props as any)?.logo as
+  const logo = props?.logo as
     | {
         kind: 'text' | 'image'
         text?: string
@@ -19,7 +23,7 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
     | undefined
 
   // ---- Navigation ----
-  const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
+  const navItems: NavItem[] | undefined = props?.navItems
   const setNavItems = (items: NavItem[]) =>
     updateProps(elm.id, { navItems: items } as any)
 
@@ -49,13 +53,48 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
   }
 
   // ---- CTA / Login / Search ----
-  const props = elm.props as any
   const search = props?.search as
     | { enabled: boolean; placeholder?: string; width?: number }
     | undefined
 
   return (
     <>
+      {/* Behavior */}
+      <div className="text-sm font-medium">Behavior</div>
+      <div className="space-y-2 text-xs mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={sticky}
+            onChange={(e) =>
+              updateProps(elm.id, { sticky: e.target.checked } as any)
+            }
+          />
+          Sticky
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={shadowOnScroll}
+            onChange={(e) =>
+              updateProps(elm.id, { shadowOnScroll: e.target.checked } as any)
+            }
+          />
+          Shadow on scroll
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={shadowPreview}
+            disabled={!shadowOnScroll}
+            onChange={(e) =>
+              updateProps(elm.id, { shadowPreview: e.target.checked } as any)
+            }
+          />
+          Preview shadow
+        </label>
+      </div>
+
       {/* Logo */}
       <div className="text-sm font-medium">Logo</div>
       <div className="space-y-2 text-xs mb-4">
