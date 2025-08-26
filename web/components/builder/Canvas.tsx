@@ -4,6 +4,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 import { CanvasOverlay } from './CanvasOverlay'
+import { HeaderView } from './header/HeaderView'
 
 const GRID = 8
 function bgGridStyle() {
@@ -14,31 +15,6 @@ function bgGridStyle() {
     backgroundSize: `${s}px ${s}px, ${s}px ${s}px`,
     backgroundPosition: '0 0, 0 0',
   } as React.CSSProperties
-}
-
-type LoginButton = NonNullable<Elm['props']>['loginButton']
-
-function HeaderLoginButton({ data }: { data: LoginButton }) {
-  const Tag: any = data.href ? 'a' : 'button'
-  const base = [
-    'absolute right-3 top-1/2 -translate-y-1/2',
-    'min-w-[88px] h-8 px-3 rounded-lg flex items-center justify-center',
-    'text-[12px] z-10 cursor-pointer',
-  ].join(' ')
-  const variant =
-    data.variant === 'outline'
-      ? 'bg-transparent border border-[#94a3b8] text-[#e5e7eb] hover:bg-white/10'
-      : 'bg-[#0ea5e9] text-[#0b1220] hover:bg-[#0ea5e9]/90'
-  const tagProps = data.href ? { href: data.href } : {}
-  return (
-    <Tag
-      {...tagProps}
-      className={`${base} ${variant}`}
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      {data.label}
-    </Tag>
-  )
 }
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -283,14 +259,7 @@ function ElmView({ elm }: { elm: Elm }) {
       className={`${common} ${border} ${shadow} cursor-move ${isDragging ? 'opacity-60' : ''}`}
       style={baseStyle}
     >
-      {elm.type === 'header' && (
-        <>
-          <div className="h-full flex items-center px-3">Header</div>
-          {elm.props?.loginButton?.enabled && (
-            <HeaderLoginButton data={elm.props.loginButton} />
-          )}
-        </>
-      )}
+      {elm.type === 'header' && <HeaderView elm={elm} />}
       {elm.type === 'footer' && <div className="h-full flex items-center justify-center px-3">Footer</div>}
       {elm.type === 'sidebar' && <div className="h-full flex items-start px-3 py-2">Sidebar</div>}
       {elm.type === 'hud' && <div className="h-full flex items-center justify-center px-3">HUD</div>}
