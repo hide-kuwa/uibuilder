@@ -3,6 +3,7 @@ import React from 'react'
 import { useBuilderStore } from '@/store/builderStore'
 import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docgen'
 import { HeaderInspector } from './header/HeaderInspector'
+import { FooterInspector } from './footer/FooterInspector'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -182,6 +183,7 @@ export function Inspector() {
       )}
 
       {elm.type === 'header' && <HeaderInspector elm={elm} />}
+      {elm.type === 'footer' && <FooterInspector elm={elm} />}
 
       <div className="flex gap-2">
         <button
