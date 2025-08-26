@@ -2,12 +2,11 @@
 import React from 'react'
 import type { Elm } from '@/store/builderStore'
 
-type LoginButton = NonNullable<Elm['props']>['loginButton']
+type ButtonProps = NonNullable<Elm['props']>['loginButton']
 
-function HeaderLoginButton({ data }: { data: LoginButton }) {
+function HeaderButton({ data }: { data: ButtonProps }) {
   const Tag: any = data.href ? 'a' : 'button'
   const base = [
-    'absolute right-3 top-1/2 -translate-y-1/2',
     'min-w-[88px] h-8 px-3 rounded-lg flex items-center justify-center',
     'text-[12px] z-10 cursor-pointer',
   ].join(' ')
@@ -28,12 +27,16 @@ function HeaderLoginButton({ data }: { data: LoginButton }) {
 }
 
 export function HeaderView({ elm }: { elm: Elm }) {
+  const props = elm.props as any
   return (
     <>
       <div className="h-full flex items-center px-3">Header</div>
-      {elm.props?.loginButton?.enabled && (
-        <HeaderLoginButton data={elm.props.loginButton} />
-      )}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+        {props?.cta?.enabled && <HeaderButton data={props.cta} />}
+        {elm.props?.loginButton?.enabled && (
+          <HeaderButton data={elm.props.loginButton} />
+        )}
+      </div>
     </>
   )
 }
