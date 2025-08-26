@@ -5,6 +5,7 @@ import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
+import { FooterView } from './footer/FooterView'
 
 const GRID = 8
 function bgGridStyle() {
@@ -260,7 +261,7 @@ function ElmView({ elm }: { elm: Elm }) {
       style={baseStyle}
     >
       {elm.type === 'header' && <HeaderView elm={elm} />}
-      {elm.type === 'footer' && <div className="h-full flex items-center justify-center px-3">Footer</div>}
+      {elm.type === 'footer' && <FooterView elm={elm} />}
       {elm.type === 'sidebar' && <div className="h-full flex items-start px-3 py-2">Sidebar</div>}
       {elm.type === 'hud' && <div className="h-full flex items-center justify-center px-3">HUD</div>}
       {elm.type === 'container' && <div className="h-full px-3 py-2">Container</div>}
