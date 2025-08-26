@@ -5,16 +5,18 @@ import RightPane from './RightPane';
 import CommandPalette from './CommandPalette';
 import ContextMenu from './ContextMenu';
 import ShareButton from './ShareButton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCommand } from '@/lib/keymap';
 import { COMMANDS, runCommand } from '@/lib/commands';
 import { useEditorStore } from '@/store/editorStore';
 import { DeviceFrame } from '@/components/hud/DeviceFrame';
 import { GridOverlay } from '@/components/hud/GridOverlay';
+import { RulersOverlay } from '@/components/hud/RulersOverlay';
 import { BuilderHUD } from '@/components/hud/BuilderHUD';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -69,9 +71,10 @@ export default function EditorShell() {
         <div className="relative h-full bg-[#0b1220]">
           <div className="absolute top-2 right-2 z-10"><ShareButton /></div>
           <DeviceFrame>
-            <div className="relative w-full h-full">
+            <div ref={canvasRef} className="relative w-full h-full">
               <CanvasStage />
               <GridOverlay />
+              <RulersOverlay containerRef={canvasRef} />
             </div>
           </DeviceFrame>
         </div>
