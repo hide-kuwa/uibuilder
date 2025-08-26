@@ -16,6 +16,9 @@ import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 import { PagesPanel } from '@/components/builder/PagesPanel'
 import { usePageStore } from '@/store/pageStore'
+import { DeviceFrame } from '@/components/hud/DeviceFrame'
+import { GridOverlay } from '@/components/hud/GridOverlay'
+import { BuilderHUD } from '@/components/hud/BuilderHUD'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -177,7 +180,13 @@ export default function BuilderPage() {
           <Palette />
         </aside>
         <main className="flex-1 relative">
-          <Canvas canvasRef={canvasRef} />
+          <DeviceFrame>
+            <div className="relative w-full h-full">
+              <Canvas canvasRef={canvasRef} />
+              <GridOverlay />
+            </div>
+          </DeviceFrame>
+          <BuilderHUD />
         </main>
         <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col">
           <h2 className="text-sm font-semibold mb-2">プロパティ</h2>
