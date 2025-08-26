@@ -3,11 +3,15 @@ import React from 'react'
 import type { Elm } from '@/store/builderStore'
 
 type LoginButton = NonNullable<Elm['props']>['loginButton']
+type SearchProps = {
+  enabled: boolean
+  placeholder?: string
+  width?: number
+}
 
 function HeaderLoginButton({ data }: { data: LoginButton }) {
   const Tag: any = data.href ? 'a' : 'button'
   const base = [
-    'absolute right-3 top-1/2 -translate-y-1/2',
     'min-w-[88px] h-8 px-3 rounded-lg flex items-center justify-center',
     'text-[12px] z-10 cursor-pointer',
   ].join(' ')
@@ -27,12 +31,29 @@ function HeaderLoginButton({ data }: { data: LoginButton }) {
   )
 }
 
+function HeaderSearch({ data }: { data: SearchProps }) {
+  return (
+    <input
+      type="text"
+      placeholder={data.placeholder ?? ''}
+      className="h-8 rounded-lg border border-[#94a3b8] bg-transparent px-2 text-sm text-[#e5e7eb]"
+      style={{ width: data.width ?? 200 }}
+      onPointerDown={(e) => e.stopPropagation()}
+    />
+  )
+}
+
 export function HeaderView({ elm }: { elm: Elm }) {
+  const search = (elm.props as any)?.search as SearchProps | undefined
+  const loginButton = elm.props?.loginButton
   return (
     <>
       <div className="h-full flex items-center px-3">Header</div>
-      {elm.props?.loginButton?.enabled && (
-        <HeaderLoginButton data={elm.props.loginButton} />
+      {(search?.enabled || loginButton?.enabled) && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+          {search?.enabled && <HeaderSearch data={search} />}
+          {loginButton?.enabled && <HeaderLoginButton data={loginButton} />}
+        </div>
       )}
     </>
   )
