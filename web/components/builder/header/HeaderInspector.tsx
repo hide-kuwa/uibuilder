@@ -7,6 +7,17 @@ type NavItem = { id: string; label: string; href?: string; active?: boolean }
 export function HeaderInspector({ elm }: { elm: Elm }) {
   const updateProps = useBuilderStore((s) => s.updateProps)
 
+  // ---- Logo ----
+  const logo = (elm.props as any)?.logo as
+    | {
+        kind: 'text' | 'image'
+        text?: string
+        src?: string
+        w?: number
+        h?: number
+      }
+    | undefined
+
   // ---- Navigation ----
   const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
   const setNavItems = (items: NavItem[]) =>
@@ -37,11 +48,116 @@ export function HeaderInspector({ elm }: { elm: Elm }) {
     setNavItems(next)
   }
 
-  // ---- CTA (Sign up) ----
+  // ---- CTA / Login ----
   const props = elm.props as any
 
   return (
     <>
+      {/* Logo */}
+      <div className="text-sm font-medium">Logo</div>
+      <div className="space-y-2 text-xs mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={!!logo}
+            onChange={(e) => {
+              if (e.target.checked) {
+                updateProps(elm.id, {
+                  logo: { kind: 'text', text: 'Logo' },
+                } as any)
+              } else {
+                updateProps(elm.id, { logo: undefined } as any)
+              }
+            }}
+          />
+          Enable
+        </label>
+        {logo && (
+          <>
+            <label className="flex flex-col gap-1">
+              Kind
+              <select
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={logo.kind}
+                onChange={(e) =>
+                  updateProps(elm.id, {
+                    logo: {
+                      ...(logo ?? {}),
+                      kind: e.target.value as 'text' | 'image',
+                    },
+                  } as any)
+                }
+              >
+                <option value="text">text</option>
+                <option value="image">image</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              Text
+              <input
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={logo.text ?? ''}
+                onChange={(e) =>
+                  updateProps(elm.id, {
+                    logo: { ...(logo ?? {}), text: e.target.value },
+                  } as any)
+                }
+                type="text"
+              />
+            </label>
+            {logo.kind === 'image' && (
+              <>
+                <label className="flex flex-col gap-1">
+                  Src
+                  <input
+                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                    value={logo.src ?? ''}
+                    onChange={(e) =>
+                      updateProps(elm.id, {
+                        logo: { ...(logo ?? {}), src: e.target.value },
+                      } as any)
+                    }
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  Width
+                  <input
+                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                    value={logo.w ?? ''}
+                    onChange={(e) =>
+                      updateProps(elm.id, {
+                        logo: {
+                          ...(logo ?? {}),
+                          w: e.target.value ? Number(e.target.value) : undefined,
+                        },
+                      } as any)
+                    }
+                    type="number"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  Height
+                  <input
+                    className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                    value={logo.h ?? ''}
+                    onChange={(e) =>
+                      updateProps(elm.id, {
+                        logo: {
+                          ...(logo ?? {}),
+                          h: e.target.value ? Number(e.target.value) : undefined,
+                        },
+                      } as any)
+                    }
+                    type="number"
+                  />
+                </label>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Navigation */}
       <div className="text-sm font-medium">Navigation</div>
       <div className="space-y-2 text-xs">

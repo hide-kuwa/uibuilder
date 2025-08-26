@@ -4,6 +4,13 @@ import type { Elm } from '@/store/builderStore'
 
 type NavItem = { id: string; label: string; href?: string; active?: boolean }
 type ButtonProps = NonNullable<Elm['props']>['loginButton']
+type Logo = {
+  kind: 'text' | 'image'
+  text?: string
+  src?: string
+  w?: number
+  h?: number
+}
 
 function HeaderButton({ data }: { data: ButtonProps }) {
   const Tag: any = data.href ? 'a' : 'button'
@@ -28,13 +35,46 @@ function HeaderButton({ data }: { data: ButtonProps }) {
 }
 
 export function HeaderView({ elm }: { elm: Elm }) {
-  const navItems: NavItem[] | undefined = (elm.props as any)?.navItems
   const props = elm.props as any
+  const navItems: NavItem[] | undefined = props?.navItems
+  const logo = props?.logo as Logo | undefined
+
+  // --- Logo handling ---
+  const [imgErr, setImgErr] = React.useState(false)
+  React.useEffect(() => {
+    setImgErr(false)
+  }, [logo?.src])
+
+  let logoEl: React.ReactNode = null
+  if (logo) {
+    const size = { width: logo.w, height: logo.h }
+    if (logo.kind === 'image' && logo.src && !imgErr) {
+      const alt = logo.text || elm.code?.displayName || ''
+      logoEl = (
+        <img
+          src={logo.src}
+          alt={alt}
+          style={size}
+          onError={() => setImgErr(true)}
+          className="object-contain"
+        />
+      )
+    } else {
+      logoEl = (
+        <div style={size} className="flex items-center">
+          {logo.text ?? ''}
+        </div>
+      )
+    }
+  }
 
   return (
-    <>
-      {/* 左側: Navigation */}
-      <div className="h-full flex items-center px-3">
+    <div className="h-full w-full flex items-center px-3 relative">
+      {/* 左: Logo */}
+      {logoEl && <div className="mr-3 flex items-center">{logoEl}</div>}
+
+      {/* 中央: Navigation */}
+      <div className="flex-1 h-full flex items-center">
         {navItems?.length ? (
           <nav className="flex gap-4">
             {navItems.map((item) => {
@@ -53,13 +93,13 @@ export function HeaderView({ elm }: { elm: Elm }) {
         )}
       </div>
 
-      {/* 右側: CTA (Sign up) + Login */}
+      {/* 右: CTA + Login */}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
         {props?.cta?.enabled && <HeaderButton data={props.cta} />}
-        {elm.props?.loginButton?.enabled && (
-          <HeaderButton data={elm.props.loginButton} />
+        {props?.loginButton?.enabled && (
+          <HeaderButton data={props.loginButton} />
         )}
       </div>
-    </>
+    </div>
   )
 }
