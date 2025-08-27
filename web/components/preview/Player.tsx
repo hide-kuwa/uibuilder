@@ -58,6 +58,9 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
     return (
       <div
         style={style}
+        data-node-id={node.id}
+        data-node-type={node.type}
+        data-node-name={(node as any).props?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
@@ -70,6 +73,9 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
     return (
       <div
         style={style}
+        data-node-id={node.id}
+        data-node-type={node.type}
+        data-node-name={(node as any).props?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
@@ -81,6 +87,9 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   return (
     <div
       style={style}
+      data-node-id={node.id}
+      data-node-type={node.type}
+      data-node-name={(node as any).props?.name}
       onClick={handleClick}
       onMouseEnter={handleHover}
       className={link ? 'cursor-pointer' : undefined}

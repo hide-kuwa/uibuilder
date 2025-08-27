@@ -20,6 +20,9 @@ const RenderNode: React.FC<{ node: EditorNode }> = ({ node }) => {
   return (
     <Tag
       className={`${buildClass(node)} ${selectedId === node.id ? 'outline outline-blue-500' : ''}`}
+      data-node-id={node.id}
+      data-node-type={node.type}
+      data-node-name={node.props?.name}
       onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         select(node.id);

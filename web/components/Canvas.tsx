@@ -12,6 +12,7 @@ import { RectsProvider, useRects } from './canvas/RectsStore'
 import SmartGuidesOverlay from './canvas/SmartGuidesOverlay'
 import { GuidesOverlay } from './overlays/GuidesOverlay'
 import type { Guide } from './canvas/snap'
+import { OutlineOverlay } from './overlays/OutlineOverlay'
 
 function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
@@ -35,6 +36,8 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
     <div
       ref={ref}
       data-node-id={node.id}
+      data-node-type={node.type}
+      data-node-name={node.props?.name}
       style={{ position: 'absolute', ...style }}
       onMouseDown={e => { e.stopPropagation(); selectComponent(node.id) }}
     >
@@ -50,16 +53,18 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
 export default function Canvas() {
   const { tree } = useEditorState()
   const [guides, setGuides] = useState<Guide[]>([])
+  const canvasRef = useRef<HTMLDivElement>(null)
   return (
     <ViewportProvider>
       <RectsProvider>
         <div className="relative h-full w-full">
           <Viewport>
-            <div data-canvas-root className="relative w-[2000px] h-[2000px]">
+            <div ref={canvasRef} data-canvas-root className="relative w-[2000px] h-[2000px]">
               {tree.map(n => (
                 <NodeRenderer key={n.id} node={n} />
               ))}
               <SelectionOverlay setGuides={setGuides} />
+              <OutlineOverlay canvasRef={canvasRef} />
             </div>
           </Viewport>
           <GridOverlay />
