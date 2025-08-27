@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { useEditorState, useEditorActions } from './store'
 import { apiFetch, getToken, clearToken } from '../lib/api'
 import LoginModal from './Auth/LoginModal'
+import { OutlineToggles } from './OutlineToggles'
 
 const PAGE_ID = 'home'
 
@@ -49,12 +50,13 @@ const Toolbar: React.FC = () => {
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b">
         <div className="flex items-center gap-2 p-2">
           <button className="px-3 py-1 rounded border" onClick={()=>setLoginOpen(true)}>Login</button>
-          <button className="px-3 py-1 rounded border" onClick={logout}>Logout</button>
-          <div className="mx-2 w-px h-6 bg-gray-200" />
-          <button className="px-3 py-1 rounded border" onClick={undo}>Undo</button>
-          <button className="px-3 py-1 rounded border" onClick={redo}>Redo</button>
-          <div className="mx-2 w-px h-6 bg-gray-200" />
-          <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={publish}>Publish</button>
+        <button className="px-3 py-1 rounded border" onClick={logout}>Logout</button>
+        <div className="mx-2 w-px h-6 bg-gray-200" />
+        <button className="px-3 py-1 rounded border" onClick={undo}>Undo</button>
+        <button className="px-3 py-1 rounded border" onClick={redo}>Redo</button>
+        <OutlineToggles />
+        <div className="mx-2 w-px h-6 bg-gray-200" />
+        <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={publish}>Publish</button>
           <button className="px-3 py-1 rounded bg-emerald-600 text-white" onClick={deploy}>Deploy</button>
           <button className="px-3 py-1 rounded border" onClick={loadLatest}>Load (Edge)</button>
           {dirty && <span className="ml-2 text-xs text-orange-600">● Unsaved</span>}

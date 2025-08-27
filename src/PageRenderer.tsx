@@ -85,7 +85,16 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
   const children = node.children?.map((c) => (
     <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
   ));
-  return React.createElement(Comp as any, { ...props, 'data-node-id': node.id }, children);
+  return React.createElement(
+    Comp as any,
+    {
+      ...props,
+      'data-node-id': node.id,
+      'data-node-type': node.type,
+      'data-node-name': (node as any).props?.name,
+    },
+    children,
+  );
 };
 
 interface PageRendererProps {
