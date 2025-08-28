@@ -14,6 +14,8 @@ type GuidesState = {
   unit: Unit
   baseRemPx: number
   snapPx: number     // 画面(px)でのスナップしきい値
+  smartEnabled: boolean
+  smartSnapPx?: number
   preview: { axis: 'x'|'y'; pos: number } | null
   addGuide: (g: Omit<Guide, 'id'> & { id?: string }) => string
   moveGuide: (id: string, pos: number) => void
@@ -24,6 +26,8 @@ type GuidesState = {
   setUnit: (u: Unit) => void
   setBaseRemPx: (px: number) => void
   setSnapPx: (px: number) => void
+  setSmartEnabled: (v: boolean) => void
+  setSmartSnapPx: (px?: number) => void
   setPreview: (g: { axis: 'x'|'y'; pos: number } | null) => void
 }
 
@@ -40,6 +44,8 @@ export const useGuidesStore = create<GuidesState>((set, get) => ({
   unit: 'px',
   baseRemPx: 16,
   snapPx: 6,
+  smartEnabled: true,
+  smartSnapPx: undefined,
   preview: null,
 
   addGuide: (g) => {
@@ -65,5 +71,7 @@ export const useGuidesStore = create<GuidesState>((set, get) => ({
   setUnit: (u) => set({ unit: u }),
   setBaseRemPx: (px) => set({ baseRemPx: px }),
   setSnapPx: (px) => set({ snapPx: px }),
+  setSmartEnabled: (v) => set({ smartEnabled: v }),
+  setSmartSnapPx: (px) => set({ smartSnapPx: px }),
   setPreview: (g) => set({ preview: g }),
 }))
