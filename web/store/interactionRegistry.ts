@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { InteractionPreset } from '../types/interactions'
+import type { InteractionPreset } from '@/types/interactions'
 
 type State = {
   presets: InteractionPreset[]
@@ -62,7 +62,7 @@ export const useInteractionRegistry = create<State>((set, get) => ({
   export: () => JSON.stringify(get().presets, null, 2),
 }))
 
-// クライアント初期化＋同期
+// クライアント初期化＋他タブ同期
 if (typeof window !== 'undefined') {
   const presets = loadPresets()
   const defaults = loadDefaults()

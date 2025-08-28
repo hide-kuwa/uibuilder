@@ -1,3 +1,4 @@
+// use on client only (生成CSSユーティリティ)
 import type { Effect, InteractionPreset, Trigger } from '@/types/interactions'
 
 const shadowMap = {
@@ -7,16 +8,17 @@ const shadowMap = {
   xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
 } as const
 
+// CSS.escape が無い環境でも安全
 const safeEscape = (s: string) => {
   try {
     // @ts-ignore
     if (typeof CSS !== 'undefined' && CSS?.escape) return CSS.escape(s)
   } catch {}
-  // フォールバック：CSSセレクタで問題になる文字をエスケープ
   return s.replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`)
 }
 const GATE = '[data-actions-enabled="true"]'
 
+// 操作中ノードは除外して、キャンバス全体のゲートがONの時のみ効かせる
 function target(nodeId: string) {
   return `${GATE} [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
 }
@@ -68,7 +70,7 @@ export function buildPresetCss(nodeId: string, preset: InteractionPreset) {
 export function buildCombinedCss(nodeId: string, presets: InteractionPreset[] = [], inlineHoverEffects?: Effect[], inlineMs?: number) {
   let css = ''
   for (const p of presets) css += buildPresetCss(nodeId, p) + '\n'
-  // 後方互換：旧「hoverEffects」をプリセットと合成
+  // 後方互換（旧 hoverEffects）
   if (inlineHoverEffects?.length) {
     const decls = effectsToDecls(inlineHoverEffects, inlineMs ?? 120)
     css += `${triggerSelector(nodeId,'hover')}{${decls}}\n`

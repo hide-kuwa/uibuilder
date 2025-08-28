@@ -11,7 +11,11 @@
     "skipLibCheck": true,
     "types": ["node", "jest"],
     "typeRoots": ["./node_modules/@types", "./.tmp/node_modules/@types"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["web/*"]
+    }
   },
-  "include": ["scripts/**/*", "src/**/*", "lib/**/*"]
+  "include": ["scripts/**/*", "src/**/*", "lib/**/*", "web/**/*"]
 }
