@@ -1,17 +1,23 @@
 import type { Effect, InteractionPreset, Trigger } from '../types/interactions'
 
 const shadowMap = {
-  sm:'0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  md:'0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  lg:'0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-  xl:'0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
 } as const
 
-const esc = (s: string) => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(s) : s)
+const safeEscape = (s: string) => {
+  try {
+    // @ts-ignore
+    if (typeof CSS !== 'undefined' && CSS?.escape) return CSS.escape(s)
+  } catch {}
+  return s.replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`)
+}
 const GATE = '[data-actions-enabled="true"]'
 
 function target(nodeId: string) {
-  return `${GATE} [data-node-id="${esc(nodeId)}"]:not([data-interacting="true"])`
+  return `${GATE} [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
 }
 
 function effectsToDecls(effects: Effect[], transitionMs = 120, easing = 'cubic-bezier(.2,.8,.2,1)') {
@@ -48,7 +54,7 @@ function triggerSelector(nodeId: string, t: Trigger) {
     case 'focusWithin':
       return `${base}:focus-within`
     case 'groupHover':
-      return `${GATE} .group:hover [data-node-id="${esc(nodeId)}"]:not([data-interacting="true"])`
+      return `${GATE} .group:hover [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
   }
 }
 
