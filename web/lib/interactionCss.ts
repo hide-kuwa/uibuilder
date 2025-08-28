@@ -18,9 +18,12 @@ const safeEscape = (s: string) => {
 }
 const GATE = '[data-actions-enabled="true"]'
 
+type BuildOpts = { gate?: boolean }
+
 // 操作中ノードは除外して、キャンバス全体のゲートがONの時のみ効かせる
-function target(nodeId: string) {
-  return `${GATE} [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
+function target(nodeId: string, withGate: boolean) {
+  const base = `[data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
+  return withGate ? `${GATE} ${base}` : base
 }
 
 function effectsToDecls(effects: Effect[], transitionMs = 120, easing = 'cubic-bezier(.2,.8,.2,1)') {
@@ -45,8 +48,8 @@ function effectsToDecls(effects: Effect[], transitionMs = 120, easing = 'cubic-b
   return decls.join(';')
 }
 
-function triggerSelector(nodeId: string, t: Trigger) {
-  const base = target(nodeId)
+function triggerSelector(nodeId: string, t: Trigger, withGate: boolean) {
+  const base = target(nodeId, withGate)
   switch (t) {
     case 'hover':
       return `${base}:hover`
@@ -57,23 +60,39 @@ function triggerSelector(nodeId: string, t: Trigger) {
     case 'focusWithin':
       return `${base}:focus-within`
     case 'groupHover':
-      return `${GATE} .group:hover [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
+      return withGate
+        ? `${GATE} .group:hover [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
+        : `.group:hover [data-node-id="${safeEscape(nodeId)}"]:not([data-interacting="true"])`
   }
 }
 
-export function buildPresetCss(nodeId: string, preset: InteractionPreset) {
+export function buildPresetCss(nodeId: string, preset: InteractionPreset, opts: BuildOpts = {}) {
   if (!preset.effects?.length || !preset.triggers?.length) return ''
-  const decls = effectsToDecls(preset.effects, preset.transitionMs ?? 120, preset.easing ?? 'cubic-bezier(.2,.8,.2,1)')
-  return preset.triggers.map(t => `${triggerSelector(nodeId, t)}{${decls}}`).join('\n')
+  const gate = opts.gate ?? true
+  const decls = effectsToDecls(
+    preset.effects,
+    preset.transitionMs ?? 120,
+    preset.easing ?? 'cubic-bezier(.2,.8,.2,1)'
+  )
+  return preset.triggers
+    .map((t) => `${triggerSelector(nodeId, t, gate)}{${decls}}`)
+    .join('\n')
 }
 
-export function buildCombinedCss(nodeId: string, presets: InteractionPreset[] = [], inlineHoverEffects?: Effect[], inlineMs?: number) {
+export function buildCombinedCss(
+  nodeId: string,
+  presets: InteractionPreset[] = [],
+  inlineHoverEffects?: Effect[],
+  inlineMs?: number,
+  opts: BuildOpts = {}
+) {
+  const gate = opts.gate ?? true
   let css = ''
-  for (const p of presets) css += buildPresetCss(nodeId, p) + '\n'
+  for (const p of presets) css += buildPresetCss(nodeId, p, { gate }) + '\n'
   // 後方互換（旧 hoverEffects）
   if (inlineHoverEffects?.length) {
     const decls = effectsToDecls(inlineHoverEffects, inlineMs ?? 120)
-    css += `${triggerSelector(nodeId,'hover')}{${decls}}\n`
+    css += `${triggerSelector(nodeId, 'hover', gate)}{${decls}}\n`
   }
   return css
 }

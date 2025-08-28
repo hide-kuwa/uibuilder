@@ -45,7 +45,11 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   const chosen = presets.filter((p) => ids.includes(p.id));
   const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
   const inlineMs = node.props?.hoverTransitionMs as number | undefined;
-  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);
+  const [gate, setGate] = useState(true);
+  useEffect(() => {
+    setGate(!!document.querySelector('[data-actions-enabled="true"]'));
+  }, []);
+  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs, { gate });
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
     if (!link) return;
