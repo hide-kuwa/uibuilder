@@ -70,11 +70,51 @@ export default function ActionDesignerPage() {
               </div>
 
               {sel && (
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xs text-neutral-400">Apply to selection on Editor:</span>
-                  <button className="px-2 py-1 bg-sky-600/80 rounded text-sm" onClick={()=>emitApply(sel.id, 'replace')}>Replace</button>
-                  <button className="px-2 py-1 bg-neutral-800 rounded text-sm" onClick={()=>emitApply(sel.id, 'append')}>Append</button>
-                  <button className="px-2 py-1 bg-rose-700/80 rounded text-sm" onClick={()=>emitApply(sel.id, 'remove')}>Remove</button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-neutral-400">Apply:</span>
+                  <button
+                    className="px-2 py-1 bg-sky-600/80 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'replace', 'selection')}
+                  >
+                    Replace Selection
+                  </button>
+                  <button
+                    className="px-2 py-1 bg-neutral-800 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'append', 'selection')}
+                  >
+                    Append Selection
+                  </button>
+                  <button
+                    className="px-2 py-1 bg-rose-700/80 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'remove', 'selection')}
+                  >
+                    Remove Selection
+                  </button>
+
+                  <div className="w-px h-5 bg-neutral-700 mx-1" />
+
+                  <button
+                    className="px-2 py-1 bg-sky-700/80 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'replace', 'all')}
+                  >
+                    Replace All
+                  </button>
+                  <button
+                    className="px-2 py-1 bg-neutral-800 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'append', 'all')}
+                  >
+                    Append All
+                  </button>
+                  <button
+                    className="px-2 py-1 bg-rose-800/80 rounded text-sm"
+                    onClick={() => emitApply(sel.id, 'remove', 'all')}
+                  >
+                    Remove All
+                  </button>
+
+                  <div className="w-px h-5 bg-neutral-700 mx-1" />
+
+                  <ProjectDefaultPicker currentId={sel.id} />
                 </div>
               )}
 
@@ -132,6 +172,37 @@ export default function ActionDesignerPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ProjectDefaultPicker({ currentId }: { currentId: string }) {
+  const { projectDefaultPresetIds, setProjectDefaults } = useInteractionRegistry()
+  const onToggle = () => {
+    const has = projectDefaultPresetIds.includes(currentId)
+    const next = has
+      ? projectDefaultPresetIds.filter((id) => id !== currentId)
+      : [...projectDefaultPresetIds, currentId]
+    setProjectDefaults(next)
+  }
+  const onSetOnlyThis = () => setProjectDefaults([currentId])
+
+  return (
+    <>
+      <button
+        className="px-2 py-1 bg-emerald-700/80 rounded text-sm"
+        onClick={onSetOnlyThis}
+      >
+        Set as Project Default
+      </button>
+      <button
+        className="px-2 py-1 bg-neutral-800 rounded text-sm"
+        onClick={onToggle}
+      >
+        {projectDefaultPresetIds.includes(currentId)
+          ? 'Remove from Defaults'
+          : 'Add to Defaults'}
+      </button>
+    </>
   )
 }
 

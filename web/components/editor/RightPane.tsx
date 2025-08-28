@@ -341,12 +341,12 @@ export default function RightPane() {
         <ActionPresetPicker
           nodeId={inst.id}
           valueIds={
-            (inst.props?.presetIds as string[] | undefined) ||
-            (inst.props?.presetId ? [inst.props.presetId as string] : [])
+            (inst.props?.presetIds as string[] | undefined) ??
+            (inst.props?.presetId ? [inst.props.presetId as string] : undefined)
           }
           onChange={(ids) =>
             updateNode(inst.id, {
-              props: { ...(inst.props || {}), presetIds: ids, presetId: ids[0] ?? null },
+              props: { ...(inst.props || {}), presetIds: ids, presetId: ids?.[0] ?? null },
             })
           }
         />

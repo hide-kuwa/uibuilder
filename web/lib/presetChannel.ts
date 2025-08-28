@@ -1,9 +1,19 @@
-export type ApplyMode = 'replace'|'append'|'remove'
-export type PresetMsg = { type: 'apply'; presetId: string; mode: ApplyMode }
+export type ApplyMode = 'replace' | 'append' | 'remove'
+export type ApplyScope = 'selection' | 'all' | 'set-project-default'
+export type PresetMsg = {
+  type: 'apply'
+  presetId: string
+  mode: ApplyMode
+  scope: ApplyScope
+}
 
-export function emitApply(presetId: string, mode: ApplyMode) {
+export function emitApply(
+  presetId: string,
+  mode: ApplyMode,
+  scope: ApplyScope = 'selection',
+) {
   const ch = new BroadcastChannel('action-presets')
-  ch.postMessage({ type: 'apply', presetId, mode } as PresetMsg)
+  ch.postMessage({ type: 'apply', presetId, mode, scope } satisfies PresetMsg)
   ch.close()
 }
 
