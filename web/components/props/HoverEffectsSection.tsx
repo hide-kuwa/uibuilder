@@ -1,16 +1,16 @@
 'use client'
 import React from 'react'
-import type { HoverEffect } from '@/types/interactions'
+import type { Effect } from '@/types/interactions'
 import { defaultEffect } from '@/types/interactions'
 
 type Props = {
-  value: HoverEffect[] | undefined
-  onChange: (next: HoverEffect[]) => void
+  value: Effect[] | undefined
+  onChange: (next: Effect[]) => void
   transitionMs?: number
   onChangeTransition?: (ms: number) => void
 }
 
-const OPTIONS: { key: HoverEffect['kind']; label: string }[] = [
+const OPTIONS: { key: Effect['kind']; label: string }[] = [
   { key: 'bgColor', label: '背景色' },
   { key: 'textColor', label: '文字色' },
   { key: 'borderColor', label: '枠線色' },
@@ -25,13 +25,13 @@ const OPTIONS: { key: HoverEffect['kind']; label: string }[] = [
 
 export function HoverEffectsSection({ value, onChange, transitionMs = 120, onChangeTransition }: Props) {
   const effects = value ?? []
-  const [pick, setPick] = React.useState<HoverEffect['kind']>('scale')
+  const [pick, setPick] = React.useState<Effect['kind']>('scale')
 
   const add = () => onChange([...(effects), defaultEffect(pick)])
   const remove = (i: number) => onChange(effects.filter((_, idx) => idx !== i))
-  const patch = <K extends keyof HoverEffect>(i: number, key: K, v: any) => {
+  const patch = <K extends keyof Effect>(i: number, key: K, v: any) => {
     const next = effects.slice()
-    next[i] = { ...next[i], [key]: v } as HoverEffect
+    next[i] = { ...next[i], [key]: v } as Effect
     onChange(next)
   }
 
