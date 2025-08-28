@@ -16,18 +16,35 @@ const ThemeContext = createContext<ThemeContextValue>({
   system: 'light'
 })
 
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  return document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split('=')[1]
+}
+
+function setCookie(name: string, value: string) {
+  if (typeof document === 'undefined') return
+  document.cookie = `${name}=${value}; path=/; max-age=31536000`
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
-  const system: Theme = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  const system: Theme =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
 
   useEffect(() => {
-    const stored = (typeof window !== 'undefined' && localStorage.getItem('ui:theme')) as ThemeMode | null
+    const stored = getCookie('ui-theme') as ThemeMode | undefined
     const initial = stored === 'system' || !stored ? system : (stored as Theme)
     setThemeState(initial)
     document.documentElement.setAttribute('data-theme', initial)
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const listener = () => {
-      if (localStorage.getItem('ui:theme') === 'system' || !localStorage.getItem('ui:theme')) {
+      const current = getCookie('ui-theme')
+      if (current === 'system' || !current) {
         const next = mq.matches ? 'dark' : 'light'
         document.documentElement.setAttribute('data-theme', next)
         setThemeState(next)
@@ -38,7 +55,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [system])
 
   const setTheme = (t: ThemeMode) => {
-    localStorage.setItem('ui:theme', t)
+    setCookie('ui-theme', t)
     const applied: Theme = t === 'system' ? system : t
     document.documentElement.setAttribute('data-theme', applied)
     setThemeState(applied)
@@ -53,15 +70,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useThemeContext() {
   return useContext(ThemeContext)
-}
-
-export function ThemeScript() {
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html:
-          "try{const t=localStorage.getItem('ui:theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}"
-      }}
-    />
-  )
 }

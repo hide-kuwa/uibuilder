@@ -1,18 +1,17 @@
-"use client"
 import './globals.css'
 import React, { ReactNode } from 'react'
+import { cookies } from 'next/headers'
 import { HUDProvider } from '../components/hud/hudStore'
 import PerfHUD from '@/components/dev/PerfHUD'
 import EventLog from '@/components/dev/EventLog'
-import { ThemeProvider, ThemeScript } from '../lib/theme/ThemeProvider'
+import { ThemeProvider } from '../lib/theme/ThemeProvider'
 import DataProvider from '@/providers/DataProvider'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const theme = cookies().get('ui-theme')?.value ?? 'light'
+
   return (
-    <html lang="en">
-      <head>
-        <ThemeScript />
-      </head>
+    <html lang="en" data-theme={theme} suppressHydrationWarning>
       <body>
         <ThemeProvider>
           <DataProvider>
