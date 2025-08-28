@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
-import { buildCombinedCss } from '../lib/interactionCss';
-import type { Effect } from '../types/interactions';
+import { buildCombinedCss } from '../web/lib/interactionCss';
+import type { Effect } from '../web/types/interactions';
 import { useInteractionRegistry } from '../web/store/interactionRegistry';
 
 function getByPath(obj: any, path: string) {
