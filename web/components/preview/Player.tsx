@@ -8,6 +8,8 @@ import { applyOverrides } from '@/lib/overrideMerge';
 import { resolveBinding } from '@/lib/binding/resolve';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
+import { buildHoverCss } from '@/lib/hoverCss';
+import type { HoverEffect } from '@/types/interactions';
 
 function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
   const components = useEditorStore((s) => s.components);
@@ -35,6 +37,9 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   }
   if (node.props?.w !== undefined) style.width = node.props.w;
   if (node.props?.h !== undefined) style.height = node.props.h;
+  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? [];
+  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120;
+  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : '';
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
     if (!link) return;
@@ -66,6 +71,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         <div className="w-full h-full bg-gray-300" />
+        {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
       </div>
     );
   }
@@ -81,6 +87,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         {node.props?.text}
+        {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
       </div>
     );
   }
@@ -97,6 +104,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       {node.children?.map((c) => (
         <NodeRenderer key={c.id} node={c} onLink={onLink} />
       ))}
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
     </div>
   );
 }

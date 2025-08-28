@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useEditorState, useEditorActions, ComponentNode } from './store'
 import { registry } from '../lib/registry'
+import { buildHoverCss } from '@/lib/hoverCss'
+import type { HoverEffect } from '@/types/interactions'
 import SelectionOverlay from './canvas/SelectionOverlay'
 import Viewport from './canvas/Viewport'
 import HUDContainer from './hud/HUDContainer'
@@ -19,8 +21,12 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
   const { setRect } = useRects()
   const ref = useRef<HTMLDivElement>(null)
-  const Comp = (registry as any)[node.type] || ((p:any)=><div {...p}>{p.children}</div>)
+  const Comp = (registry as any)[node.type] || ((p: any) => <div {...p}>{p.children}</div>)
   const style = node.props?.style || {}
+
+  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? []
+  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120
+  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : ''
 
   useEffect(() => {
     const el = ref.current
@@ -47,6 +53,7 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
           <NodeRenderer key={child.id} node={child} />
         ))}
       </Comp>
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
     </div>
   )
 }

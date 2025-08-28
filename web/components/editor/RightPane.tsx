@@ -13,6 +13,8 @@ import { mapNodesForSwap } from "@/lib/override/compat";
 import { listOverridable } from "@/lib/override/util";
 import { findNode } from "@/lib/tree";
 import ExportPanel from "@/components/editor/ExportPanel";
+import { HoverEffectsSection } from "@/components/props/HoverEffectsSection";
+import type { HoverEffect } from "@/types/interactions";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -332,6 +334,19 @@ export default function RightPane() {
             )}
           </div>
         </div>
+      </div>
+
+      <div>
+        <HoverEffectsSection
+          value={inst.props?.hoverEffects as HoverEffect[] | undefined}
+          onChange={(next) =>
+            updateNode(inst.id, { props: { ...(inst.props || {}), hoverEffects: next } })
+          }
+          transitionMs={inst.props?.hoverTransitionMs ?? 120}
+          onChangeTransition={(ms) =>
+            updateNode(inst.id, { props: { ...(inst.props || {}), hoverTransitionMs: ms } })
+          }
+        />
       </div>
 
       <div>
