@@ -233,7 +233,7 @@ export default function Player() {
 
   if (!current) return null;
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" data-actions-enabled="true">
       <PresenterHUD
         title={(current as any).name ?? current.id}
         index={currentIndex}

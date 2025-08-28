@@ -8,6 +8,11 @@ const shadowMap = {
 } as const
 
 const esc = (s: string) => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(s) : s)
+const GATE = '[data-actions-enabled="true"]'
+
+function target(nodeId: string) {
+  return `${GATE} [data-node-id="${esc(nodeId)}"]:not([data-interacting="true"])`
+}
 
 function effectsToDecls(effects: Effect[], transitionMs = 120, easing = 'cubic-bezier(.2,.8,.2,1)') {
   const decls: string[] = []
@@ -32,13 +37,18 @@ function effectsToDecls(effects: Effect[], transitionMs = 120, easing = 'cubic-b
 }
 
 function triggerSelector(nodeId: string, t: Trigger) {
-  const base = `[data-node-id="${esc(nodeId)}"]`
+  const base = target(nodeId)
   switch (t) {
-    case 'hover':        return `${base}:hover`
-    case 'active':       return `${base}:active`
-    case 'focus':        return `${base}:focus`
-    case 'focusWithin':  return `${base}:focus-within`
-    case 'groupHover':   return `.group:hover ${base}`
+    case 'hover':
+      return `${base}:hover`
+    case 'active':
+      return `${base}:active`
+    case 'focus':
+      return `${base}:focus`
+    case 'focusWithin':
+      return `${base}:focus-within`
+    case 'groupHover':
+      return `${GATE} .group:hover [data-node-id="${esc(nodeId)}"]:not([data-interacting="true"])`
   }
 }
 
