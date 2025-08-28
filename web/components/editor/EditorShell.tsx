@@ -13,6 +13,7 @@ import { DeviceFrame } from '@/components/hud/DeviceFrame';
 import { GridOverlay } from '@/components/hud/GridOverlay';
 import { RulersOverlay } from '@/components/hud/RulersOverlay';
 import { BuilderHUD } from '@/components/hud/BuilderHUD';
+import { PresetApplyListener } from '@/components/editor/PresetApplyListener';
 
 export default function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -83,6 +84,7 @@ export default function EditorShell() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
       <BuilderHUD />
+      <PresetApplyListener />
     </>
   );
 }
