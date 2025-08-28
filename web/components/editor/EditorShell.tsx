@@ -84,7 +84,7 @@ export default function EditorShell() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ContextMenu />
       <BuilderHUD />
-      <PresetApplyListener />
+      <PresetApplyListener canvasRef={canvasRef} />
     </>
   );
 }

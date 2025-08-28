@@ -78,9 +78,11 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     }
   }
 
-  const { presets } = useInteractionRegistry();
-  const presetIds: string[] = (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
-  const chosen = presets.filter(p => presetIds.includes(p.id));
+  const { presets, projectDefaultPresetIds } = useInteractionRegistry();
+  const ownIds: string[] =
+    (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
+  const ids = ownIds.length ? ownIds : projectDefaultPresetIds;
+  const chosen = presets.filter((p) => ids.includes(p.id));
   const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
   const inlineMs = node.props?.hoverTransitionMs as number | undefined;
   const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);

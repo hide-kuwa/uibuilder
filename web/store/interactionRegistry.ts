@@ -4,6 +4,8 @@ import type { InteractionPreset } from '../types/interactions'
 type State = {
   presets: InteractionPreset[]
   selectedId?: string
+  projectDefaultPresetIds: string[]
+  setProjectDefaults: (ids: string[]) => void
   add(p: Omit<InteractionPreset,'id'|'updatedAt'> & { id?: string }): string
   update(id: string, patch: Partial<InteractionPreset>): void
   remove(id: string): void
@@ -26,6 +28,14 @@ function save(presets: InteractionPreset[]) {
 export const useInteractionRegistry = create<State>((set, get) => ({
   presets: [],
   selectedId: undefined,
+  projectDefaultPresetIds: [],
+
+  setProjectDefaults: (ids) => {
+    set({ projectDefaultPresetIds: ids })
+    try {
+      localStorage.setItem(KEY + '-defaults', JSON.stringify(ids))
+    } catch {}
+  },
 
   add: (p) => {
     const id = p.id ?? uid()
@@ -73,14 +83,23 @@ export const useInteractionRegistry = create<State>((set, get) => ({
 // 初回ハイドレーション
 if (typeof window !== 'undefined') {
   const init = load()
-  if (init?.length) useInteractionRegistry.setState({ presets: init, selectedId: init[0]?.id })
+  useInteractionRegistry.setState({
+    presets: init,
+    selectedId: init[0]?.id,
+    projectDefaultPresetIds: JSON.parse(localStorage.getItem(KEY + '-defaults') || '[]') ?? [],
+  })
 
   // 他タブで保存された内容を即時反映
   window.addEventListener('storage', (e) => {
-    if (e.key !== KEY) return
-    try {
-      const next = JSON.parse(e.newValue || '[]')
-      useInteractionRegistry.setState({ presets: next })
-    } catch {}
+    if (e.key === KEY) {
+      try {
+        useInteractionRegistry.setState({ presets: JSON.parse(e.newValue || '[]') })
+      } catch {}
+    }
+    if (e.key === KEY + '-defaults') {
+      try {
+        useInteractionRegistry.setState({ projectDefaultPresetIds: JSON.parse(e.newValue || '[]') })
+      } catch {}
+    }
   })
 }
