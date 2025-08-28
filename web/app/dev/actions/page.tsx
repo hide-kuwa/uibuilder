@@ -4,6 +4,7 @@ import { useInteractionRegistry } from '@/store/interactionRegistry'
 import { defaultEffect } from '@/types/interactions'
 import type { Effect, InteractionPreset, Trigger } from '@/types/interactions'
 import { buildPresetCss } from '@/lib/interactionCss'
+import { emitApply } from '@/lib/presetChannel'
 
 const ALL_TRIGGERS: Trigger[] = ['hover','active','focus','focusWithin','groupHover']
 const EFFECT_OPTIONS: Effect['kind'][] = ['bgColor','textColor','borderColor','shadow','scale','opacity','translate','rotate','outline','cursor']
@@ -67,6 +68,15 @@ export default function ActionDesignerPage() {
                 <button className="px-2 py-1 bg-red-600/80 rounded" onClick={()=>remove(sel.id)}>Delete</button>
                 <div className="ml-auto text-[12px] text-neutral-400">updated {new Date(sel.updatedAt).toLocaleString()}</div>
               </div>
+
+              {sel && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-neutral-400">Apply to selection on Editor:</span>
+                  <button className="px-2 py-1 bg-sky-600/80 rounded text-sm" onClick={()=>emitApply(sel.id, 'replace')}>Replace</button>
+                  <button className="px-2 py-1 bg-neutral-800 rounded text-sm" onClick={()=>emitApply(sel.id, 'append')}>Append</button>
+                  <button className="px-2 py-1 bg-rose-700/80 rounded text-sm" onClick={()=>emitApply(sel.id, 'remove')}>Remove</button>
+                </div>
+              )}
 
               {/* Trigger */}
               <div className="mt-3 text-xs text-neutral-300">Triggers</div>

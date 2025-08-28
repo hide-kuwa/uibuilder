@@ -340,9 +340,14 @@ export default function RightPane() {
       <div>
         <ActionPresetPicker
           nodeId={inst.id}
-          value={inst.props?.presetId as string | undefined}
-          onChange={(id) =>
-            updateNode(inst.id, { props: { ...(inst.props || {}), presetId: id } })
+          valueIds={
+            (inst.props?.presetIds as string[] | undefined) ||
+            (inst.props?.presetId ? [inst.props.presetId as string] : [])
+          }
+          onChange={(ids) =>
+            updateNode(inst.id, {
+              props: { ...(inst.props || {}), presetIds: ids, presetId: ids[0] ?? null },
+            })
           }
         />
         <HoverEffectsSection

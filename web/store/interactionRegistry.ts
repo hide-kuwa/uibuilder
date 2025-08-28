@@ -74,4 +74,13 @@ export const useInteractionRegistry = create<State>((set, get) => ({
 if (typeof window !== 'undefined') {
   const init = load()
   if (init?.length) useInteractionRegistry.setState({ presets: init, selectedId: init[0]?.id })
+
+  // 他タブで保存された内容を即時反映
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY) return
+    try {
+      const next = JSON.parse(e.newValue || '[]')
+      useInteractionRegistry.setState({ presets: next })
+    } catch {}
+  })
 }
