@@ -2,20 +2,79 @@
 import React from 'react'
 import { useGuidesStore } from '@/store/guidesStore'
 
-export function Rulers({ width, height }: { width: number; height: number }) {
-  const { unit, setUnit, baseRemPx } = useGuidesStore((s) => ({
+type ScreenToWorld = (p: number, axis: 'x'|'y') => number
+
+export function Rulers({
+  width,
+  height,
+  canvasRef,
+  screenToWorld,
+}: {
+  width: number
+  height: number
+  canvasRef?: React.RefObject<HTMLElement>
+  screenToWorld?: ScreenToWorld
+}) {
+  const { unit, setUnit, baseRemPx, addGuide, locked, setPreview } = useGuidesStore((s) => ({
     unit: s.unit,
     setUnit: s.setUnit,
     baseRemPx: s.baseRemPx,
+    addGuide: s.addGuide,
+    locked: s.locked,
+    setPreview: s.setPreview,
   }))
+
+  const toWorld: ScreenToWorld = (p, axis) => {
+    if (!canvasRef?.current) return p
+    if (screenToWorld) return screenToWorld(p, axis)
+    const r = canvasRef.current.getBoundingClientRect()
+    return axis === 'x' ? p - r.left : p - r.top
+  }
+
+  const startDrag = (axis: 'x'|'y') => (e: React.MouseEvent) => {
+    if (locked) return
+    if ((e.target as HTMLElement).tagName === 'SELECT') return
+    e.preventDefault()
+    const move = (ev: MouseEvent) => {
+      const pos = toWorld(axis === 'x' ? ev.clientX : ev.clientY, axis)
+      setPreview({ axis, pos })
+    }
+    const up = (ev: MouseEvent) => {
+      const pos = toWorld(axis === 'x' ? ev.clientX : ev.clientY, axis)
+      addGuide({ axis, pos })
+      setPreview(null)
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+    move(e.nativeEvent as MouseEvent)
+  }
+
+  const onDoubleClickX = (e: React.MouseEvent) => {
+    if (locked) return
+    const pos = toWorld(e.clientX, 'x')
+    addGuide({ axis: 'x', pos })
+  }
+
+  const onDoubleClickY = (e: React.MouseEvent) => {
+    if (locked) return
+    const pos = toWorld(e.clientY, 'y')
+    addGuide({ axis: 'y', pos })
+  }
 
   const ticksX = getTicks(width, unit, baseRemPx)
   const ticksY = getTicks(height, unit, baseRemPx)
 
   return (
     <div className="absolute top-0 left-0 select-none">
-      {/* 水平ルーラー */}
-      <div className="relative h-6 w-full bg-neutral-900/70 text-neutral-200">
+      {/* 水平ルーラー（X） */}
+      <div
+        className="relative h-6 w-full bg-neutral-900/70 text-neutral-200 cursor-crosshair"
+        onMouseDown={startDrag('x')}
+        onDoubleClick={onDoubleClickX}
+        title="ドラッグで垂直ガイド／ダブルクリックで追加"
+      >
         <select
           className="absolute left-1 top-1 h-4 text-[10px] bg-neutral-800 rounded px-1"
           value={unit}
@@ -38,8 +97,13 @@ export function Rulers({ width, height }: { width: number; height: number }) {
         </svg>
       </div>
 
-      {/* 垂直ルーラー */}
-      <div className="absolute top-0 left-0 w-6 h-full bg-neutral-900/70 text-neutral-200">
+      {/* 垂直ルーラー（Y） */}
+      <div
+        className="absolute top-0 left-0 w-6 h-full bg-neutral-900/70 text-neutral-200 cursor-crosshair"
+        onMouseDown={startDrag('y')}
+        onDoubleClick={onDoubleClickY}
+        title="ドラッグで水平ガイド／ダブルクリックで追加"
+      >
         <svg className="absolute left-0 top-0" width={24} height={height}>
           {ticksY.map((t) => (
             <g key={t.px}>

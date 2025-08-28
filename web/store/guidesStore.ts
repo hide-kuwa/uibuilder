@@ -14,6 +14,7 @@ type GuidesState = {
   unit: Unit
   baseRemPx: number
   snapPx: number     // 画面(px)でのスナップしきい値
+  preview: { axis: 'x'|'y'; pos: number } | null
   addGuide: (g: Omit<Guide, 'id'> & { id?: string }) => string
   moveGuide: (id: string, pos: number) => void
   removeGuide: (id: string) => void
@@ -23,6 +24,7 @@ type GuidesState = {
   setUnit: (u: Unit) => void
   setBaseRemPx: (px: number) => void
   setSnapPx: (px: number) => void
+  setPreview: (g: { axis: 'x'|'y'; pos: number } | null) => void
 }
 
 const uid = () => Math.random().toString(36).slice(2, 9)
@@ -38,6 +40,7 @@ export const useGuidesStore = create<GuidesState>((set, get) => ({
   unit: 'px',
   baseRemPx: 16,
   snapPx: 6,
+  preview: null,
 
   addGuide: (g) => {
     const id = g.id ?? uid()
@@ -62,4 +65,5 @@ export const useGuidesStore = create<GuidesState>((set, get) => ({
   setUnit: (u) => set({ unit: u }),
   setBaseRemPx: (px) => set({ baseRemPx: px }),
   setSnapPx: (px) => set({ snapPx: px }),
+  setPreview: (g) => set({ preview: g }),
 }))

@@ -68,10 +68,10 @@ export default function Canvas() {
             </div>
           </Viewport>
           <GridOverlay />
-          <Rulers width={2000} height={2000} />
+          <Rulers width={2000} height={2000} canvasRef={canvasRef} />
           <HUDContainer />
           <SmartGuidesOverlay guides={guides} />
-          <GuidesOverlay width={2000} height={2000} />
+          <GuidesOverlay width={2000} height={2000} canvasRef={canvasRef} />
         </div>
       </RectsProvider>
     </ViewportProvider>
