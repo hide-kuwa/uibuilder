@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
+import { buildHoverCss } from '../lib/hoverCss';
+import type { HoverEffect } from '../types/interactions';
 
 function getByPath(obj: any, path: string) {
   if (!path || !path.startsWith('$.')) return undefined;
@@ -75,6 +77,10 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     }
   }
 
+  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? [];
+  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120;
+  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : '';
+
   // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
   const type = node.type;
   const Comp =
@@ -82,9 +88,10 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
       ? type // div, span などネイティブ要素
       : (require('../lib/registry').components as any)[type] || type;
 
-  const children = node.children?.map((c) => (
+  const childrenArr = node.children?.map((c) => (
     <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
-  ));
+  )) || [];
+  if (css) childrenArr.push(<style key="_h" dangerouslySetInnerHTML={{ __html: css }} />);
   return React.createElement(
     Comp as any,
     {
@@ -93,7 +100,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
       'data-node-type': node.type,
       'data-node-name': (node as any).props?.name,
     },
-    children,
+    childrenArr,
   );
 };
 
