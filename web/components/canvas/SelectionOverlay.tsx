@@ -3,9 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useEditorState, useEditorActions } from '../store'
 import { useRects } from './RectsStore'
 import { getSmartSnap, Guide } from './snap'
-
-const GRID = 8
-const snap = (v:number)=> Math.round(v/GRID)*GRID
+import { useGridStore } from '@/store/gridStore'
 
 type DragState = { dx:number, dy:number }
 
@@ -31,6 +29,9 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
   const [resize, setResize] = useState<ResizeState|null>(null)
   const style = node?.props?.style || {}
 
+  const { snapGrid, pitch } = useGridStore()
+  const snap = useCallback((v:number)=> (snapGrid ? Math.round(v/pitch)*pitch : v), [snapGrid, pitch])
+
   const containerRect = overlayRef.current?.getBoundingClientRect()
 
   // keyboard move
@@ -50,7 +51,7 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
     }
     window.addEventListener('keydown', handler)
     return ()=> window.removeEventListener('keydown', handler)
-  },[selectedComponentId, rect, style, setProp])
+  },[selectedComponentId, rect, style, setProp, snap])
 
   const startDrag = (e:React.MouseEvent) => {
     if(!rect) return
@@ -91,7 +92,7 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
       if(dir.includes('n')){ height = snap(startH - dy); top = snap(startTop + dy) }
       setProp(selectedComponentId, 'style', { ...style, position:'absolute', left, top, width, height })
     }
-  },[drag, resize, selectedComponentId, rect, setProp, containerRect, siblings, setGuides, style])
+  },[drag, resize, selectedComponentId, rect, setProp, containerRect, siblings, setGuides, style, snap])
 
   const stopAll = useCallback(()=>{
     setDrag(null); setResize(null); setGuides([])
