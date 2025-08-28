@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
-import { buildHoverCss } from '../lib/hoverCss';
-import type { HoverEffect } from '../types/interactions';
+import { buildCombinedCss } from '../lib/interactionCss';
+import type { Effect } from '../types/interactions';
+import { useInteractionRegistry } from '../web/store/interactionRegistry';
 
 function getByPath(obj: any, path: string) {
   if (!path || !path.startsWith('$.')) return undefined;
@@ -77,9 +78,12 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     }
   }
 
-  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? [];
-  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120;
-  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : '';
+  const { presets } = useInteractionRegistry();
+  const presetIds: string[] = (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
+  const chosen = presets.filter(p => presetIds.includes(p.id));
+  const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
+  const inlineMs = node.props?.hoverTransitionMs as number | undefined;
+  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);
 
   // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
   const type = node.type;

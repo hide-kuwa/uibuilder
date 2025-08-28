@@ -2,8 +2,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useEditorState, useEditorActions, ComponentNode } from './store'
 import { registry } from '../lib/registry'
-import { buildHoverCss } from '@/lib/hoverCss'
-import type { HoverEffect } from '@/types/interactions'
+import { buildCombinedCss } from '@/lib/interactionCss'
+import type { Effect } from '@/types/interactions'
+import { useInteractionRegistry } from '@/store/interactionRegistry'
 import SelectionOverlay from './canvas/SelectionOverlay'
 import Viewport from './canvas/Viewport'
 import HUDContainer from './hud/HUDContainer'
@@ -24,9 +25,12 @@ function NodeRenderer({ node }: { node: ComponentNode }) {
   const Comp = (registry as any)[node.type] || ((p: any) => <div {...p}>{p.children}</div>)
   const style = node.props?.style || {}
 
-  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? []
-  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120
-  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : ''
+  const { presets } = useInteractionRegistry()
+  const presetIds: string[] = (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[]
+  const chosen = presets.filter(p => presetIds.includes(p.id))
+  const inlineHover = node.props?.hoverEffects as Effect[] | undefined
+  const inlineMs = node.props?.hoverTransitionMs as number | undefined
+  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs)
 
   useEffect(() => {
     const el = ref.current

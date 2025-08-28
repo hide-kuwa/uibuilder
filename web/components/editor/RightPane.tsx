@@ -14,7 +14,8 @@ import { listOverridable } from "@/lib/override/util";
 import { findNode } from "@/lib/tree";
 import ExportPanel from "@/components/editor/ExportPanel";
 import { HoverEffectsSection } from "@/components/props/HoverEffectsSection";
-import type { HoverEffect } from "@/types/interactions";
+import { ActionPresetPicker } from "@/components/props/ActionPresetPicker";
+import type { Effect } from "@/types/interactions";
 
 export default function RightPane() {
   const selectedId = useEditorStore((s) => s.selectedIds[0]);
@@ -337,8 +338,15 @@ export default function RightPane() {
       </div>
 
       <div>
+        <ActionPresetPicker
+          nodeId={inst.id}
+          value={inst.props?.presetId as string | undefined}
+          onChange={(id) =>
+            updateNode(inst.id, { props: { ...(inst.props || {}), presetId: id } })
+          }
+        />
         <HoverEffectsSection
-          value={inst.props?.hoverEffects as HoverEffect[] | undefined}
+          value={inst.props?.hoverEffects as Effect[] | undefined}
           onChange={(next) =>
             updateNode(inst.id, { props: { ...(inst.props || {}), hoverEffects: next } })
           }

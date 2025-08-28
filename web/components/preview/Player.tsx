@@ -8,8 +8,9 @@ import { applyOverrides } from '@/lib/overrideMerge';
 import { resolveBinding } from '@/lib/binding/resolve';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
-import { buildHoverCss } from '@/lib/hoverCss';
-import type { HoverEffect } from '@/types/interactions';
+import { buildCombinedCss } from '@/lib/interactionCss';
+import type { Effect } from '@/types/interactions';
+import { useInteractionRegistry } from '@/store/interactionRegistry';
 
 function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
   const components = useEditorStore((s) => s.components);
@@ -37,9 +38,12 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   }
   if (node.props?.w !== undefined) style.width = node.props.w;
   if (node.props?.h !== undefined) style.height = node.props.h;
-  const effects = (node.props?.hoverEffects as HoverEffect[] | undefined) ?? [];
-  const transitionMs = (node.props?.hoverTransitionMs as number | undefined) ?? 120;
-  const css = effects.length ? buildHoverCss(node.id, effects, transitionMs) : '';
+  const { presets } = useInteractionRegistry();
+  const presetIds: string[] = (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
+  const chosen = presets.filter(p => presetIds.includes(p.id));
+  const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
+  const inlineMs = node.props?.hoverTransitionMs as number | undefined;
+  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
     if (!link) return;
