@@ -4,6 +4,7 @@ import { useEditorState, useEditorActions } from '../store'
 import { useRects } from './RectsStore'
 import { getSmartSnap, Guide } from './snap'
 import { useGridStore } from '@/store/gridStore'
+import { useEditorUIStore } from '@/store/editorUIStore'
 
 type DragState = { dx:number, dy:number }
 
@@ -27,6 +28,8 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
   const overlayRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<DragState|null>(null)
   const [resize, setResize] = useState<ResizeState|null>(null)
+  const begin = useEditorUIStore((s) => s.beginInteraction)
+  const end = useEditorUIStore((s) => s.endInteraction)
   const style = node?.props?.style || {}
 
   const { snapGrid, pitch } = useGridStore()
@@ -53,15 +56,19 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
     return ()=> window.removeEventListener('keydown', handler)
   },[selectedComponentId, rect, style, setProp, snap])
 
-  const startDrag = (e:React.MouseEvent) => {
-    if(!rect) return
+  const startDrag = (e:React.PointerEvent) => {
+    if(!rect || !selectedComponentId) return
     e.stopPropagation()
+    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+    begin(selectedComponentId)
     setDrag({dx: e.clientX - rect.x - (containerRect?.left||0), dy: e.clientY - rect.y - (containerRect?.top||0)})
   }
 
-  const startResize = (dir:string)=>(e:React.MouseEvent)=>{
-    if(!rect) return
+  const startResize = (dir:string)=>(e:React.PointerEvent)=>{
+    if(!rect || !selectedComponentId) return
     e.stopPropagation()
+    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+    begin(selectedComponentId)
     setResize({
       dir,
       startX: e.clientX,
@@ -73,7 +80,7 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
     })
   }
 
-  const onMouseMove = useCallback((ev:MouseEvent)=>{
+  const onPointerMove = useCallback((ev:PointerEvent)=>{
     if(drag && selectedComponentId && rect){
       let left = ev.clientX - drag.dx - (containerRect?.left||0)
       let top  = ev.clientY - drag.dy - (containerRect?.top||0)
@@ -95,16 +102,17 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
   },[drag, resize, selectedComponentId, rect, setProp, containerRect, siblings, setGuides, style, snap])
 
   const stopAll = useCallback(()=>{
+    if (selectedComponentId) end(selectedComponentId)
     setDrag(null); setResize(null); setGuides([])
-  },[setGuides])
+  },[setGuides, end, selectedComponentId])
 
   useEffect(()=>{
     if(drag||resize){
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', stopAll)
-      return ()=>{ window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', stopAll) }
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', stopAll)
+      return ()=>{ window.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', stopAll) }
     }
-  },[drag, resize, onMouseMove, stopAll])
+  },[drag, resize, onPointerMove, stopAll])
 
   if (!rect) return null
 
@@ -124,10 +132,10 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
       <div
         className="pointer-events-auto border-2 border-blue-500"
         style={{position:'absolute', left:rect.x, top:rect.y, width:rect.w, height:rect.h}}
-        onMouseDown={startDrag}
+        onPointerDown={startDrag}
       />
       {handlePos.map(h=> (
-        <div key={h.dir} className="absolute w-2 h-2 bg-white border border-blue-500 rounded-full pointer-events-auto" style={{left:h.style.left-4, top:h.style.top-4, cursor:h.dir+'-resize'}} onMouseDown={startResize(h.dir)} />
+        <div key={h.dir} className="absolute w-2 h-2 bg-white border border-blue-500 rounded-full pointer-events-auto" style={{left:h.style.left-4, top:h.style.top-4, cursor:h.dir+'-resize'}} onPointerDown={startResize(h.dir)} />
       ))}
     </div>
   )
