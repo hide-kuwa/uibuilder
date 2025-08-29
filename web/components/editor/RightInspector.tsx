@@ -25,7 +25,8 @@ export default function RightInspector() {
   const handleChange = (key: keyof typeof form, value: number) => {
     const next = { ...form, [key]: value };
     setForm(next);
-    update(selected, { props: next });
+    // 既存 props を保持して上書き
+    update(selected, { props: { ...(node?.props || {}), ...next } });
   };
 
   const comp = node && (node as any).type === 'Instance'
