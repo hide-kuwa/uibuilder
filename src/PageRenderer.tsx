@@ -96,19 +96,22 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
       ? type // div, span などネイティブ要素
       : (require('../lib/registry').components as any)[type] || type;
 
-  const childrenArr = node.children?.map((c) => (
-    <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
-  )) || [];
-  if (css) childrenArr.push(<style key="_h" dangerouslySetInnerHTML={{ __html: css }} />);
-  return React.createElement(
-    Comp as any,
-    {
-      ...props,
-      'data-node-id': node.id,
-      'data-node-type': node.type,
-      'data-node-name': (node as any).props?.name,
-    },
-    childrenArr,
+  const childrenArr =
+    node.children?.map((c) => (
+      <NodeRenderer key={c.id} node={c} previewHover={previewHover} />
+    )) || [];
+
+  return (
+    <div
+      {...{
+        'data-node-id': node.id,
+        'data-node-type': node.type,
+        'data-node-name': (node as any).props?.name,
+      }}
+    >
+      {React.createElement(Comp as any, props, childrenArr)}
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+    </div>
   );
 };
 
