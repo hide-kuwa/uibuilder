@@ -8,9 +8,7 @@ import { applyOverrides } from '@/lib/overrideMerge';
 import { resolveBinding } from '@/lib/binding/resolve';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
-import { buildCombinedCss } from '@/lib/interactionCss';
-import type { Effect } from '@/types/interactions';
-import { useInteractionRegistry } from '@/store/interactionRegistry';
+import PresetStyle from '@/components/interaction/PresetStyle';
 
 function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
   const components = useEditorStore((s) => s.components);
@@ -38,18 +36,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
   }
   if (node.props?.w !== undefined) style.width = node.props.w;
   if (node.props?.h !== undefined) style.height = node.props.h;
-  const { presets, projectDefaultPresetIds } = useInteractionRegistry();
-  const ownIds: string[] =
-    (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
-  const ids = ownIds.length ? ownIds : projectDefaultPresetIds;
-  const chosen = presets.filter((p) => ids.includes(p.id));
-  const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
-  const inlineMs = node.props?.hoverTransitionMs as number | undefined;
-  const [gate, setGate] = useState(true);
-  useEffect(() => {
-    setGate(!!document.querySelector('[data-actions-enabled="true"]'));
-  }, []);
-  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs, { gate });
+ 
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
     if (!link) return;
@@ -81,7 +68,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         <div className="w-full h-full bg-gray-300" />
-        {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+        <PresetStyle nodeId={node.id} />
       </div>
     );
   }
@@ -97,7 +84,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         {node.props?.text}
-        {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+        <PresetStyle nodeId={node.id} />
       </div>
     );
   }
@@ -114,7 +101,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       {node.children?.map((c) => (
         <NodeRenderer key={c.id} node={c} onLink={onLink} />
       ))}
-      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+      <PresetStyle nodeId={node.id} />
     </div>
   );
 }

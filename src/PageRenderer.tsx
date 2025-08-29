@@ -87,11 +87,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
   const chosen = presets.filter((p) => ids.includes(p.id));
   const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
   const inlineMs = node.props?.hoverTransitionMs as number | undefined;
-  const [gate, setGate] = useState(true);
-  useEffect(() => {
-    setGate(!!document.querySelector('[data-actions-enabled="true"]'));
-  }, []);
-  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs, { gate });
+  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);
 
   // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
   const type = node.type;
