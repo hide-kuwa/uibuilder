@@ -1,6 +1,7 @@
 'use client';
 import { useEditorStore } from '@/store/editorStore';
 import { useState } from 'react';
+import ActionPresetField from '@/components/props/ActionPresetField';
 
 export default function RightInspector() {
   const selected = useEditorStore((s) => s.selectedIds[0]);
@@ -176,6 +177,12 @@ export default function RightInspector() {
           </label>
         </div>
       </div>
+      {node && (
+        <ActionPresetField
+          nodeId={node.id}
+          value={node.props?.presetId ?? (node.props?.presetIds?.[0] ?? '')}
+        />
+      )}
     </div>
   );
 }
