@@ -10,13 +10,14 @@ export default function PresetStyle({ nodeId }: { nodeId: string }) {
   const { presets } = useInteractionRegistry()
   if (!node) return null
 
-  const ids: string[] = Array.isArray(node.props?.presetIds)
-    ? node.props.presetIds
-    : (node.props?.presetId ? [node.props.presetId] : [])
+  const props: any = node.props || {}
+  const ids: string[] = Array.isArray(props.presetIds)
+    ? props.presetIds
+    : (props.presetId ? [props.presetId] : [])
 
   const chosen = presets.filter((p) => ids.includes(p.id))
-  const inline = node.props?.hoverEffects as Effect[] | undefined
-  const ms = node.props?.hoverTransitionMs as number | undefined
+  const inline = props.hoverEffects as Effect[] | undefined
+  const ms = props.hoverTransitionMs as number | undefined
   const css = buildCombinedCss(node.id, chosen, inline, ms)
 
   return css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null

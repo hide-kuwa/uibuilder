@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
-import { buildCombinedCss } from '@/lib/interactionCss';
-import type { Effect } from '@/types/interactions';
-import { useInteractionRegistry } from '@/store/interactionRegistry';
+import PresetStyle from '@/components/interaction/PresetStyle';
 
 function getByPath(obj: any, path: string) {
   if (!path || !path.startsWith('$.')) return undefined;
@@ -80,15 +78,6 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     }
   }
 
-  const { presets, projectDefaultPresetIds } = useInteractionRegistry();
-  const ownIds: string[] =
-    (node.props?.presetIds || (node.props?.presetId ? [node.props.presetId] : [])) as string[];
-  const ids = ownIds.length ? ownIds : projectDefaultPresetIds;
-  const chosen = presets.filter((p) => ids.includes(p.id));
-  const inlineHover = node.props?.hoverEffects as Effect[] | undefined;
-  const inlineMs = node.props?.hoverTransitionMs as number | undefined;
-  const css = buildCombinedCss(node.id, chosen, inlineHover, inlineMs);
-
   // ✅ 両方を統合: registry からコンポーネントを解決 + previewHover を継承
   const type = node.type;
   const Comp =
@@ -110,7 +99,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
       }}
     >
       {React.createElement(Comp as any, props, childrenArr)}
-      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+      <PresetStyle nodeId={node.id} />
     </div>
   );
 };
