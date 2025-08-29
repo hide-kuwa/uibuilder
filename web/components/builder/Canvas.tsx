@@ -7,6 +7,7 @@ import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
+import PresetStyle from '@/components/interaction/PresetStyle'
 
 const GRID = 8
 function bgGridStyle() {
@@ -260,6 +261,9 @@ function ElmView({ elm }: { elm: Elm }) {
       onMouseDown={() => select(elm.id)}
       className={`${common} ${border} ${shadow} cursor-move ${isDragging ? 'opacity-60' : ''}`}
       style={baseStyle}
+      data-node-id={elm.id}
+      data-node-type={elm.type}
+      data-node-name={elm.props?.name}
     >
       {elm.type === 'header' && <HeaderView elm={elm} />}
       {elm.type === 'footer' && <FooterView elm={elm} />}
@@ -271,6 +275,7 @@ function ElmView({ elm }: { elm: Elm }) {
       )}
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
       {elm.type === 'code' && <CodePreview elm={elm} />}
+      <PresetStyle nodeId={elm.id} />
       {isSel && <ResizeHandles elm={elm} />}
     </div>
   )

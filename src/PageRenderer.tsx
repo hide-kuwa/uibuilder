@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
+import { components as registry } from '../lib/registry';
 import PresetStyle from '@/components/interaction/PresetStyle';
 
 function getByPath(obj: any, path: string) {
@@ -83,7 +84,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
   const Comp =
     typeof type === 'string' && type[0] === type[0].toLowerCase()
       ? type // div, span などネイティブ要素
-      : (require('../lib/registry').components as any)[type] || type;
+      : (registry as any)[type] || type;
 
   const childrenArr =
     node.children?.map((c) => (
