@@ -21,13 +21,13 @@ export default function ActionPresetField({ nodeId, value }: Props) {
       ids.forEach((id) => {
         const node = useEditorStore.getState().tree.find((n) => n.id === id)
         if (!node) return
-        updateNode(id, {
-          props: {
-            ...(node.props || {}),
-            presetId,
-            presetIds: presetId ? [presetId] : [],
-          },
-        })
+        const prev = node.props || {}
+        const next = {
+          ...prev,
+          presetId: presetId ?? null,
+          presetIds: presetId ? [presetId] : [],
+        }
+        updateNode(id, { props: next })
       })
     },
     [updateNode]
