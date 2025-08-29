@@ -5,6 +5,7 @@ import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docge
 import { HeaderInspector } from './header/HeaderInspector'
 import { FooterInspector } from './footer/FooterInspector'
 import { SidebarInspector } from '@/components/app/SidebarInspector'
+import { useInteractionRegistry } from '@/store/interactionRegistry'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -25,6 +26,7 @@ export function Inspector() {
       (m) => m.displayName === elm.code?.displayName && m.importPath === elm.code?.importPath,
     )
   }, [docgen, elm])
+  const { presets } = useInteractionRegistry()
 
   if (!selId || !elm) {
     return <div className="text-xs text-zinc-400">要素を選択すると編集できます。</div>
@@ -104,6 +106,27 @@ export function Inspector() {
                 type="text"
                 placeholder="#e5e7eb"
               />
+            </label>
+            <label className="flex flex-col gap-1 col-span-2">
+              action preset
+              <select
+                className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                value={elm.props?.presetId ?? ''}
+                onChange={(e) => {
+                  const pid = e.target.value
+                  updateProps(elm.id, {
+                    presetId: pid || null,
+                    presetIds: pid ? [pid] : [],
+                  })
+                }}
+              >
+                <option value="">（なし）</option>
+                {presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </>
