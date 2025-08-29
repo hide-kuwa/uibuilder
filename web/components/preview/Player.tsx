@@ -68,7 +68,13 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         <div className="w-full h-full bg-gray-300" />
-        <PresetStyle nodeId={node.id} />
+        <PresetStyle
+          nodeId={node.id}
+          presetIds={node.props?.presetIds}
+          presetId={node.props?.presetId}
+          hoverEffects={node.props?.hoverEffects}
+          hoverTransitionMs={node.props?.hoverTransitionMs}
+        />
       </div>
     );
   }
@@ -84,7 +90,13 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         className={link ? 'cursor-pointer' : undefined}
       >
         {node.props?.text}
-        <PresetStyle nodeId={node.id} />
+        <PresetStyle
+          nodeId={node.id}
+          presetIds={node.props?.presetIds}
+          presetId={node.props?.presetId}
+          hoverEffects={node.props?.hoverEffects}
+          hoverTransitionMs={node.props?.hoverTransitionMs}
+        />
       </div>
     );
   }
@@ -101,7 +113,13 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       {node.children?.map((c) => (
         <NodeRenderer key={c.id} node={c} onLink={onLink} />
       ))}
-      <PresetStyle nodeId={node.id} />
+      <PresetStyle
+        nodeId={node.id}
+        presetIds={node.props?.presetIds}
+        presetId={node.props?.presetId}
+        hoverEffects={node.props?.hoverEffects}
+        hoverTransitionMs={node.props?.hoverTransitionMs}
+      />
     </div>
   );
 }

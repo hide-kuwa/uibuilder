@@ -24,7 +24,13 @@ export function Canvas() {
           {node.children?.map((c: any) => render(c))}
         </Comp>
         {/* ここでプリセットCSSを必ず注入 */}
-        <PresetStyle nodeId={node.id} />
+        <PresetStyle
+          nodeId={node.id}
+          presetIds={node.props?.presetIds}
+          presetId={node.props?.presetId}
+          hoverEffects={node.props?.hoverEffects}
+          hoverTransitionMs={node.props?.hoverTransitionMs}
+        />
       </div>
     )
   }

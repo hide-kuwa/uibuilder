@@ -100,7 +100,13 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
       }}
     >
       {React.createElement(Comp as any, props, childrenArr)}
-      <PresetStyle nodeId={node.id} />
+      <PresetStyle
+        nodeId={node.id}
+        presetIds={(node as any).props?.presetIds}
+        presetId={(node as any).props?.presetId}
+        hoverEffects={(node as any).props?.hoverEffects}
+        hoverTransitionMs={(node as any).props?.hoverTransitionMs}
+      />
     </div>
   );
 };
