@@ -15,6 +15,21 @@ import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
 import { SelectionBBox } from './SelectionBBox'
+import {
+  runActionsForNode,
+  type ActionRuntimeContext,
+} from '@/lib/actions/runtime'
+
+function setByPath(obj: any, path: string, value: any) {
+  const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+  let cur = obj
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i]
+    if (typeof cur[k] !== 'object' || cur[k] === null) cur[k] = {}
+    cur = cur[k]
+  }
+  cur[keys[keys.length - 1]] = value
+}
 
 function bgGridStyle(s: number) {
   return {
@@ -234,7 +249,19 @@ function ResizeHandles({ elm }: { elm: Elm }) {
   )
 }
 
-function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; offset?: { x: number; y: number } }) {
+function ElmView({
+  elm,
+  all,
+  offset = { x: 0, y: 0 },
+  ctx,
+  runtimeProps,
+}: {
+  elm: Elm
+  all: Elm[]
+  offset?: { x: number; y: number }
+  ctx: ActionRuntimeContext
+  runtimeProps: Record<string, any>
+}) {
   if (elm.visible === false) return null
   const select = useBuilderStore((s) => s.select)
   const addSelect = useBuilderStore((s) => s.addSelect)
@@ -247,6 +274,10 @@ function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; 
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
     disabled: elm.locked,
   })
+  React.useEffect(() => {
+    runActionsForNode(elm.id, 'mount', ctx)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elm.id])
   const startBatch = useHistoryStore((s) => s.start)
   const commitBatch = useHistoryStore((s) => s.commit)
   const prevDragging = React.useRef(false)
@@ -261,13 +292,16 @@ function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; 
   const shadow = isSel ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.6)]' : ''
 
   const preview = dragDraft && dragDraft.id === elm.id ? dragDraft.rect : null
+  const mergedProps = runtimeProps[elm.id]
+    ? { ...(elm.props || {}), ...runtimeProps[elm.id] }
+    : elm.props || {}
   const baseStyle: React.CSSProperties = {
     left: (preview ? preview.x : elm.x) - offset.x,
     top: (preview ? preview.y : elm.y) - offset.y,
     width: preview ? preview.w : elm.w,
     height: preview ? preview.h : elm.h,
-    background: elm.props?.bg,
-    color: elm.props?.color ?? '#e5e7eb',
+    background: mergedProps?.bg,
+    color: mergedProps?.color ?? '#e5e7eb',
     transform: preview
       ? `translate3d(${preview.x - elm.x}px, ${preview.y - elm.y}px, 0)`
       : undefined,
@@ -279,6 +313,8 @@ function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; 
       ref={setNodeRef}
       {...(!elm.locked ? listeners : {})}
       {...attributes}
+      onClick={() => runActionsForNode(elm.id, 'click', ctx)}
+      onMouseEnter={() => runActionsForNode(elm.id, 'hover', ctx)}
       onMouseDown={(e) => {
         if (e.shiftKey) addSelect(elm.id)
         else if (e.altKey || e.ctrlKey) toggleSelect(elm.id)
@@ -290,10 +326,10 @@ function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; 
       name={elm.props?.name}
       style={baseStyle}
       presetProps={{
-        presetIds: elm.props?.presetIds,
-        presetId: elm.props?.presetId,
-        hoverEffects: elm.props?.hoverEffects,
-        hoverTransitionMs: elm.props?.hoverTransitionMs,
+        presetIds: mergedProps?.presetIds,
+        presetId: mergedProps?.presetId,
+        hoverEffects: mergedProps?.hoverEffects,
+        hoverTransitionMs: mergedProps?.hoverTransitionMs,
       }}
     >
       {elm.type === 'header' && <HeaderView elm={elm} />}
@@ -302,14 +338,29 @@ function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; 
       {elm.type === 'hud' && <div className="h-full flex items-center justify-center px-3">HUD</div>}
       {elm.type === 'container' && <div className="h-full px-3 py-2">Container</div>}
       {elm.type === 'button' && (
-        <div className="h-full flex items-center justify-center font-medium">{elm.props?.text ?? 'Button'}</div>
+        <div className="h-full flex items-center justify-center font-medium">
+          {mergedProps?.text ?? 'Button'}
+        </div>
       )}
-      {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
-      {elm.type === 'code' && <CodePreview elm={elm} />}
+      {elm.type === 'text' && (
+        <div className="h-full flex items-center px-2">{mergedProps?.text ?? 'Text'}</div>
+      )}
+      {elm.type === 'code' && <CodePreview elm={{ ...elm, props: mergedProps }} />}
       {isSel && !elm.locked && <ResizeHandles elm={elm} />}
       {elm.children?.map((cid) => {
         const c = all.find((e) => e.id === cid)
-        return c ? <ElmView key={cid} elm={c} all={all} offset={{ x: elm.x, y: elm.y }} /> : null
+        return c
+          ? (
+              <ElmView
+                key={cid}
+                elm={c}
+                all={all}
+                offset={{ x: elm.x, y: elm.y }}
+                ctx={ctx}
+                runtimeProps={runtimeProps}
+              />
+            )
+          : null
       })}
     </NodeWrapper>
   )
@@ -340,6 +391,20 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     screenToWorld: s.screenToWorld,
   }))
   const spacePressed = React.useRef(false)
+  const [runtimeProps, setRuntimeProps] = React.useState<Record<string, any>>({})
+  const ctx = React.useMemo<ActionRuntimeContext>(
+    () => ({
+      getNode: (id) =>
+        useBuilderStore.getState().elements.find((e) => e.id === id),
+      setProp: (id, path, value) =>
+        setRuntimeProps((prev) => {
+          const next = { ...(prev[id] || {}) }
+          setByPath(next, path, value)
+          return { ...prev, [id]: next }
+        }),
+    }),
+    [],
+  )
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code === 'Space') spacePressed.current = true
@@ -495,7 +560,13 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           {els
             .filter((e) => !e.parentId)
             .map((e) => (
-              <ElmView key={e.id} elm={e} all={els} />
+              <ElmView
+                key={e.id}
+                elm={e}
+                all={els}
+                ctx={ctx}
+                runtimeProps={runtimeProps}
+              />
             ))}
           <SelectionBBox />
         </div>
