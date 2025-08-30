@@ -43,7 +43,13 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
           <NodeRenderer key={child.id} node={child} />
         ))}
       </Comp>
-      <PresetStyle nodeId={node.id} />
+      <PresetStyle
+        nodeId={node.id}
+        presetIds={node.props?.presetIds}
+        presetId={node.props?.presetId}
+        hoverEffects={node.props?.hoverEffects}
+        hoverTransitionMs={node.props?.hoverTransitionMs}
+      />
     </div>
   )
 }
