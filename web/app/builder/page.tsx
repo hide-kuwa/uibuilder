@@ -21,6 +21,9 @@ import { DeviceFrame } from '@/components/hud/DeviceFrame'
 import { GridOverlay } from '@/components/hud/GridOverlay'
 import { BuilderHUD } from '@/components/hud/BuilderHUD'
 import { useAutosave } from '@/hooks/useAutosave'
+import ActionGate from '@/components/interaction/ActionGate'
+import ActionDevConsole from '@/components/interaction/ActionDevConsole'
+import { useActionDebugStore } from '@/store/actionDebugStore'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -33,6 +36,9 @@ export default function BuilderPage() {
   const clearGuides = useBuilderStore((s) => s.clearGuides)
   const setElements = useBuilderStore((s) => s.setElements)
   useAutosave()
+
+  const debug = true
+  const intercept = useActionDebugStore((s) => s.intercept)
 
   const currentPageId = usePageStore((s) => s.currentPageId)
   const getTree = usePageStore((s) => s.getTree)
@@ -168,42 +174,45 @@ export default function BuilderPage() {
   }, [elements, setTree])
 
   return (
-    <div className="flex h-[calc(100vh-40px)]">
-      <DndContext
-        sensors={sensors}
-        onDragStart={onDragStart}
-        onDragMove={onDragMove}
-        onDragEnd={onDragEnd}
-      >
-        <aside className="w-48 border-r border-zinc-800 bg-zinc-950/40 p-3">
-          <PagesPanel />
-        </aside>
-        <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-3">
-          <h2 className="text-sm font-semibold mb-2">パレット</h2>
-          <Palette />
-        </aside>
-        <LayersPanel />
-        <main className="flex-1 relative">
-          <DeviceFrame>
-            <div className="relative w-full h-full">
-              <Canvas canvasRef={canvasRef} />
-              <GridOverlay />
-            </div>
-          </DeviceFrame>
-          <BuilderHUD />
-        </main>
-        <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col">
-          <h2 className="text-sm font-semibold mb-2">プロパティ</h2>
-          <Inspector />
-          <button
-            className="mt-auto px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700"
-            onClick={onExport}
-          >
-            Export Composer
-          </button>
-        </aside>
-      </DndContext>
-    </div>
+    <ActionGate enabled debug={debug} intercept={intercept}>
+      <div className="flex h-[calc(100vh-40px)]">
+        <DndContext
+          sensors={sensors}
+          onDragStart={onDragStart}
+          onDragMove={onDragMove}
+          onDragEnd={onDragEnd}
+        >
+          <aside className="w-48 border-r border-zinc-800 bg-zinc-950/40 p-3">
+            <PagesPanel />
+          </aside>
+          <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-3">
+            <h2 className="text-sm font-semibold mb-2">パレット</h2>
+            <Palette />
+          </aside>
+          <LayersPanel />
+          <main className="flex-1 relative">
+            <DeviceFrame>
+              <div className="relative w-full h-full">
+                <Canvas canvasRef={canvasRef} />
+                <GridOverlay />
+              </div>
+            </DeviceFrame>
+            <BuilderHUD />
+          </main>
+          <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col">
+            <h2 className="text-sm font-semibold mb-2">プロパティ</h2>
+            <Inspector />
+            <button
+              className="mt-auto px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700"
+              onClick={onExport}
+            >
+              Export Composer
+            </button>
+          </aside>
+        </DndContext>
+      </div>
+      <ActionDevConsole />
+    </ActionGate>
   )
 }
 

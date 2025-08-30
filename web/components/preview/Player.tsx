@@ -14,6 +14,9 @@ import {
   runActionsForNode,
   type ActionRuntimeContext,
 } from '@/lib/actions/runtime';
+import ActionGate from '@/components/interaction/ActionGate'
+import ActionDevConsole from '@/components/interaction/ActionDevConsole'
+import { useActionDebugStore } from '@/store/actionDebugStore'
 
 function setByPath(obj: any, path: string, value: any) {
   const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
@@ -179,6 +182,8 @@ function NodeRenderer({
 
 export default function Player() {
   const tree = useEditorStore((s) => s.tree);
+  const debug = true;
+  const intercept = useActionDebugStore((s) => s.intercept);
   const frames = tree;
   const [history, setHistory] = useState<string[]>(() => (frames[0] ? [frames[0].id] : []));
   const [overlay, setOverlay] = useState<string | null>(null);
@@ -318,7 +323,8 @@ export default function Player() {
 
   if (!current) return null;
   return (
-    <div className="relative w-full h-full" data-actions-enabled="true">
+    <ActionGate enabled debug={debug} intercept={intercept}>
+      <div className="relative w-full h-full" data-actions-enabled="true">
       <PresenterHUD
         title={(current as any).name ?? current.id}
         index={currentIndex}
@@ -360,7 +366,9 @@ export default function Player() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <ActionDevConsole />
+    </ActionGate>
   );
 }
 
