@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { useGuidesStore } from '@/store/guidesStore'
+import { useUnitStore } from '@/store/unitStore'
 
 export type ScreenToWorld = (p: number, axis: 'x'|'y') => number
 
@@ -16,9 +17,6 @@ export function Rulers({
   screenToWorld?: ScreenToWorld
 }) {
   const {
-    unit,
-    setUnit,
-    baseRemPx,
     addGuide,
     locked,
     setPreview,
@@ -26,15 +24,19 @@ export function Rulers({
     toggleGuideLock,
     toggleGuideVisible,
   } = useGuidesStore((s) => ({
-    unit: s.unit,
-    setUnit: s.setUnit,
-    baseRemPx: s.baseRemPx,
     addGuide: s.addGuide,
     locked: s.locked,
     setPreview: s.setPreview,
     guides: s.guides,
     toggleGuideLock: s.toggleGuideLock,
     toggleGuideVisible: s.toggleGuideVisible,
+  }))
+
+  const { unit, setUnit, remBase, setRemBase } = useUnitStore((s) => ({
+    unit: s.unit,
+    setUnit: s.setUnit,
+    remBase: s.remBase,
+    setRemBase: s.setRemBase,
   }))
 
   const [menu, setMenu] = React.useState<{ id: string; x: number; y: number } | null>(null)
@@ -93,8 +95,8 @@ export function Rulers({
     return () => window.removeEventListener('click', close)
   }, [])
 
-  const ticksX = getTicks(width, unit, baseRemPx)
-  const ticksY = getTicks(height, unit, baseRemPx)
+  const ticksX = getTicks(width, unit, remBase)
+  const ticksY = getTicks(height, unit, remBase)
 
   return (
     <div className="absolute top-0 left-0 select-none">
@@ -112,9 +114,18 @@ export function Rulers({
           title="unit"
         >
           <option value="px">px</option>
-          <option value="%">%</option>
+          <option value="percent">%</option>
           <option value="rem">rem</option>
         </select>
+        {unit === 'rem' && (
+          <input
+            type="number"
+            className="absolute left-12 top-1 w-10 h-4 text-[10px] bg-neutral-800 rounded px-1"
+            value={remBase}
+            onChange={(e) => setRemBase(Number(e.target.value))}
+            title="rem base px"
+          />
+        )}
         <svg className="absolute left-0 top-0" width={width} height={24}>
           {ticksX.map((t) => (
             <g key={t.px}>
@@ -177,7 +188,7 @@ export function Rulers({
   )
 }
 
-function getTicks(lenPx: number, unit: 'px'|'%'|'rem', baseRemPx: number) {
+function getTicks(lenPx: number, unit: 'px'|'percent'|'rem', baseRemPx: number) {
   const ticks: { px: number; long: boolean; label?: string|number }[] = []
 
   if (unit === 'px') {
@@ -186,7 +197,7 @@ function getTicks(lenPx: number, unit: 'px'|'%'|'rem', baseRemPx: number) {
       const isLong = Math.round(x * 5) % step === 0
       ticks.push({ px: x, long: isLong, label: isLong ? Math.round(x) : undefined })
     }
-  } else if (unit === '%') {
+  } else if (unit === 'percent') {
     for (let p = 0; p <= 100; p += 1) {
       const x = (p / 100) * lenPx
       const isLong = p % 10 === 0

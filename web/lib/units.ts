@@ -1,33 +1,33 @@
-export type Unit = 'px' | '%' | 'rem'
+export type Unit = 'px' | 'percent' | 'rem'
 
-export const toWorldPx = (
+export const unitToWorld = (
   value: number,
   unit: Unit,
-  canvasSizePx: number,   // xなら幅、yなら高さで呼ぶ
-  baseRemPx = 16
+  canvasSizePx: number, // xなら幅、yなら高さで呼ぶ
+  remBase = 16
 ) => {
   switch (unit) {
     case 'px':
       return value
-    case '%':
+    case 'percent':
       return (value / 100) * canvasSizePx
     case 'rem':
-      return value * baseRemPx
+      return value * remBase
   }
 }
 
-export const fromWorldPx = (
+export const worldToUnit = (
   px: number,
   unit: Unit,
   canvasSizePx: number,
-  baseRemPx = 16
+  remBase = 16
 ) => {
   switch (unit) {
     case 'px':
       return px
-    case '%':
+    case 'percent':
       return (px / canvasSizePx) * 100
     case 'rem':
-      return px / baseRemPx
+      return px / remBase
   }
 }

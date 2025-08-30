@@ -10,6 +10,7 @@ import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
 import NodeWrapper from './NodeWrapper'
 import { Rulers } from './Rulers'
+import { useUnitStore } from '@/store/unitStore'
 
 function bgGridStyle(s: number) {
   return {
@@ -295,6 +296,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
+  const setPercentBase = useUnitStore((s) => s.setPercentBase)
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -318,6 +320,19 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [nudge, align, gridSize])
+
+  React.useLayoutEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const update = () =>
+      setPercentBase({ width: el.clientWidth, height: el.clientHeight })
+    update()
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(update)
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+  }, [canvasRef, setPercentBase])
 
   return (
     <div className="h-full w-full flex items-center justify-center bg-black">
