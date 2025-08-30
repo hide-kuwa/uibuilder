@@ -3,16 +3,9 @@ import { create } from 'zustand'
 import { produce } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
+import { registry, type RegistryKey } from '@/lib/registry'
 
-export type ElmType =
-  | 'header'
-  | 'footer'
-  | 'sidebar'
-  | 'hud'
-  | 'button'
-  | 'text'
-  | 'container'
-  | 'code'
+export type ElmType = RegistryKey | 'code'
 
 export type Elm = {
   id: string
@@ -85,25 +78,11 @@ function snap(n: number, step = SNAP) {
 }
 
 function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
-  switch (type) {
-    case 'header':
-      return { w: 960, h: 64, text: 'Header' }
-    case 'footer':
-      return { w: 960, h: 56, text: 'Footer' }
-    case 'sidebar':
-      return { w: 240, h: 600, text: 'Sidebar' }
-    case 'hud':
-      return { w: 280, h: 44, text: 'HUD' }
-    case 'button':
-      return { w: 120, h: 36, text: 'Button' }
-    case 'text':
-      return { w: 200, h: 24, text: 'Text' }
-    case 'code':
-      return { w: 160, h: 40 }
-    case 'container':
-    default:
-      return { w: 320, h: 200, text: 'Container' }
-  }
+  if (type === 'code') return { w: 160, h: 40 }
+  const entry = (registry as any)[type]
+  const size = entry?.meta?.defaultSize ?? { w: 320, h: 200 }
+  const text = entry?.meta?.displayName
+  return { ...size, text }
 }
 
 export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => ({

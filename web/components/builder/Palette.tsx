@@ -2,6 +2,7 @@
 import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { ElmType } from '@/store/builderStore'
+import { registry, type RegistryKey } from '@/lib/registry'
 import { loadDocgenMeta, type DocgenMetaItem } from '@/lib/builder/docgen'
 
 function DraggableItem({ type, label }: { type: ElmType; label: string }) {
@@ -44,15 +45,9 @@ function CodeItem({ meta }: { meta: DocgenMetaItem }) {
 }
 
 export function Palette() {
-  const items: { type: ElmType; label: string }[] = [
-    { type: 'header', label: 'Header' },
-    { type: 'footer', label: 'Footer' },
-    { type: 'sidebar', label: 'Sidebar' },
-    { type: 'hud', label: 'HUD' },
-    { type: 'container', label: 'Container' },
-    { type: 'button', label: 'Button' },
-    { type: 'text', label: 'Text' },
-  ]
+  const items: { type: RegistryKey; label: string }[] = Object.entries(registry).map(
+    ([key, value]) => ({ type: key as RegistryKey, label: value.meta.displayName }),
+  )
   const [tab, setTab] = React.useState<'basic' | 'code'>('basic')
   const [codes, setCodes] = React.useState<DocgenMetaItem[]>([])
   React.useEffect(() => {

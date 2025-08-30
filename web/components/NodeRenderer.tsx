@@ -10,7 +10,8 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
   const { setRect } = useRects()
   const ref = React.useRef<HTMLDivElement>(null)
-  const Comp = (registry as any)[node.type] || ((p: any) => <div {...p}>{p.children}</div>)
+  const entry = (registry as any)[node.type]
+  const Comp = entry?.Comp || ((p: any) => <div {...p}>{p.children}</div>)
   const style = node.props?.style || {}
 
  
