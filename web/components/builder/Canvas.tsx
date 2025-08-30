@@ -14,6 +14,7 @@ import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
+import { screenToWorld } from '@/lib/coord'
 import { SelectionBBox } from './SelectionBBox'
 import {
   runActionsForNode,
@@ -125,17 +126,22 @@ function ResizeHandles({ elm }: { elm: Elm }) {
     nw: 'nwse-resize',
   }
 
+  const canvasRect = (rootEl: HTMLElement) => rootEl.getBoundingClientRect()
+
   const onPointerDown = (dir: HandleDir) => (e: React.PointerEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    const root = (e.currentTarget as HTMLElement).closest('[data-canvas-root]') as HTMLElement
+    const rect = canvasRect(root)
+    const s = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
     startBatch()
     startRef.current = {
       x: elm.x,
       y: elm.y,
       w: elm.w,
       h: elm.h,
-      startX: e.clientX,
-      startY: e.clientY,
+      startX: s.x,
+      startY: s.y,
       aspect: elm.w / elm.h,
       dir,
     }
@@ -149,9 +155,12 @@ function ResizeHandles({ elm }: { elm: Elm }) {
     )
 
     const onMove = (ev: PointerEvent) => {
+      const root = document.querySelector('[data-canvas-root]') as HTMLElement
+      const rect = canvasRect(root)
+      const p = screenToWorld(ev.clientX - rect.left, ev.clientY - rect.top)
       const s = startRef.current
-      let dx = ev.clientX - s.startX
-      let dy = ev.clientY - s.startY
+      let dx = p.x - s.startX
+      let dy = p.y - s.startY
 
       let w = s.w
       let h = s.h
@@ -191,14 +200,14 @@ function ResizeHandles({ elm }: { elm: Elm }) {
         }
       }
 
-      const { rect, guides } = snapRect(
+      const { rect: r, guides } = snapRect(
         { x, y, w, h },
         snapPointsRef.current!,
         {
         mode: 'resize',
         },
       )
-      setDragDraft({ id: elm.id, rect })
+      setDragDraft({ id: elm.id, rect: r })
       setGuides(guides)
     }
 
@@ -383,14 +392,17 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const [marquee, setMarquee] = React.useState<
     { x: number; y: number; w: number; h: number } | null
   >(null)
-  const { zoom, pan, setZoom, setPan, screenToWorld } = useViewStore((s) => ({
+  const { zoom, pan, setPan, zoomAtScreenPoint } = useViewStore((s) => ({
     zoom: s.zoom,
     pan: s.pan,
-    setZoom: s.setZoom,
     setPan: s.setPan,
-    screenToWorld: s.screenToWorld,
+    zoomAtScreenPoint: s.zoomAtScreenPoint,
   }))
-  const spacePressed = React.useRef(false)
+  const [spaceDown, setSpaceDown] = React.useState(false)
+  const panStart = React.useRef<{
+    start: { x: number; y: number }
+    pan: { x: number; y: number }
+  } | null>(null)
   const [runtimeProps, setRuntimeProps] = React.useState<Record<string, any>>({})
   const ctx = React.useMemo<ActionRuntimeContext>(
     () => ({
@@ -406,22 +418,13 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     [],
   )
   React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space') spacePressed.current = true
-    }
-    const up = (e: KeyboardEvent) => {
-      if (e.code === 'Space') spacePressed.current = false
-    }
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-    }
-  }, [])
-
-  React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setSpaceDown(e.type === 'keydown')
+        e.preventDefault()
+        return
+      }
+      if (spaceDown) return
       if (
         ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Backspace'].includes(
           e.key,
@@ -446,8 +449,93 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
       if (e.key === 'ArrowRight') nudge(gridSize, 0)
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [nudge, align, gridSize, undo, redo])
+    window.addEventListener('keyup', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', onKey)
+    }
+  }, [nudge, align, gridSize, undo, redo, spaceDown])
+
+  const onWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+      const focus = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      const delta = -Math.sign(e.deltaY) * 0.1
+      zoomAtScreenPoint(delta, focus)
+    }
+  }
+
+  const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (e.button !== 0) return
+    if (spaceDown) {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      panStart.current = { start: { x: e.clientX, y: e.clientY }, pan: { ...pan } }
+    } else {
+      if (e.target !== e.currentTarget) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      const start = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+      let box = { x: start.x, y: start.y, w: 0, h: 0 }
+      setMarquee(box)
+      const onMove = (ev: PointerEvent) => {
+        const p = screenToWorld(ev.clientX - rect.left, ev.clientY - rect.top)
+        const mx = Math.min(p.x, start.x)
+        const my = Math.min(p.y, start.y)
+        const mw = Math.abs(p.x - start.x)
+        const mh = Math.abs(p.y - start.y)
+        box = { x: mx, y: my, w: mw, h: mh }
+        setMarquee(box)
+      }
+      const onUp = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        const p = screenToWorld(ev.clientX - rect.left, ev.clientY - rect.top)
+        const mx = Math.min(p.x, start.x)
+        const my = Math.min(p.y, start.y)
+        const mw = Math.abs(p.x - start.x)
+        const mh = Math.abs(p.y - start.y)
+        const final = { x: mx, y: my, w: mw, h: mh }
+        setMarquee(null)
+        if (mw < 2 && mh < 2) {
+          if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey) select(null)
+          return
+        }
+        const ids = useBuilderStore
+          .getState()
+          .elements.filter(
+            (el) =>
+              el.visible !== false &&
+              intersects(final, {
+                x: el.x,
+                y: el.y,
+                w: el.w,
+                h: el.h,
+              }),
+          )
+          .map((el) => el.id)
+        if (ev.shiftKey) addSelect(ids)
+        else if (ev.altKey || ev.ctrlKey) toggleSelect(ids)
+        else select(ids)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    }
+  }
+
+  const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (panStart.current) {
+      const dx = e.clientX - panStart.current.start.x
+      const dy = e.clientY - panStart.current.start.y
+      setPan({ x: panStart.current.pan.x + dx, y: panStart.current.pan.y + dy })
+    }
+  }
+
+  const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (panStart.current) {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+      panStart.current = null
+    }
+  }
 
   React.useLayoutEffect(() => {
     const el = canvasRef.current
@@ -472,88 +560,18 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           // @ts-ignore
           canvasRef.current = n
         }}
-        onWheel={(e) => {
-          if (!e.ctrlKey && !e.metaKey) return
-          e.preventDefault()
-          const rect = e.currentTarget.getBoundingClientRect()
-          const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-          const world = screenToWorld(cursor)
-          let z = zoom * (1 - e.deltaY * 0.001)
-          z = Math.max(0.25, Math.min(4, z))
-          const newPan = { x: cursor.x - world.x * z, y: cursor.y - world.y * z }
-          setZoom(z)
-          setPan(newPan)
-        }}
-        onPointerDown={(e) => {
-          if (e.button !== 0) return
-          if (spacePressed.current) {
-            const start = { x: e.clientX, y: e.clientY }
-            const startPan = { ...pan }
-            const move = (ev: PointerEvent) => {
-              setPan({ x: startPan.x + ev.clientX - start.x, y: startPan.y + ev.clientY - start.y })
-            }
-            const up = () => {
-              window.removeEventListener('pointermove', move)
-              window.removeEventListener('pointerup', up)
-            }
-            window.addEventListener('pointermove', move)
-            window.addEventListener('pointerup', up)
-            return
-          }
-          if (e.target !== e.currentTarget) return
-          const rect = e.currentTarget.getBoundingClientRect()
-          const start = screenToWorld({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-          let box = { x: start.x, y: start.y, w: 0, h: 0 }
-          setMarquee(box)
-          const onMove = (ev: PointerEvent) => {
-            const p = screenToWorld({ x: ev.clientX - rect.left, y: ev.clientY - rect.top })
-            const mx = Math.min(p.x, start.x)
-            const my = Math.min(p.y, start.y)
-            const mw = Math.abs(p.x - start.x)
-            const mh = Math.abs(p.y - start.y)
-            box = { x: mx, y: my, w: mw, h: mh }
-            setMarquee(box)
-          }
-          const onUp = (ev: PointerEvent) => {
-            window.removeEventListener('pointermove', onMove)
-            window.removeEventListener('pointerup', onUp)
-            const p = screenToWorld({ x: ev.clientX - rect.left, y: ev.clientY - rect.top })
-            const mx = Math.min(p.x, start.x)
-            const my = Math.min(p.y, start.y)
-            const mw = Math.abs(p.x - start.x)
-            const mh = Math.abs(p.y - start.y)
-            const final = { x: mx, y: my, w: mw, h: mh }
-            setMarquee(null)
-            if (mw < 2 && mh < 2) {
-              if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey) select(null)
-              return
-            }
-            const ids = useBuilderStore
-              .getState()
-              .elements.filter(
-                (el) =>
-                  el.visible !== false &&
-                  intersects(final, {
-                    x: el.x,
-                    y: el.y,
-                    w: el.w,
-                    h: el.h,
-                  }),
-              )
-              .map((el) => el.id)
-            if (ev.shiftKey) addSelect(ids)
-            else if (ev.altKey || ev.ctrlKey) toggleSelect(ids)
-            else select(ids)
-          }
-          window.addEventListener('pointermove', onMove)
-          window.addEventListener('pointerup', onUp)
-        }}
+        onWheel={onWheel}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        data-canvas-root
         className="relative w-[1200px] h-[720px] border border-zinc-800 rounded-lg overflow-hidden"
         style={gridVisible ? bgGridStyle(gridSize) : undefined}
       >
         <div
           className="absolute inset-0"
           style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}
+          data-transform-layer
         >
           {/* page base pseudo preview */}
           <div className="absolute inset-0 pointer-events-none" />
@@ -576,12 +594,34 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           height={720}
           canvasRef={canvasRef}
           screenToWorld={(p, axis) => {
-            const pt = screenToWorld(axis === 'x' ? { x: p, y: 0 } : { x: 0, y: p })
+            const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
             return axis === 'x' ? pt.x : pt.y
           }}
         />
-        <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
-          drag to move • drop from Palette • arrows to nudge • click empty = unselect
+        <div className="absolute left-2 bottom-2 text-[11px] text-zinc-300 bg-black/50 px-2 py-1 rounded border border-zinc-800 flex gap-2 items-center">
+          <span>{Math.round(zoom * 100)}%</span>
+          <button
+            className="px-1 py-0.5 bg-zinc-800 rounded"
+            onClick={() => {
+              const xs = els.map((e) => e.x)
+              const ys = els.map((e) => e.y)
+              const xe = els.map((e) => e.x + e.w)
+              const ye = els.map((e) => e.y + e.h)
+              const bbox = {
+                x: Math.min(0, ...xs),
+                y: Math.min(0, ...ys),
+                w: Math.max(0, ...xe) - Math.min(0, ...xs),
+                h: Math.max(0, ...ye) - Math.min(0, ...ys),
+              }
+              const rect = canvasRef.current?.getBoundingClientRect()
+              if (rect)
+                useViewStore
+                  .getState()
+                  .fitToContent({ w: rect.width, h: rect.height }, bbox)
+            }}
+          >
+            Fit
+          </button>
         </div>
       </div>
     </div>
