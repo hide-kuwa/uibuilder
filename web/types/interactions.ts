@@ -47,3 +47,23 @@ export const defaultEffect = (k: Effect['kind']): Effect => {
       return { kind: 'cursor', value: 'pointer' }
   }
 }
+
+export type ActionKind = 'openUrl' | 'navigate' | 'emitEvent' | 'setProp'
+export type BehaviorTrigger =
+  | 'click'
+  | 'doubleClick'
+  | 'mount'
+  | 'delay'
+  | 'inView'
+
+export type ActionLogEntry = {
+  id: string
+  t0: number
+  t1?: number
+  nodeId: string
+  trigger: BehaviorTrigger
+  actions: { kind: ActionKind; payload: any }[]
+  presetIds: string[]
+  status: 'ok' | 'error' | 'skipped'
+  error?: string
+}

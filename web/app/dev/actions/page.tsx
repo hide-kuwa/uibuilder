@@ -5,6 +5,7 @@ import { defaultEffect } from '@/types/interactions'
 import type { Effect, InteractionPreset, Trigger } from '@/types/interactions'
 import { buildPresetCss } from '@/lib/interactionCss'
 import { emitApply } from '@/lib/presetChannel'
+import { useEditorStore } from '@/store/editorStore'
 
 const ALL_TRIGGERS: Trigger[] = ['hover','active','focus','focusWithin','groupHover']
 const EFFECT_OPTIONS: Effect['kind'][] = ['bgColor','textColor','borderColor','shadow','scale','opacity','translate','rotate','outline','cursor']
@@ -14,6 +15,7 @@ export default function ActionDesignerPage() {
 
   const onNew = () => add({ name:'New Preset', triggers:['hover'], effects:[], transitionMs:120, easing:'cubic-bezier(.2,.8,.2,1)' })
   const sel = presets.find(p => p.id === selectedId)
+  const selectedNodeId = useEditorStore(s => s.selectedIds[0])
 
   const css = useMemo(() => sel ? buildPresetCss('preview-node', sel) : '', [sel])
 
@@ -115,6 +117,20 @@ export default function ActionDesignerPage() {
                   <div className="w-px h-5 bg-neutral-700 mx-1" />
 
                   <ProjectDefaultPicker currentId={sel.id} />
+                  <button
+                    className="ml-auto px-2 py-1 bg-indigo-700/80 rounded text-sm disabled:opacity-40"
+                    disabled={!selectedNodeId}
+                    onClick={() =>
+                      selectedNodeId &&
+                      window.dispatchEvent(
+                        new CustomEvent('actions:test', {
+                          detail: { nodeId: selectedNodeId, trigger: 'click' },
+                        }),
+                      )
+                    }
+                  >
+                    Test click on selection
+                  </button>
                 </div>
               )}
 
