@@ -1,5 +1,6 @@
 import { getCommand } from '@/lib/keymap';
 import { runCommand } from '@/lib/commands';
+import { useEditorStore } from '@/store/editorStore';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 function isEditingContext(target: EventTarget | null): boolean {
@@ -34,7 +35,40 @@ export function keyRouter(e: KeyboardEvent | ReactKeyboardEvent) {
   }
 
   const cmd = getCommand(evt);
-  if (cmd && runCommand(cmd)) {
+  if (!cmd) return;
+
+  if (cmd === 'tool.pen') {
+    evt.preventDefault();
+    useEditorStore.getState().startPen();
+    return;
+  }
+  if (cmd === 'tool.select') {
+    evt.preventDefault();
+    useEditorStore.getState().cancelPen();
+    return;
+  }
+  if (cmd === 'path.confirm') {
+    evt.preventDefault();
+    useEditorStore.getState().closePath();
+    return;
+  }
+  if (cmd === 'path.cancel') {
+    evt.preventDefault();
+    useEditorStore.getState().cancelPen();
+    return;
+  }
+  if (cmd === 'path.deleteLast') {
+    evt.preventDefault();
+    useEditorStore.getState().deleteLast();
+    return;
+  }
+  if (cmd === 'commandPalette') {
+    evt.preventDefault();
+    window.dispatchEvent(new CustomEvent('uibuilder:commandPalette'));
+    return;
+  }
+
+  if (runCommand(cmd)) {
     evt.preventDefault();
     evt.stopPropagation();
   }
