@@ -1,12 +1,16 @@
-import type { BuilderNodeMeta } from '@/types/builder'
+'use client'
+import * as React from 'react'
 
-export function Text({ text, className }: { text?: string; className?: string }) {
-  return <div className={className}>{text}</div>
+interface TextProps extends React.HTMLAttributes<HTMLElement> {
+  text?: string
+  color?: string
+  size?: number
 }
 
-export const TextMeta: BuilderNodeMeta = {
-  displayName: 'Text',
-  defaultSize: { w: 200, h: 24 },
-  resizable: false,
-  snap: 'grid',
+export default function Text({ text, children, color, size = 14, style, ...props }: TextProps) {
+  return (
+    <span {...props} style={{ ...(style || {}), color, fontSize: size }}>
+      {children ?? text}
+    </span>
+  )
 }

@@ -1,153 +1,149 @@
 'use client'
-import React from 'react'
+import * as React from 'react'
+import type { UISchema, UIPrimitive } from '@/types/schema'
 
-export type FieldSchema = {
-  type: 'string' | 'number' | 'boolean' | 'enum' | 'color'
-  options?: any[]
-}
-
-export type NormalizedSchema = Record<string, FieldSchema>
-
-function parseSchema(schema: any): NormalizedSchema {
-  // zod
-  if (schema && schema._def && (schema._def.shape || schema._def.shapeFn)) {
-    const shape = typeof schema._def.shape === 'function' ? schema._def.shape() : schema._def.shape || schema._def.shapeFn?.()
-    const out: NormalizedSchema = {}
-    for (const key in shape) {
-      const f = shape[key]
-      const tn = f?._def?.typeName
-      if (tn === 'ZodString') out[key] = { type: 'string' }
-      else if (tn === 'ZodNumber') out[key] = { type: 'number' }
-      else if (tn === 'ZodBoolean') out[key] = { type: 'boolean' }
-      else if (tn === 'ZodEnum') out[key] = { type: 'enum', options: f?._def?.values }
-      else out[key] = { type: 'string' }
-    }
-    return out
-  }
-  // JSON schema
-  if (schema && schema.properties) {
-    const out: NormalizedSchema = {}
-    for (const key in schema.properties) {
-      const p: any = schema.properties[key]
-      if (p.type === 'string') {
-        if (p.enum) out[key] = { type: 'enum', options: p.enum }
-        else if (p.format === 'color') out[key] = { type: 'color' }
-        else out[key] = { type: 'string' }
-      } else if (p.type === 'number' || p.type === 'integer') {
-        out[key] = { type: 'number' }
-      } else if (p.type === 'boolean') {
-        out[key] = { type: 'boolean' }
-      }
-    }
-    return out
-  }
-  return {}
-}
-
-export interface AutoPropsFormProps {
-  nodeId: string
-  schema: any
+type Props = {
   value: any
+  schema: UISchema
   onChange: (patch: any) => void
 }
 
-export default function AutoPropsForm({ nodeId, schema, value, onChange }: AutoPropsFormProps) {
-  const fields = React.useMemo(() => parseSchema(schema), [schema])
-  const [form, setForm] = React.useState(() => ({ ...(value || {}) }))
+/** Merge helper (deep merge for plain objects) */
+function merge(a: any, b: any) {
+  if (Array.isArray(a) || Array.isArray(b) || typeof a !== 'object' || typeof b !== 'object' || !a || !b) return b
+  const out: any = { ...a }
+  for (const k of Object.keys(b)) out[k] = merge(a[k], b[k])
+  return out
+}
 
-  React.useEffect(() => {
-    setForm({ ...(value || {}) })
-  }, [value])
-
-  const debounced = React.useRef<any>()
-  const emitChange = React.useCallback((patch: any) => {
-    if (debounced.current) clearTimeout(debounced.current)
-    debounced.current = setTimeout(() => {
-      onChange(patch)
-    }, 150)
-  }, [onChange])
-
-  const handleField = (key: string, v: any) => {
-    const next = { ...form, [key]: v }
-    setForm(next)
-    emitChange({ [key]: v })
-  }
-
-  return (
-    <div className="space-y-2">
-      {Object.entries(fields).map(([key, fs]) => {
-        const val = form?.[key]
-        if (fs.type === 'boolean') {
-          return (
-            <label key={key} className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={Boolean(val)}
-                onChange={(e) => handleField(key, e.target.checked)}
-              />
-              {key}
-            </label>
-          )
-        }
-        if (fs.type === 'number') {
-          return (
-            <label key={key} className="block text-xs">
-              {key}
-              <input
-                type="number"
-                className="w-full bg-gray-700 ml-1 p-1 text-white"
-                value={val ?? ''}
-                onChange={(e) => handleField(key, Number(e.target.value))}
-              />
-            </label>
-          )
-        }
-        if (fs.type === 'enum') {
-          return (
-            <label key={key} className="block text-xs">
-              {key}
-              <select
-                className="w-full bg-gray-700 ml-1 p-1 text-white"
-                value={val ?? ''}
-                onChange={(e) => handleField(key, e.target.value)}
-              >
-                <option value="" />
-                {fs.options?.map((o) => (
-                  <option key={String(o)} value={String(o)}>
-                    {String(o)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )
-        }
-        if (fs.type === 'color') {
-          return (
-            <label key={key} className="block text-xs">
-              {key}
-              <input
-                type="color"
-                className="w-full bg-gray-700 ml-1 p-1 text-white"
-                value={val ?? '#000000'}
-                onChange={(e) => handleField(key, e.target.value)}
-              />
-            </label>
-          )
-        }
-        // string fallback
+export default function AutoPropsForm({ value, schema, onChange }: Props) {
+  const renderField = (key: string, prim: UIPrimitive, current: any) => {
+    const title = prim.title ?? key
+    if (prim.kind === 'string') {
+      if (prim.format === 'color') {
         return (
-          <label key={key} className="block text-xs">
-            {key}
+          <label key={key} className="block text-xs mb-1">
+            {title}
             <input
-              type="text"
-              className="w-full bg-gray-700 ml-1 p-1 text-white"
-              value={val ?? ''}
-              onChange={(e) => handleField(key, e.target.value)}
+              type="color"
+              className="w-full bg-gray-700 ml-1 p-1"
+              value={current ?? prim.default ?? '#000000'}
+              onChange={(e) => onChange(merge(value, { [key]: e.target.value }))}
             />
           </label>
         )
-      })}
-    </div>
-  )
-}
+      }
+      return (
+        <label key={key} className="block text-xs mb-1">
+          {title}
+          {prim.multiline ? (
+            <textarea
+              className="w-full bg-gray-700 ml-1 p-1"
+              placeholder={prim.placeholder}
+              value={current ?? prim.default ?? ''}
+              onChange={(e) => onChange(merge(value, { [key]: e.target.value }))}
+            />
+          ) : (
+            <input
+              type={prim.format === 'url' ? 'url' : 'text'}
+              className="w-full bg-gray-700 ml-1 p-1"
+              placeholder={prim.placeholder}
+              value={current ?? prim.default ?? ''}
+              onChange={(e) => onChange(merge(value, { [key]: e.target.value }))}
+            />
+          )}
+        </label>
+      )
+    }
+    if (prim.kind === 'number') {
+      return (
+        <label key={key} className="block text-xs mb-1">
+          {title}
+          <input
+            type="number"
+            className="w-full bg-gray-700 ml-1 p-1"
+            value={current ?? prim.default ?? 0}
+            min={prim.min}
+            max={prim.max}
+            step={prim.step ?? 1}
+            onChange={(e) => onChange(merge(value, { [key]: Number(e.target.value) }))}
+          />
+        </label>
+      )
+    }
+    if (prim.kind === 'boolean') {
+      return (
+        <label key={key} className="flex items-center text-xs mb-1 gap-2">
+          <input
+            type="checkbox"
+            checked={!!(current ?? prim.default ?? false)}
+            onChange={(e) => onChange(merge(value, { [key]: e.target.checked }))}
+          />
+          {title}
+        </label>
+      )
+    }
+    if (prim.kind === 'enum') {
+      return (
+        <label key={key} className="block text-xs mb-1">
+          {title}
+          <select
+            className="w-full bg-gray-700 ml-1 p-1"
+            value={current ?? prim.default ?? prim.options[0]?.value ?? ''}
+            onChange={(e) => onChange(merge(value, { [key]: e.target.value }))}
+          >
+            {prim.options.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+      )
+    }
+    if (prim.kind === 'object') {
+      const obj = current ?? {}
+      return (
+        <fieldset key={key} className="border border-gray-700 rounded p-2 mb-2">
+          <legend className="text-[11px] opacity-80">{title}</legend>
+          {Object.entries(prim.properties).map(([subKey, subSchema]) =>
+            renderField(`${key}.${subKey}`, subSchema as UIPrimitive, obj[subKey])
+          )}
+        </fieldset>
+      )
+    }
+    return null
+  }
 
+  // flatten path 'a.b' => nested patch
+  const setByPath = React.useCallback((path: string, v: any) => {
+    const segs = path.split('.')
+    let patch: any = {}
+    let cur = patch
+    segs.forEach((s, i) => {
+      if (i === segs.length - 1) cur[s] = v
+      else { cur[s] = {}; cur = cur[s] }
+    })
+    onChange(merge(value, patch))
+  }, [onChange, value])
+
+  // small wrapper to adapt renderField to nested set
+  const onChangeWrapper = (path: string) => (patch: any) => {
+    // patch has only leaf updated; compute delta value at path
+    const leaf = path.includes('.') ? path.split('.').pop()! : path
+    const val = (patch as any)[leaf]
+    setByPath(path, val)
+  }
+
+  // Note: for simplicity we call renderField with top-level keys; nested object keys are handled via path.
+  if (schema.kind === 'object') {
+    const obj = value ?? {}
+    return (
+      <div className="space-y-1">
+        {Object.entries(schema.properties).map(([key, s]) =>
+          renderField(key, s as UIPrimitive, obj[key])
+        )}
+      </div>
+    )
+  }
+  // Fallback (single primitive)
+  return <div>{renderField('value', schema as UIPrimitive, value)}</div>
+}

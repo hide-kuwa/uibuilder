@@ -1,14 +1,18 @@
-import { PropsWithChildren } from 'react'
-import type { BuilderNodeMeta } from '@/types/builder'
+'use client'
+import * as React from 'react'
 
-export function Container({ className, children }: PropsWithChildren<{ className?: string }>) {
-  return <div className={className}>{children}</div>
-}
-
-export const ContainerMeta: BuilderNodeMeta = {
-  displayName: 'Container',
-  defaultSize: { w: 320, h: 200 },
-  resizable: true,
-  snap: 'grid',
-  allowChildren: true,
+export default function Container({ children, style, bg, radius = 8, border = true, ...props }: any) {
+  return (
+    <div
+      {...props}
+      style={{
+        ...(style || {}),
+        background: bg,
+        borderRadius: radius,
+        border: border ? '1px solid #374151' : 'none',
+      }}
+    >
+      {children}
+    </div>
+  )
 }

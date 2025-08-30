@@ -1,6 +1,6 @@
 'use client';
 import { useEditorStore } from '@/store/editorStore';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ActionPresetField from '@/components/props/ActionPresetField';
 import { useUnitStore } from '@/store/unitStore';
 import { worldToUnit, unitToWorld } from '@/lib/units';
@@ -29,6 +29,36 @@ export default function RightInspector() {
     rotation: node?.props?.rotation || 0,
   });
 
+  const meta = node ? (registry as any)[(node as any).type]?.meta : null;
+  const [formProps, setFormProps] = useState(() => {
+    if (meta?.propertySchema?.kind === 'object') {
+      const keys = Object.keys(meta.propertySchema.properties);
+      const out: any = {};
+      for (const k of keys) out[k] = (node?.props || {})[k];
+      return out;
+    }
+    return {};
+  });
+  useEffect(() => {
+    if (meta?.propertySchema?.kind === 'object') {
+      const keys = Object.keys(meta.propertySchema.properties);
+      const out: any = {};
+      for (const k of keys) out[k] = (node?.props || {})[k];
+      setFormProps(out);
+    } else {
+      setFormProps({});
+    }
+  }, [node?.id, meta?.propertySchema]);
+
+  const debounced = useRef<number | undefined>(undefined);
+  const apply = (next: any) => {
+    setFormProps(next);
+    window.clearTimeout(debounced.current);
+    debounced.current = window.setTimeout(() => {
+      update(selected, { props: { ...(node?.props || {}), ...next } });
+    }, 150);
+  };
+
   if (!selected) return <div className="bg-gray-800" />;
 
   const handleChange = (key: keyof typeof form, value: number) => {
@@ -46,10 +76,8 @@ export default function RightInspector() {
   const comp = node && (node as any).type === 'Instance'
     ? components[(node as any).componentId]
     : null;
-  const entry = node ? (registry as any)[(node as any).type] : null;
-  const propSchema = entry?.meta?.propertySchema;
 
-  const unitLabel = unit === 'percent' ? '%' : unit
+  const unitLabel = unit === 'percent' ? '%' : unit;
 
   return (
     <div className="bg-gray-800 p-2 space-y-2 overflow-y-auto">
@@ -71,6 +99,16 @@ export default function RightInspector() {
           </label>
         )
       })}
+      {meta?.propertySchema && (
+        <div className="mt-3">
+          <div className="mb-1 text-xs text-neutral-300">Properties</div>
+          <AutoPropsForm
+            value={formProps}
+            schema={meta.propertySchema}
+            onChange={apply}
+          />
+        </div>
+      )}
       {comp && comp.axes && (
         <div className="mt-2 space-y-1">
           <h3 className="text-xs font-bold">Variants</h3>
@@ -203,16 +241,6 @@ export default function RightInspector() {
           </label>
         </div>
       </div>
-      {propSchema && (
-        <AutoPropsForm
-          nodeId={node.id}
-          schema={propSchema}
-          value={node.props}
-          onChange={(patch) =>
-            update(node.id, { props: { ...(node?.props || {}), ...patch } })
-          }
-        />
-      )}
       {node && (
         <ActionPresetField
           nodeId={node.id}
