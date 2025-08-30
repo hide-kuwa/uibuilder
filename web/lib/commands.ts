@@ -11,6 +11,30 @@ import * as zoom from '@/lib/zoom';
 
 export const COMMANDS: Command[] = [
   {
+    id: 'delete',
+    title: 'Delete Selection',
+    shortcut: 'Delete',
+    run: () => useEditorStore.getState().remove(),
+  },
+  {
+    id: 'duplicate',
+    title: 'Duplicate Selection',
+    shortcut: 'Ctrl+D',
+    run: () => useEditorStore.getState().duplicate(),
+  },
+  {
+    id: 'undo',
+    title: 'Undo',
+    shortcut: 'Ctrl+Z',
+    run: () => useEditorStore.getState().undo(),
+  },
+  {
+    id: 'redo',
+    title: 'Redo',
+    shortcut: 'Ctrl+Shift+Z',
+    run: () => useEditorStore.getState().redo(),
+  },
+  {
     id: 'align.left',
     title: 'Align Left',
     keywords: ['align', 'left'],
