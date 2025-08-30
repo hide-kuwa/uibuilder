@@ -43,6 +43,8 @@ export type Elm = {
   }
 }
 
+export type ElmPatch = { id: string; x?: number; y?: number; w?: number; h?: number; props?: any }
+
 type BuilderState = {
   elements: Elm[]
   selectedId: string | null
@@ -51,6 +53,7 @@ type BuilderState = {
     dragDraft?: { id: string; rect: { x: number; y: number; w: number; h: number } }
     guides: Array<{ axis: 'x' | 'y'; pos: number }>
   }
+  historyBatchDepth: number
 }
 
 type BuilderActions = {
@@ -101,7 +104,9 @@ type BuilderActions = {
   hydrate: (json: string) => void
   undo: () => void
   redo: () => void
-  updateMany: (patches: Array<{ id: string; patch: Partial<Elm> }>) => void
+  beginBatch: () => void
+  endBatch: () => void
+  updateMany: (patches: ElmPatch[], recordHistory?: boolean) => void
 }
 
 function snapToGrid(n: number) {
@@ -131,6 +136,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     selectedId: null,
     selectedIds: [],
     ui: { guides: [] },
+    historyBatchDepth: 0,
 
   addFromPalette(type, at, meta) {
     const id = `elm_${Date.now().toString(36)}`
@@ -602,12 +608,41 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     set((state) => useHistoryStore.getState().redo(state))
   },
 
-  updateMany(patches) {
-    apply((draft: BuilderState) => {
-      patches.forEach(({ id, patch }) => {
-        const el = draft.elements.find((e) => e.id === id)
-        if (el) Object.assign(el, patch)
+  beginBatch() {
+    const history = useHistoryStore.getState()
+    set((s) => {
+      const depth = s.historyBatchDepth + 1
+      if (depth === 1) history.start()
+      return { historyBatchDepth: depth }
+    })
+  },
+
+  endBatch() {
+    const history = useHistoryStore.getState()
+    set((s) => {
+      const depth = Math.max(0, s.historyBatchDepth - 1)
+      if (s.historyBatchDepth > 0 && depth === 0) history.commit()
+      return { historyBatchDepth: depth }
+    })
+  },
+
+  updateMany(patches, recordHistory = true) {
+    set((state) => {
+      const [next, patchList, inverse] = produceWithPatches(state, (draft: BuilderState) => {
+        patches.forEach((p) => {
+          const el = draft.elements.find((e) => e.id === p.id)
+          if (!el) return
+          if ('x' in p) el.x = p.x!
+          if ('y' in p) el.y = p.y!
+          if ('w' in p) el.w = p.w!
+          if ('h' in p) el.h = p.h!
+          if (p.props) el.props = { ...(el.props || {}), ...(p.props || {}) }
+        })
       })
+      if (recordHistory || state.historyBatchDepth > 0) {
+        useHistoryStore.getState().push(patchList, inverse)
+      }
+      return next
     })
   },
 

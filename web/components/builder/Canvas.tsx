@@ -15,7 +15,7 @@ import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
 import { screenToWorld } from '@/lib/coord'
-import { SelectionBBox } from './SelectionBBox'
+import SelectionBBox from './SelectionBBox'
 import {
   runActionsForNode,
   type ActionRuntimeContext,
@@ -275,7 +275,10 @@ function ElmView({
   const select = useBuilderStore((s) => s.select)
   const addSelect = useBuilderStore((s) => s.addSelect)
   const toggleSelect = useBuilderStore((s) => s.toggleSelect)
-  const selectedId = useBuilderStore((s) => s.selectedId)
+  const { selectedId, selectedIds } = useBuilderStore((s) => ({
+    selectedId: s.selectedId,
+    selectedIds: s.selectedIds,
+  }))
   const isSel = selectedId === elm.id
   const dragDraft = useBuilderStore((s) => s.ui.dragDraft)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -355,7 +358,7 @@ function ElmView({
         <div className="h-full flex items-center px-2">{mergedProps?.text ?? 'Text'}</div>
       )}
       {elm.type === 'code' && <CodePreview elm={{ ...elm, props: mergedProps }} />}
-      {isSel && !elm.locked && <ResizeHandles elm={elm} />}
+      {isSel && !elm.locked && selectedIds.length === 1 && <ResizeHandles elm={elm} />}
       {elm.children?.map((cid) => {
         const c = all.find((e) => e.id === cid)
         return c ? (
@@ -378,6 +381,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const els = useBuilderStore((s) => s.elements)
   const select = useBuilderStore((s) => s.select)
   const addSelect = useBuilderStore((s) => s.addSelect)
+  const selectedIds = useBuilderStore((s) => s.selectedIds)
   const toggleSelect = useBuilderStore((s) => s.toggleSelect)
   const nudge = useBuilderStore((s) => s.nudge)
   const align = useBuilderStore((s) => s.align)
@@ -584,8 +588,8 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
                 runtimeProps={runtimeProps}
               />
             ))}
-          <SelectionBBox />
         </div>
+        {selectedIds.length >= 2 && <SelectionBBox />}
         <CanvasOverlay marquee={marquee ?? undefined} />
         <Rulers
           width={1200}
