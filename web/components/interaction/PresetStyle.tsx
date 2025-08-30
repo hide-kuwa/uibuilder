@@ -1,24 +1,38 @@
 'use client'
 import * as React from 'react'
 import { useInteractionRegistry } from '@/store/interactionRegistry'
-import { useEditorStore } from '@/store/editorStore'
 import { buildCombinedCss } from '@/lib/interactionCss'
 import type { Effect } from '@/types/interactions'
 
-export default function PresetStyle({ nodeId }: { nodeId: string }) {
-  const node = useEditorStore((s) => s.tree.find((n:any) => n.id === nodeId))
-  const { presets } = useInteractionRegistry()
-  if (!node) return null
+interface Props {
+  nodeId: string
+  presetIds?: string[] | null
+  presetId?: string | null
+  hoverEffects?: Effect[] | null
+  hoverTransitionMs?: number | null
+}
 
-  const props: any = node.props || {}
-  const ids: string[] = Array.isArray(props.presetIds)
-    ? props.presetIds
-    : (props.presetId ? [props.presetId] : [])
+export default function PresetStyle({
+  nodeId,
+  presetIds,
+  presetId,
+  hoverEffects,
+  hoverTransitionMs,
+}: Props) {
+  const { presets } = useInteractionRegistry()
+  const ids = Array.isArray(presetIds)
+    ? presetIds
+    : presetId
+      ? [presetId]
+      : []
 
   const chosen = presets.filter((p) => ids.includes(p.id))
-  const inline = props.hoverEffects as Effect[] | undefined
-  const ms = props.hoverTransitionMs as number | undefined
-  const css = buildCombinedCss(node.id, chosen, inline, ms)
+  const css = buildCombinedCss(
+    nodeId,
+    chosen,
+    hoverEffects || undefined,
+    hoverTransitionMs || undefined,
+  )
 
   return css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null
 }
