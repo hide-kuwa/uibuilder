@@ -34,7 +34,7 @@ import { idbStorage } from "@/lib/idb";
 import { initPersist, schedulePersist } from "@/lib/persist";
 import { push, undo as undoStack, redo as redoStack } from "./undoRedo";
 import { resolveVariantRoot } from "@/lib/variant/resolve";
-import { resolveBinding } from "@/lib/binding/resolve";
+import { resolveComponentBinding } from "@/lib/binding/resolve";
 import { mapNodesForSwap } from "@/lib/override/compat";
 import { resolveOverrides } from "@/lib/override/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
@@ -737,7 +737,7 @@ export const useEditorStore = create<
     if (!def) return;
     let resolved = resolveVariant(def, inst.variant);
     if (inst.propValues) {
-      resolved = resolveBinding(resolved, def.props, inst.propValues || {});
+      resolved = resolveComponentBinding(resolved, def.props, inst.propValues || {});
     }
     if (inst.overrides) {
       resolved = resolveOverrides(resolved, inst.overrides);
