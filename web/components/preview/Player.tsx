@@ -10,8 +10,33 @@ import { useBindingStore } from '@/store/bindingStore';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
 import PresetStyle from '@/components/interaction/PresetStyle';
+import {
+  runActionsForNode,
+  type ActionRuntimeContext,
+} from '@/lib/actions/runtime';
 
-function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
+function setByPath(obj: any, path: string, value: any) {
+  const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i];
+    if (typeof cur[k] !== 'object' || cur[k] === null) cur[k] = {};
+    cur = cur[k];
+  }
+  cur[keys[keys.length - 1]] = value;
+}
+
+function NodeRenderer({
+  node,
+  onLink,
+  ctx,
+  runtimeProps,
+}: {
+  node: ComponentNode;
+  onLink: (l: PrototypeLink) => void;
+  ctx: ActionRuntimeContext;
+  runtimeProps: Record<string, any>;
+}) {
   const components = useEditorStore((s) => s.components);
   const sources = useBindingStore((s) => s.sources);
   const bindingsForNode = useBindingStore((s) =>
@@ -26,37 +51,53 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       resolved = resolveComponentBinding(resolved, def.props, inst.propValues || {});
     if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
     resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
-    return <NodeRenderer node={resolved} onLink={onLink} />;
+    return (
+      <NodeRenderer
+        node={resolved}
+        onLink={onLink}
+        ctx={ctx}
+        runtimeProps={runtimeProps}
+      />
+    );
   }
   const resolvedProps = resolveBinding(node.props || {}, bindingsForNode, sources);
-  const layout = resolvedProps.layout || 'free';
+  const merged = runtimeProps[node.id]
+    ? { ...resolvedProps, ...runtimeProps[node.id] }
+    : resolvedProps;
+  const layout = merged.layout || 'free';
   const style: any = {};
   if (layout === 'auto') {
     style.display = 'flex';
-    style.flexDirection = resolvedProps.axis === 'horizontal' ? 'row' : 'column';
-    if (resolvedProps.gap !== undefined) style.gap = resolvedProps.gap;
+    style.flexDirection = merged.axis === 'horizontal' ? 'row' : 'column';
+    if (merged.gap !== undefined) style.gap = merged.gap;
   } else {
     style.position = 'absolute';
-    style.left = resolvedProps.x || 0;
-    style.top = resolvedProps.y || 0;
+    style.left = merged.x || 0;
+    style.top = merged.y || 0;
   }
-  if (resolvedProps.w !== undefined) style.width = resolvedProps.w;
-  if (resolvedProps.h !== undefined) style.height = resolvedProps.h;
- 
+  if (merged.w !== undefined) style.width = merged.w;
+  if (merged.h !== undefined) style.height = merged.h;
+
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
+    runActionsForNode(node.id, 'click', ctx);
     if (!link) return;
     e.stopPropagation();
     const trig = link.trigger?.type || 'click';
     if (trig === 'click') onLink(link);
   };
   const handleHover = (e: any) => {
+    runActionsForNode(node.id, 'hover', ctx);
     if (!link) return;
     if (link.trigger?.type === 'hover') {
       e.stopPropagation();
       onLink(link);
     }
   };
+  useEffect(() => {
+    runActionsForNode(node.id, 'mount', ctx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id]);
   useEffect(() => {
     if (!link || link.trigger?.type !== 'delay') return;
     const id = setTimeout(() => onLink(link), link.trigger.ms ?? 300);
@@ -68,7 +109,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         style={style}
         data-node-id={node.id}
         data-node-type={node.type}
-        data-node-name={resolvedProps?.name}
+        data-node-name={merged?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
@@ -76,10 +117,10 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         <div className="w-full h-full bg-gray-300" />
         <PresetStyle
           nodeId={node.id}
-          presetIds={resolvedProps?.presetIds}
-          presetId={resolvedProps?.presetId}
-          hoverEffects={resolvedProps?.hoverEffects}
-          hoverTransitionMs={resolvedProps?.hoverTransitionMs}
+          presetIds={merged?.presetIds}
+          presetId={merged?.presetId}
+          hoverEffects={merged?.hoverEffects}
+          hoverTransitionMs={merged?.hoverTransitionMs}
         />
       </div>
     );
@@ -90,18 +131,18 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         style={style}
         data-node-id={node.id}
         data-node-type={node.type}
-        data-node-name={resolvedProps?.name}
+        data-node-name={merged?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
       >
-        {resolvedProps?.text}
+        {merged?.text}
         <PresetStyle
           nodeId={node.id}
-          presetIds={resolvedProps?.presetIds}
-          presetId={resolvedProps?.presetId}
-          hoverEffects={resolvedProps?.hoverEffects}
-          hoverTransitionMs={resolvedProps?.hoverTransitionMs}
+          presetIds={merged?.presetIds}
+          presetId={merged?.presetId}
+          hoverEffects={merged?.hoverEffects}
+          hoverTransitionMs={merged?.hoverTransitionMs}
         />
       </div>
     );
@@ -111,20 +152,26 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       style={style}
       data-node-id={node.id}
       data-node-type={node.type}
-      data-node-name={resolvedProps?.name}
+      data-node-name={merged?.name}
       onClick={handleClick}
       onMouseEnter={handleHover}
       className={link ? 'cursor-pointer' : undefined}
     >
       {node.children?.map((c) => (
-        <NodeRenderer key={c.id} node={c} onLink={onLink} />
+        <NodeRenderer
+          key={c.id}
+          node={c}
+          onLink={onLink}
+          ctx={ctx}
+          runtimeProps={runtimeProps}
+        />
       ))}
       <PresetStyle
         nodeId={node.id}
-        presetIds={resolvedProps?.presetIds}
-        presetId={resolvedProps?.presetId}
-        hoverEffects={resolvedProps?.hoverEffects}
-        hoverTransitionMs={resolvedProps?.hoverTransitionMs}
+        presetIds={merged?.presetIds}
+        presetId={merged?.presetId}
+        hoverEffects={merged?.hoverEffects}
+        hoverTransitionMs={merged?.hoverTransitionMs}
       />
     </div>
   );
@@ -229,6 +276,29 @@ export default function Player() {
     setTr({ fromId, toId, kind, t0: performance.now(), dur: 200 });
   }
 
+  const [runtimeProps, setRuntimeProps] = useState<Record<string, any>>({});
+  const navigateTo = (frameId: string) => {
+    if (!frameId) return;
+    setHistory((h) => {
+      const fromId = h[h.length - 1];
+      startTransition(fromId, frameId, 'dissolve');
+      return [...h, frameId];
+    });
+  };
+  const ctx = useMemo<ActionRuntimeContext>(
+    () => ({
+      getNode: (id) => findNode(tree, id) as ComponentNode | undefined,
+      setProp: (id, path, value) =>
+        setRuntimeProps((prev) => {
+          const next = { ...(prev[id] || {}) };
+          setByPath(next, path, value);
+          return { ...prev, [id]: next };
+        }),
+      navigate: navigateTo,
+    }),
+    [tree],
+  );
+
   const progress = useTransitionProgress(tr);
 
   useEffect(() => {
@@ -259,11 +329,21 @@ export default function Player() {
       />
       {tr && tr.kind === 'dissolve' && (
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: 1 - progress }}>
-          <NodeRenderer node={findNode(tree, tr.fromId)!} onLink={handleLink} />
+          <NodeRenderer
+            node={findNode(tree, tr.fromId)!}
+            onLink={handleLink}
+            ctx={ctx}
+            runtimeProps={runtimeProps}
+          />
         </div>
       )}
       <div className="absolute inset-0" style={{ opacity: tr?.kind === 'dissolve' ? progress : 1 }}>
-        <NodeRenderer node={current} onLink={handleLink} />
+        <NodeRenderer
+          node={current}
+          onLink={handleLink}
+          ctx={ctx}
+          runtimeProps={runtimeProps}
+        />
       </div>
       {overlay && (
         <div
@@ -271,7 +351,12 @@ export default function Player() {
           onClick={() => setOverlay(null)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <NodeRenderer node={findNode(tree, overlay)!} onLink={handleLink} />
+            <NodeRenderer
+              node={findNode(tree, overlay)!}
+              onLink={handleLink}
+              ctx={ctx}
+              runtimeProps={runtimeProps}
+            />
           </div>
         </div>
       )}
