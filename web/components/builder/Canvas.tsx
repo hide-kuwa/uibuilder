@@ -3,15 +3,14 @@ import React from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
+import { useGridStore } from '@/store/gridStore'
 import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
 import NodeWrapper from './NodeWrapper'
 
-const GRID = 8
-function bgGridStyle() {
-  const s = GRID
+function bgGridStyle(s: number) {
   return {
     backgroundImage:
       'linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)',
@@ -293,6 +292,8 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const nudge = useBuilderStore((s) => s.nudge)
   const align = useBuilderStore((s) => s.align)
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
+  const gridSize = useGridStore((s) => s.size)
+  const gridVisible = useGridStore((s) => s.visible)
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -308,14 +309,14 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') align('vSpace')
         return
       }
-      if (e.key === 'ArrowUp') nudge(0, -GRID)
-      if (e.key === 'ArrowDown') nudge(0, GRID)
-      if (e.key === 'ArrowLeft') nudge(-GRID, 0)
-      if (e.key === 'ArrowRight') nudge(GRID, 0)
+      if (e.key === 'ArrowUp') nudge(0, -gridSize)
+      if (e.key === 'ArrowDown') nudge(0, gridSize)
+      if (e.key === 'ArrowLeft') nudge(-gridSize, 0)
+      if (e.key === 'ArrowRight') nudge(gridSize, 0)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nudge, align])
+  }, [nudge, align, gridSize])
 
   return (
     <div className="h-full w-full flex items-center justify-center bg-black">
@@ -331,7 +332,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           if (e.target === e.currentTarget) select(null)
         }}
         className="relative w-[1200px] h-[720px] border border-zinc-800 rounded-lg overflow-hidden"
-        style={bgGridStyle()}
+        style={gridVisible ? bgGridStyle(gridSize) : undefined}
       >
         {/* page base pseudo preview */}
         <div className="absolute inset-0 pointer-events-none" />

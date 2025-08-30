@@ -1,4 +1,5 @@
 import type { Elm } from '@/store/builderStore'
+import { useGridStore } from '@/store/gridStore'
 
 export type SnapPoints = {
   x: { left: number[]; center: number[]; right: number[] }
@@ -25,7 +26,6 @@ export function collectSnapPoints(elements: Elm[], exceptId?: string): SnapPoint
 export type Rect = { x: number; y: number; w: number; h: number }
 export type GuideLine = { axis: 'x' | 'y'; pos: number }
 
-const GRID = 8
 const SNAP_THRESHOLD = 6
 
 export function snapRect(
@@ -35,11 +35,13 @@ export function snapRect(
 ): { rect: Rect; guides: GuideLine[] } {
   const threshold = opts.threshold ?? SNAP_THRESHOLD
   const mode = opts.mode ?? 'move'
+  const { snap, size } = useGridStore.getState()
+  if (!snap) return { rect, guides: [] }
   let { x, y, w, h } = rect
-  x = Math.round(x / GRID) * GRID
-  y = Math.round(y / GRID) * GRID
-  w = Math.round(w / GRID) * GRID
-  h = Math.round(h / GRID) * GRID
+  x = Math.round(x / size) * size
+  y = Math.round(y / size) * size
+  w = Math.round(w / size) * size
+  h = Math.round(h / size) * size
 
   const left = x
   const right = x + w
