@@ -15,6 +15,7 @@ import { Inspector } from '@/components/builder/Inspector'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 import { PagesPanel } from '@/components/builder/PagesPanel'
+import LayersPanel from '@/components/builder/LayersPanel'
 import { usePageStore } from '@/store/pageStore'
 import { DeviceFrame } from '@/components/hud/DeviceFrame'
 import { GridOverlay } from '@/components/hud/GridOverlay'
@@ -180,6 +181,10 @@ export default function BuilderPage() {
         <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-3">
           <h2 className="text-sm font-semibold mb-2">パレット</h2>
           <Palette />
+        </aside>
+        <aside className="w-56 border-r border-zinc-800 bg-zinc-950/40 p-3">
+          <h2 className="text-sm font-semibold mb-2">Layers</h2>
+          <LayersPanel />
         </aside>
         <main className="flex-1 relative">
           <DeviceFrame>

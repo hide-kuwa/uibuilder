@@ -17,6 +17,9 @@ export type Elm = {
   w: number
   h: number
   visible?: boolean
+  locked?: boolean
+  parentId?: string | null
+  children?: string[]
   props?: {
     text?: string
     color?: string
@@ -81,6 +84,11 @@ type BuilderActions = {
     id: string,
     patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
   ) => void
+  reorder: (idsInOrder: string[]) => void
+  setVisible: (id: string, v: boolean) => void
+  setLocked: (id: string, v: boolean) => void
+  group: (ids: string[]) => void
+  ungroup: (id: string) => void
   deleteSelected: () => void
   bringToFront: (id: string) => void
   sendToBack: (id: string) => void
@@ -141,6 +149,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           w,
           h,
           visible: true,
+          locked: false,
+          parentId: null,
           code: {
             displayName: meta?.displayName ?? 'Component',
             importPath: meta?.importPath ?? '',
@@ -157,6 +167,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           w,
           h,
           visible: true,
+          locked: false,
+          parentId: null,
           props: {
             text,
             bg: type === 'button' ? '#0ea5e9' : '#111827',
@@ -171,18 +183,51 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
 
   move(id, to, snapGrid = true) {
     apply((draft: BuilderState) => {
+      const updateParent = (child: Elm) => {
+        if (!child.parentId) return
+        const parent = draft.elements.find((x) => x.id === child.parentId)
+        if (!parent || !parent.children) return
+        const kids = parent.children
+          .map((cid) => draft.elements.find((x) => x.id === cid))
+          .filter(Boolean) as Elm[]
+        const x1 = Math.min(...kids.map((k) => k.x))
+        const y1 = Math.min(...kids.map((k) => k.y))
+        const x2 = Math.max(...kids.map((k) => k.x + k.w))
+        const y2 = Math.max(...kids.map((k) => k.y + k.h))
+        parent.x = x1
+        parent.y = y1
+        parent.w = x2 - x1
+        parent.h = y2 - y1
+        updateParent(parent)
+      }
       const e = draft.elements.find((x) => x.id === id)
-      if (!e) return
+      if (!e || e.locked) return
       const { snap } = useGridStore.getState()
-      e.x = snapGrid && snap ? snapToGrid(to.x) : to.x
-      e.y = snapGrid && snap ? snapToGrid(to.y) : to.y
+      const nx = snapGrid && snap ? snapToGrid(to.x) : to.x
+      const ny = snapGrid && snap ? snapToGrid(to.y) : to.y
+      const dx = nx - e.x
+      const dy = ny - e.y
+      e.x = nx
+      e.y = ny
+      if (e.children) {
+        e.children.forEach((cid) => {
+          const c = draft.elements.find((x) => x.id === cid)
+          if (c) {
+            c.x += dx
+            c.y += dy
+            updateParent(c)
+          }
+        })
+      } else {
+        updateParent(e)
+      }
     })
   },
 
   resize(id, to, snapGrid = true) {
     apply((draft: BuilderState) => {
       const e = draft.elements.find((x) => x.id === id)
-      if (!e) return
+      if (!e || e.locked || (e.children && e.children.length)) return
       const { snap } = useGridStore.getState()
       e.w = Math.max(16, snapGrid && snap ? snapToGrid(to.w) : to.w)
       e.h = Math.max(16, snapGrid && snap ? snapToGrid(to.h) : to.h)
@@ -358,6 +403,74 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     })
   },
 
+  reorder(idsInOrder) {
+    apply((draft: BuilderState) => {
+      const map = new Map(idsInOrder.map((id, i) => [id, i]))
+      draft.elements.sort((a, b) => {
+        const ai = map.get(a.id) ?? Number.MAX_SAFE_INTEGER
+        const bi = map.get(b.id) ?? Number.MAX_SAFE_INTEGER
+        return ai - bi
+      })
+    })
+  },
+
+  setVisible(id, v) {
+    apply((draft: BuilderState) => {
+      const e = draft.elements.find((x) => x.id === id)
+      if (e) e.visible = v
+    })
+  },
+
+  setLocked(id, v) {
+    apply((draft: BuilderState) => {
+      const e = draft.elements.find((x) => x.id === id)
+      if (e) e.locked = v
+    })
+  },
+
+  group(ids) {
+    apply((draft: BuilderState) => {
+      const children = draft.elements.filter((e) => ids.includes(e.id))
+      if (children.length < 2) return
+      const x1 = Math.min(...children.map((e) => e.x))
+      const y1 = Math.min(...children.map((e) => e.y))
+      const x2 = Math.max(...children.map((e) => e.x + e.w))
+      const y2 = Math.max(...children.map((e) => e.y + e.h))
+      const id = `grp_${Date.now().toString(36)}`
+      draft.elements.push({
+        id,
+        type: 'group' as ElmType,
+        x: x1,
+        y: y1,
+        w: x2 - x1,
+        h: y2 - y1,
+        visible: true,
+        locked: false,
+        parentId: null,
+        children: ids.slice(),
+      })
+      children.forEach((c) => (c.parentId = id))
+      draft.selectedId = id
+      draft.selectedIds = [id]
+    })
+  },
+
+  ungroup(id) {
+    apply((draft: BuilderState) => {
+      const gIdx = draft.elements.findIndex((e) => e.id === id)
+      if (gIdx < 0) return
+      const g = draft.elements[gIdx]
+      if (!g.children) return
+      g.children.forEach((cid) => {
+        const c = draft.elements.find((e) => e.id === cid)
+        if (c) c.parentId = g.parentId ?? null
+      })
+      draft.elements.splice(gIdx, 1)
+      draft.selectedId = null
+      draft.selectedIds = []
+    })
+  },
+
   deleteSelected() {
     const id = get().selectedId
     if (!id) return
@@ -425,5 +538,6 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       console.error('Failed to hydrate builder state', e)
     }
   },
-})
+  });
+
 
