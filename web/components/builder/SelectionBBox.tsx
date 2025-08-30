@@ -3,13 +3,13 @@ import React from 'react'
 import { useBuilderStore } from '@/store/builderStore'
 import { snapRect, collectSnapPoints } from '@/lib/builder/snap'
 import { useViewStore } from '@/store/viewStore'
+import { screenToWorld } from '@/lib/coord'
 
 export function SelectionBBox() {
   const selectedIds = useBuilderStore((s) => s.selectedIds)
   const elements = useBuilderStore((s) => s.elements)
-    const updateMany = useBuilderStore((s) => s.updateMany)
-    const clearGuides = useBuilderStore((s) => s.clearGuides)
-  const screenToWorld = useViewStore((s) => s.screenToWorld)
+  const updateMany = useBuilderStore((s) => s.updateMany)
+  const clearGuides = useBuilderStore((s) => s.clearGuides)
   const worldToScreen = useViewStore((s) => s.worldToScreen)
   const zoom = useViewStore((s) => s.zoom)
   if (selectedIds.length < 2) return null
@@ -23,25 +23,27 @@ export function SelectionBBox() {
   const onPointerDown = (e: React.PointerEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    const start = screenToWorld({ x: e.clientX, y: e.clientY })
+    const root = (e.currentTarget as HTMLElement).closest('[data-canvas-root]') as HTMLElement
+    const rect = root.getBoundingClientRect()
+    const start = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
     const startBox = { ...bbox }
     const snapPoints = collectSnapPoints(elements, undefined)
     const move = (ev: PointerEvent) => {
-      const p = screenToWorld({ x: ev.clientX, y: ev.clientY })
+      const p = screenToWorld(ev.clientX - rect.left, ev.clientY - rect.top)
       const dx = p.x - start.x
       const dy = p.y - start.y
-      const { rect } = snapRect(
+      const { rect: r } = snapRect(
         { x: startBox.x + dx, y: startBox.y + dy, w: startBox.w, h: startBox.h },
         snapPoints,
         { mode: 'move' },
       )
-      const patches = selected.map((el) => ({ id: el.id, patch: { x: el.x + rect.x - bbox.x, y: el.y + rect.y - bbox.y } }))
+      const patches = selected.map((el) => ({ id: el.id, patch: { x: el.x + r.x - bbox.x, y: el.y + r.y - bbox.y } }))
       updateMany(patches)
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-        clearGuides()
+      clearGuides()
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
