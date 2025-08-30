@@ -2,6 +2,8 @@
 import { useEditorStore } from '@/store/editorStore';
 import { useState } from 'react';
 import ActionPresetField from '@/components/props/ActionPresetField';
+import { useUnitStore } from '@/store/unitStore';
+import { worldToUnit, unitToWorld } from '@/lib/units';
 
 export default function RightInspector() {
   const selected = useEditorStore((s) => s.selectedIds[0]);
@@ -12,6 +14,11 @@ export default function RightInspector() {
   const update = useEditorStore((s) => s.updateNode);
   const setLayout = useEditorStore((s) => s.setLayoutProps);
   const setVariant = useEditorStore((s) => s.setInstanceVariant);
+  const { unit, remBase, percentBase } = useUnitStore((s) => ({
+    unit: s.unit,
+    remBase: s.remBase,
+    percentBase: s.percentBase,
+  }));
   const [form, setForm] = useState({
     x: node?.props?.x || 0,
     y: node?.props?.y || 0,
@@ -23,7 +30,12 @@ export default function RightInspector() {
   if (!selected) return <div className="bg-gray-800" />;
 
   const handleChange = (key: keyof typeof form, value: number) => {
-    const next = { ...form, [key]: value };
+    let pxValue = value;
+    if (key !== 'rotation') {
+      const base = key === 'x' || key === 'w' ? percentBase.width : percentBase.height;
+      pxValue = unitToWorld(value, unit, base, remBase);
+    }
+    const next = { ...form, [key]: pxValue };
     setForm(next);
     // 既存 props を保持して上書き
     update(selected, { props: { ...(node?.props || {}), ...next } });
@@ -33,19 +45,28 @@ export default function RightInspector() {
     ? components[(node as any).componentId]
     : null;
 
+  const unitLabel = unit === 'percent' ? '%' : unit
+
   return (
     <div className="bg-gray-800 p-2 space-y-2 overflow-y-auto">
-      {(['x', 'y', 'w', 'h', 'rotation'] as const).map((k) => (
-        <label key={k} className="block text-xs">
-          {k.toUpperCase()}:
-          <input
-            type="number"
-            className="w-full bg-gray-700 ml-1 p-1 text-white"
-            value={form[k]}
-            onChange={(e) => handleChange(k, Number(e.target.value))}
-          />
-        </label>
-      ))}
+      {(['x', 'y', 'w', 'h', 'rotation'] as const).map((k) => {
+        const base = k === 'x' || k === 'w' ? percentBase.width : percentBase.height
+        const value =
+          k === 'rotation'
+            ? form[k]
+            : worldToUnit(form[k], unit, base, remBase)
+        return (
+          <label key={k} className="block text-xs">
+            {k.toUpperCase()} {k !== 'rotation' ? `(${unitLabel})` : ''}:
+            <input
+              type="number"
+              className="w-full bg-gray-700 ml-1 p-1 text-white"
+              value={value}
+              onChange={(e) => handleChange(k, Number(e.target.value))}
+            />
+          </label>
+        )
+      })}
       {comp && comp.axes && (
         <div className="mt-2 space-y-1">
           <h3 className="text-xs font-bold">Variants</h3>
