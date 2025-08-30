@@ -4,7 +4,11 @@ import { useBuilderStore } from '@/store/builderStore'
 import { useGuidesStore } from '@/store/guidesStore'
 import { Toolbar } from './Toolbar'
 
-export function CanvasOverlay() {
+export function CanvasOverlay({
+  marquee,
+}: {
+  marquee?: { x: number; y: number; w: number; h: number }
+}) {
   const snapGuides = useBuilderStore((s) => s.ui.guides)
   const selectedIds = useBuilderStore((s) => s.selectedIds)
   const align = useBuilderStore((s) => s.align)
@@ -12,6 +16,17 @@ export function CanvasOverlay() {
   const guides = useGuidesStore((s) => s.guides.filter((g) => g.visible))
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
+      {marquee && (
+        <div
+          className="absolute border border-amber-400/70 bg-amber-400/10"
+          style={{
+            left: marquee.x,
+            top: marquee.y,
+            width: marquee.w,
+            height: marquee.h,
+          }}
+        />
+      )}
       {guides.map((g) =>
         g.axis === 'x' ? (
           <div

@@ -11,6 +11,7 @@ import { SidebarView } from '@/components/app/SidebarView'
 import NodeWrapper from './NodeWrapper'
 import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
+import { intersects } from '@/lib/geom'
 
 function bgGridStyle(s: number) {
   return {
@@ -228,6 +229,8 @@ function ResizeHandles({ elm }: { elm: Elm }) {
 
 function ElmView({ elm }: { elm: Elm }) {
   const select = useBuilderStore((s) => s.select)
+  const addSelect = useBuilderStore((s) => s.addSelect)
+  const toggleSelect = useBuilderStore((s) => s.toggleSelect)
   const selectedId = useBuilderStore((s) => s.selectedId)
   const isSel = selectedId === elm.id
   const dragDraft = useBuilderStore((s) => s.ui.dragDraft)
@@ -259,7 +262,11 @@ function ElmView({ elm }: { elm: Elm }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onMouseDown={() => select(elm.id)}
+      onMouseDown={(e) => {
+        if (e.shiftKey) addSelect(elm.id)
+        else if (e.altKey || e.ctrlKey) toggleSelect(elm.id)
+        else select(elm.id)
+      }}
       className={`${common} ${border} ${shadow} cursor-move ${isDragging ? 'opacity-60' : ''}`}
       id={elm.id}
       type={elm.type}
@@ -291,12 +298,17 @@ function ElmView({ elm }: { elm: Elm }) {
 export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElement> }) {
   const els = useBuilderStore((s) => s.elements)
   const select = useBuilderStore((s) => s.select)
+  const addSelect = useBuilderStore((s) => s.addSelect)
+  const toggleSelect = useBuilderStore((s) => s.toggleSelect)
   const nudge = useBuilderStore((s) => s.nudge)
   const align = useBuilderStore((s) => s.align)
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
   const setPercentBase = useUnitStore((s) => s.setPercentBase)
+  const [marquee, setMarquee] = React.useState<
+    { x: number; y: number; w: number; h: number } | null
+  >(null)
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -344,8 +356,58 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           // @ts-ignore
           canvasRef.current = n
         }}
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) select(null)
+        onPointerDown={(e) => {
+          if (e.button !== 0) return
+          if (e.target !== e.currentTarget) return
+          const rect = e.currentTarget.getBoundingClientRect()
+          const startX = e.clientX - rect.left
+          const startY = e.clientY - rect.top
+          let box = { x: startX, y: startY, w: 0, h: 0 }
+          setMarquee(box)
+          const onMove = (ev: PointerEvent) => {
+            const x = ev.clientX - rect.left
+            const y = ev.clientY - rect.top
+            const mx = Math.min(x, startX)
+            const my = Math.min(y, startY)
+            const mw = Math.abs(x - startX)
+            const mh = Math.abs(y - startY)
+            box = { x: mx, y: my, w: mw, h: mh }
+            setMarquee(box)
+          }
+          const onUp = (ev: PointerEvent) => {
+            window.removeEventListener('pointermove', onMove)
+            window.removeEventListener('pointerup', onUp)
+            const x = ev.clientX - rect.left
+            const y = ev.clientY - rect.top
+            const mx = Math.min(x, startX)
+            const my = Math.min(y, startY)
+            const mw = Math.abs(x - startX)
+            const mh = Math.abs(y - startY)
+            const final = { x: mx, y: my, w: mw, h: mh }
+            setMarquee(null)
+            if (mw < 2 && mh < 2) {
+              if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey) select(null)
+              return
+            }
+            const ids = useBuilderStore
+              .getState()
+              .elements.filter(
+                (el) =>
+                  el.visible !== false &&
+                  intersects(final, {
+                    x: el.x,
+                    y: el.y,
+                    w: el.w,
+                    h: el.h,
+                  }),
+              )
+              .map((el) => el.id)
+            if (ev.shiftKey) addSelect(ids)
+            else if (ev.altKey || ev.ctrlKey) toggleSelect(ids)
+            else select(ids)
+          }
+          window.addEventListener('pointermove', onMove)
+          window.addEventListener('pointerup', onUp)
         }}
         className="relative w-[1200px] h-[720px] border border-zinc-800 rounded-lg overflow-hidden"
         style={gridVisible ? bgGridStyle(gridSize) : undefined}
@@ -355,7 +417,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         {els.map((e) => (
           <ElmView key={e.id} elm={e} />
         ))}
-        <CanvasOverlay />
+        <CanvasOverlay marquee={marquee ?? undefined} />
         <Rulers width={1200} height={720} canvasRef={canvasRef} />
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
           drag to move • drop from Palette • arrows to nudge • click empty = unselect

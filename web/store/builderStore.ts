@@ -62,6 +62,9 @@ type BuilderActions = {
   setGuides: (lines: Array<{ axis: 'x' | 'y'; pos: number }>) => void
   clearGuides: () => void
   select: (id: string | string[] | null) => void
+  addSelect: (id: string | string[]) => void
+  removeSelect: (id: string | string[]) => void
+  toggleSelect: (id: string | string[]) => void
   align: (
     kind:
       | 'left'
@@ -210,6 +213,43 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     } else {
       set({ selectedId: id, selectedIds: id ? [id] : [] })
     }
+  },
+
+  addSelect(id) {
+    const ids = Array.isArray(id) ? id : [id]
+    set(
+      produce((draft: BuilderState) => {
+        ids.forEach((i) => {
+          if (!draft.selectedIds.includes(i)) draft.selectedIds.push(i)
+        })
+        draft.selectedId = draft.selectedIds[draft.selectedIds.length - 1] ?? null
+      }),
+    )
+  },
+
+  removeSelect(id) {
+    const ids = Array.isArray(id) ? id : [id]
+    set(
+      produce((draft: BuilderState) => {
+        draft.selectedIds = draft.selectedIds.filter((i) => !ids.includes(i))
+        draft.selectedId =
+          draft.selectedIds[draft.selectedIds.length - 1] ?? null
+      }),
+    )
+  },
+
+  toggleSelect(id) {
+    const ids = Array.isArray(id) ? id : [id]
+    set(
+      produce((draft: BuilderState) => {
+        ids.forEach((i) => {
+          const idx = draft.selectedIds.indexOf(i)
+          if (idx >= 0) draft.selectedIds.splice(idx, 1)
+          else draft.selectedIds.push(i)
+        })
+        draft.selectedId = draft.selectedIds[draft.selectedIds.length - 1] ?? null
+      }),
+    )
   },
 
   align(kind) {
