@@ -40,6 +40,7 @@ export type Elm = {
 type BuilderState = {
   elements: Elm[]
   selectedId: string | null
+  selectedIds: string[]
   snap: number
   ui: {
     dragDraft?: { id: string; rect: { x: number; y: number; w: number; h: number } }
@@ -60,7 +61,18 @@ type BuilderActions = {
   ) => void
   setGuides: (lines: Array<{ axis: 'x' | 'y'; pos: number }>) => void
   clearGuides: () => void
-  select: (id: string | null) => void
+  select: (id: string | string[] | null) => void
+  align: (
+    kind:
+      | 'left'
+      | 'centerX'
+      | 'right'
+      | 'top'
+      | 'centerY'
+      | 'bottom'
+      | 'hSpace'
+      | 'vSpace',
+  ) => void
   updateProps: (
     id: string,
     patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
@@ -88,6 +100,7 @@ function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
 export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => ({
   elements: [],
   selectedId: null,
+  selectedIds: [],
   snap: SNAP,
   ui: { guides: [] },
 
@@ -136,6 +149,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           })
         }
         draft.selectedId = id
+        draft.selectedIds = [id]
       }),
     )
   },
@@ -187,7 +201,93 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   },
 
   select(id) {
-    set({ selectedId: id })
+    if (Array.isArray(id)) {
+      set({ selectedId: id[id.length - 1] ?? null, selectedIds: id })
+    } else {
+      set({ selectedId: id, selectedIds: id ? [id] : [] })
+    }
+  },
+
+  align(kind) {
+    const ids = get().selectedIds
+    const els = get()
+      .elements.filter((e) => ids.includes(e.id) && e.visible !== false)
+    if (els.length < 2) return
+    const x1 = Math.min(...els.map((e) => e.x))
+    const y1 = Math.min(...els.map((e) => e.y))
+    const x2 = Math.max(...els.map((e) => e.x + e.w))
+    const y2 = Math.max(...els.map((e) => e.y + e.h))
+    set(
+      produce((draft: BuilderState) => {
+        const targets = draft.elements.filter((e) =>
+          ids.includes(e.id) && e.visible !== false,
+        )
+        switch (kind) {
+          case 'left':
+            targets.forEach((e) => {
+              e.x = x1
+            })
+            break
+          case 'centerX': {
+            const cx = (x1 + x2) / 2
+            targets.forEach((e) => {
+              e.x = Math.round(cx - e.w / 2)
+            })
+            break
+          }
+          case 'right':
+            targets.forEach((e) => {
+              e.x = x2 - e.w
+            })
+            break
+          case 'top':
+            targets.forEach((e) => {
+              e.y = y1
+            })
+            break
+          case 'centerY': {
+            const cy = (y1 + y2) / 2
+            targets.forEach((e) => {
+              e.y = Math.round(cy - e.h / 2)
+            })
+            break
+          }
+          case 'bottom':
+            targets.forEach((e) => {
+              e.y = y2 - e.h
+            })
+            break
+          case 'hSpace': {
+            const sorted = [...targets].sort((a, b) => a.x - b.x)
+            const min = sorted[0].x
+            const max = sorted[sorted.length - 1].x +
+              sorted[sorted.length - 1].w
+            const total = sorted.reduce((s, e) => s + e.w, 0)
+            const gap = sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
+            let cur = min
+            sorted.forEach((e) => {
+              e.x = cur
+              cur += e.w + gap
+            })
+            break
+          }
+          case 'vSpace': {
+            const sorted = [...targets].sort((a, b) => a.y - b.y)
+            const min = sorted[0].y
+            const max = sorted[sorted.length - 1].y +
+              sorted[sorted.length - 1].h
+            const total = sorted.reduce((s, e) => s + e.h, 0)
+            const gap = sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
+            let cur = min
+            sorted.forEach((e) => {
+              e.y = cur
+              cur += e.h + gap
+            })
+            break
+          }
+        }
+      }),
+    )
   },
 
   updateProps(id, patch) {
