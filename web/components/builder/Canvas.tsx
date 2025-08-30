@@ -9,6 +9,7 @@ import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
 import NodeWrapper from './NodeWrapper'
+import { Rulers } from './Rulers'
 
 function bgGridStyle(s: number) {
   return {
@@ -340,6 +341,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           <ElmView key={e.id} elm={e} />
         ))}
         <CanvasOverlay />
+        <Rulers width={1200} height={720} canvasRef={canvasRef} />
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
           drag to move • drop from Palette • arrows to nudge • click empty = unselect
         </div>

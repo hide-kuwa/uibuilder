@@ -5,11 +5,15 @@ export type Guide = {
   id: string
   axis: 'x' | 'y'   // x=垂直ガイド, y=水平ガイド
   pos: number       // ワールド(px)座標。%やremは変換後にここへ格納
+  locked: boolean
+  visible: boolean
 }
 
 type GuidesState = {
   guides: Guide[]
+  /** 全体表示切替 */
   visible: boolean
+  /** 全体ロック */
   locked: boolean
   unit: Unit
   baseRemPx: number
@@ -17,10 +21,12 @@ type GuidesState = {
   smartEnabled: boolean
   smartSnapPx?: number
   preview: { axis: 'x'|'y'; pos: number } | null
-  addGuide: (g: Omit<Guide, 'id'> & { id?: string }) => string
+  addGuide: (g: Omit<Guide, 'id'|'locked'|'visible'> & { id?: string }) => string
   moveGuide: (id: string, pos: number) => void
   removeGuide: (id: string) => void
   clearGuides: () => void
+  toggleGuideLock: (id: string) => void
+  toggleGuideVisible: (id: string) => void
   setVisible: (v: boolean) => void
   setLocked: (v: boolean) => void
   setUnit: (u: Unit) => void
@@ -50,21 +56,42 @@ export const useGuidesStore = create<GuidesState>((set, get) => ({
 
   addGuide: (g) => {
     const id = g.id ?? uid()
-    set((s) => ({ guides: [...s.guides, { id, axis: g.axis, pos: g.pos }] }))
+    set((s) => ({
+      guides: [
+        ...s.guides,
+        { id, axis: g.axis, pos: g.pos, locked: false, visible: true },
+      ],
+    }))
     return id
   },
 
   moveGuide: (id, pos) => {
     if (get().locked) return
     set((s) => ({
-      guides: s.guides.map((gg) => (gg.id === id ? { ...gg, pos } : gg)),
+      guides: s.guides.map((gg) =>
+        gg.id === id ? (gg.locked ? gg : { ...gg, pos }) : gg,
+      ),
     }))
   },
 
   removeGuide: (id) =>
-    set((s) => ({ guides: s.guides.filter((g) => g.id !== id) })),
+    set((s) => ({ guides: s.guides.filter((g) => g.id !== id || g.locked) })),
 
   clearGuides: () => set({ guides: [] }),
+
+  toggleGuideLock: (id) =>
+    set((s) => ({
+      guides: s.guides.map((g) =>
+        g.id === id ? { ...g, locked: !g.locked } : g,
+      ),
+    })),
+
+  toggleGuideVisible: (id) =>
+    set((s) => ({
+      guides: s.guides.map((g) =>
+        g.id === id ? { ...g, visible: !g.visible } : g,
+      ),
+    })),
 
   setVisible: (v) => set({ visible: v }),
   setLocked: (v) => set({ locked: v }),

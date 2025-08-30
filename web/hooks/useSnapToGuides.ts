@@ -19,15 +19,15 @@ export const useSnapToGuides = (
   mode: 'move' | 'resize',
   zoom: number
 ): SnapResult => {
-  const { guides, visible, snapPx } = useGuidesStore((s) => ({
-    guides: s.guides,
-    visible: s.visible,
+  const { guides, globalVisible, snapPx } = useGuidesStore((s) => ({
+    guides: s.guides.filter((g) => g.visible),
+    globalVisible: s.visible,
     snapPx: s.snapPx,
   }))
   const thresholdWorld = snapPx / Math.max(zoom, 0.01)
 
   return useMemo(() => {
-    if (!visible || guides.length === 0) {
+    if (!globalVisible || guides.length === 0) {
       return { rect: draftRect, snapped: false, active: [] }
     }
 
@@ -77,5 +77,5 @@ export const useSnapToGuides = (
     const active = [ax, ay].filter(Boolean) as {axis:'x'|'y'; at:number}[]
 
     return { rect, snapped: true, active }
-  }, [draftRect, visible, guides, thresholdWorld])
+  }, [draftRect, globalVisible, guides, thresholdWorld])
 }
