@@ -82,6 +82,8 @@ type BuilderActions = {
   sendToBack: (id: string) => void
   nudge: (dx: number, dy: number) => void
   setElements: (els: Elm[]) => void
+  serialize: () => string
+  hydrate: (json: string) => void
 }
 
 function snapToGrid(n: number) {
@@ -363,6 +365,21 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
         draft.elements = els
       }),
     )
+  },
+
+  serialize() {
+    return JSON.stringify({ elements: get().elements })
+  },
+
+  hydrate(json) {
+    try {
+      const data = JSON.parse(json)
+      if (Array.isArray(data.elements)) {
+        set({ elements: data.elements, selectedId: null, selectedIds: [], ui: { guides: [] } })
+      }
+    } catch (e) {
+      console.error('Failed to hydrate builder state', e)
+    }
   },
 }))
 

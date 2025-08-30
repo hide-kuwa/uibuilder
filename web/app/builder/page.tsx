@@ -19,6 +19,7 @@ import { usePageStore } from '@/store/pageStore'
 import { DeviceFrame } from '@/components/hud/DeviceFrame'
 import { GridOverlay } from '@/components/hud/GridOverlay'
 import { BuilderHUD } from '@/components/hud/BuilderHUD'
+import { useAutosave } from '@/hooks/useAutosave'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -30,6 +31,7 @@ export default function BuilderPage() {
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
   const setElements = useBuilderStore((s) => s.setElements)
+  useAutosave()
 
   const currentPageId = usePageStore((s) => s.currentPageId)
   const getTree = usePageStore((s) => s.getTree)
