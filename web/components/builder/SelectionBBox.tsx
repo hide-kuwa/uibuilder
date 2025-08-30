@@ -17,8 +17,10 @@ import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
  }
 
  export default function SelectionBBox() {
-   const els = useBuilderStore(s=>s.elements)
-   const selected = useBuilderStore(s => s.selectedIds)
+  const els = useBuilderStore((s) => s.elements)
+  const selected = useBuilderStore((s) =>
+    s.selectedIds ? Array.from(s.selectedIds) : s.selectedId ? [s.selectedId] : [],
+  )
    const updateMany = useBuilderStore(s=>s.updateMany)
    const beginBatch = useBuilderStore(s=>s.beginBatch)
    const endBatch = useBuilderStore(s=>s.endBatch)
