@@ -4,6 +4,8 @@ import { useState } from 'react';
 import ActionPresetField from '@/components/props/ActionPresetField';
 import { useUnitStore } from '@/store/unitStore';
 import { worldToUnit, unitToWorld } from '@/lib/units';
+import AutoPropsForm from '@/components/props/AutoPropsForm';
+import { registry } from '@/lib/registry';
 
 export default function RightInspector() {
   const selected = useEditorStore((s) => s.selectedIds[0]);
@@ -44,6 +46,8 @@ export default function RightInspector() {
   const comp = node && (node as any).type === 'Instance'
     ? components[(node as any).componentId]
     : null;
+  const entry = node ? (registry as any)[(node as any).type] : null;
+  const propSchema = entry?.meta?.propertySchema;
 
   const unitLabel = unit === 'percent' ? '%' : unit
 
@@ -199,6 +203,16 @@ export default function RightInspector() {
           </label>
         </div>
       </div>
+      {propSchema && (
+        <AutoPropsForm
+          nodeId={node.id}
+          schema={propSchema}
+          value={node.props}
+          onChange={(patch) =>
+            update(node.id, { props: { ...(node?.props || {}), ...patch } })
+          }
+        />
+      )}
       {node && (
         <ActionPresetField
           nodeId={node.id}

@@ -232,7 +232,8 @@ function ResizeHandles({ elm }: { elm: Elm }) {
   )
 }
 
-function ElmView({ elm }: { elm: Elm }) {
+function ElmView({ elm, all, offset = { x: 0, y: 0 } }: { elm: Elm; all: Elm[]; offset?: { x: number; y: number } }) {
+  if (elm.visible === false) return null
   const select = useBuilderStore((s) => s.select)
   const addSelect = useBuilderStore((s) => s.addSelect)
   const toggleSelect = useBuilderStore((s) => s.toggleSelect)
@@ -242,6 +243,7 @@ function ElmView({ elm }: { elm: Elm }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `elm_${elm.id}`,
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
+    disabled: elm.locked,
   })
   const startBatch = useHistoryStore((s) => s.start)
   const commitBatch = useHistoryStore((s) => s.commit)
@@ -258,29 +260,29 @@ function ElmView({ elm }: { elm: Elm }) {
 
   const preview = dragDraft && dragDraft.id === elm.id ? dragDraft.rect : null
   const baseStyle: React.CSSProperties = {
-    left: elm.x,
-    top: elm.y,
+    left: (preview ? preview.x : elm.x) - offset.x,
+    top: (preview ? preview.y : elm.y) - offset.y,
     width: preview ? preview.w : elm.w,
     height: preview ? preview.h : elm.h,
     background: elm.props?.bg,
     color: elm.props?.color ?? '#e5e7eb',
-    opacity: elm.visible === false ? 0.4 : 1,
     transform: preview
       ? `translate3d(${preview.x - elm.x}px, ${preview.y - elm.y}px, 0)`
       : undefined,
+    display: elm.visible === false ? 'none' : undefined,
   }
 
   return (
     <NodeWrapper
       ref={setNodeRef}
-      {...listeners}
+      {...(!elm.locked ? listeners : {})}
       {...attributes}
       onMouseDown={(e) => {
         if (e.shiftKey) addSelect(elm.id)
         else if (e.altKey || e.ctrlKey) toggleSelect(elm.id)
         else select(elm.id)
       }}
-      className={`${common} ${border} ${shadow} cursor-move ${isDragging ? 'opacity-60' : ''}`}
+      className={`${common} ${border} ${shadow} ${elm.locked ? 'cursor-default' : 'cursor-move'} ${isDragging ? 'opacity-60' : ''}`}
       id={elm.id}
       type={elm.type}
       name={elm.props?.name}
@@ -302,7 +304,11 @@ function ElmView({ elm }: { elm: Elm }) {
       )}
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
       {elm.type === 'code' && <CodePreview elm={elm} />}
-      {isSel && <ResizeHandles elm={elm} />}
+      {isSel && !elm.locked && <ResizeHandles elm={elm} />}
+      {elm.children?.map((cid) => {
+        const c = all.find((e) => e.id === cid)
+        return c ? <ElmView key={cid} elm={c} all={all} offset={{ x: elm.x, y: elm.y }} /> : null
+      })}
     </NodeWrapper>
   )
 }
@@ -435,9 +441,11 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
       >
         {/* page base pseudo preview */}
         <div className="absolute inset-0 pointer-events-none" />
-        {els.map((e) => (
-          <ElmView key={e.id} elm={e} />
-        ))}
+        {els
+          .filter((e) => !e.parentId)
+          .map((e) => (
+            <ElmView key={e.id} elm={e} all={els} />
+          ))}
         <CanvasOverlay marquee={marquee ?? undefined} />
         <Rulers width={1200} height={720} canvasRef={canvasRef} />
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
