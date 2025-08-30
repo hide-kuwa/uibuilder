@@ -13,6 +13,8 @@ import NodeWrapper from './NodeWrapper'
 import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
+import { useViewStore } from '@/store/viewStore'
+import { SelectionBBox } from './SelectionBBox'
 
 function bgGridStyle(s: number) {
   return {
@@ -330,6 +332,28 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const [marquee, setMarquee] = React.useState<
     { x: number; y: number; w: number; h: number } | null
   >(null)
+  const { zoom, pan, setZoom, setPan, screenToWorld } = useViewStore((s) => ({
+    zoom: s.zoom,
+    pan: s.pan,
+    setZoom: s.setZoom,
+    setPan: s.setPan,
+    screenToWorld: s.screenToWorld,
+  }))
+  const spacePressed = React.useRef(false)
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Space') spacePressed.current = true
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') spacePressed.current = false
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  }, [])
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -383,33 +407,56 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
           // @ts-ignore
           canvasRef.current = n
         }}
+        onWheel={(e) => {
+          if (!e.ctrlKey && !e.metaKey) return
+          e.preventDefault()
+          const rect = e.currentTarget.getBoundingClientRect()
+          const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+          const world = screenToWorld(cursor)
+          let z = zoom * (1 - e.deltaY * 0.001)
+          z = Math.max(0.25, Math.min(4, z))
+          const newPan = { x: cursor.x - world.x * z, y: cursor.y - world.y * z }
+          setZoom(z)
+          setPan(newPan)
+        }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
+          if (spacePressed.current) {
+            const start = { x: e.clientX, y: e.clientY }
+            const startPan = { ...pan }
+            const move = (ev: PointerEvent) => {
+              setPan({ x: startPan.x + ev.clientX - start.x, y: startPan.y + ev.clientY - start.y })
+            }
+            const up = () => {
+              window.removeEventListener('pointermove', move)
+              window.removeEventListener('pointerup', up)
+            }
+            window.addEventListener('pointermove', move)
+            window.addEventListener('pointerup', up)
+            return
+          }
           if (e.target !== e.currentTarget) return
           const rect = e.currentTarget.getBoundingClientRect()
-          const startX = e.clientX - rect.left
-          const startY = e.clientY - rect.top
-          let box = { x: startX, y: startY, w: 0, h: 0 }
+          const start = screenToWorld({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+          let box = { x: start.x, y: start.y, w: 0, h: 0 }
           setMarquee(box)
           const onMove = (ev: PointerEvent) => {
-            const x = ev.clientX - rect.left
-            const y = ev.clientY - rect.top
-            const mx = Math.min(x, startX)
-            const my = Math.min(y, startY)
-            const mw = Math.abs(x - startX)
-            const mh = Math.abs(y - startY)
+            const p = screenToWorld({ x: ev.clientX - rect.left, y: ev.clientY - rect.top })
+            const mx = Math.min(p.x, start.x)
+            const my = Math.min(p.y, start.y)
+            const mw = Math.abs(p.x - start.x)
+            const mh = Math.abs(p.y - start.y)
             box = { x: mx, y: my, w: mw, h: mh }
             setMarquee(box)
           }
           const onUp = (ev: PointerEvent) => {
             window.removeEventListener('pointermove', onMove)
             window.removeEventListener('pointerup', onUp)
-            const x = ev.clientX - rect.left
-            const y = ev.clientY - rect.top
-            const mx = Math.min(x, startX)
-            const my = Math.min(y, startY)
-            const mw = Math.abs(x - startX)
-            const mh = Math.abs(y - startY)
+            const p = screenToWorld({ x: ev.clientX - rect.left, y: ev.clientY - rect.top })
+            const mx = Math.min(p.x, start.x)
+            const my = Math.min(p.y, start.y)
+            const mw = Math.abs(p.x - start.x)
+            const mh = Math.abs(p.y - start.y)
             const final = { x: mx, y: my, w: mw, h: mh }
             setMarquee(null)
             if (mw < 2 && mh < 2) {
@@ -439,15 +486,29 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         className="relative w-[1200px] h-[720px] border border-zinc-800 rounded-lg overflow-hidden"
         style={gridVisible ? bgGridStyle(gridSize) : undefined}
       >
-        {/* page base pseudo preview */}
-        <div className="absolute inset-0 pointer-events-none" />
-        {els
-          .filter((e) => !e.parentId)
-          .map((e) => (
-            <ElmView key={e.id} elm={e} all={els} />
-          ))}
+        <div
+          className="absolute inset-0"
+          style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}
+        >
+          {/* page base pseudo preview */}
+          <div className="absolute inset-0 pointer-events-none" />
+          {els
+            .filter((e) => !e.parentId)
+            .map((e) => (
+              <ElmView key={e.id} elm={e} all={els} />
+            ))}
+          <SelectionBBox />
+        </div>
         <CanvasOverlay marquee={marquee ?? undefined} />
-        <Rulers width={1200} height={720} canvasRef={canvasRef} />
+        <Rulers
+          width={1200}
+          height={720}
+          canvasRef={canvasRef}
+          screenToWorld={(p, axis) => {
+            const pt = screenToWorld(axis === 'x' ? { x: p, y: 0 } : { x: 0, y: p })
+            return axis === 'x' ? pt.x : pt.y
+          }}
+        />
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-400 bg-black/40 px-2 py-1 rounded border border-zinc-800">
           drag to move • drop from Palette • arrows to nudge • click empty = unselect
         </div>

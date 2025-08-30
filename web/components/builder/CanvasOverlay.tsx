@@ -3,6 +3,7 @@ import React from 'react'
 import { useBuilderStore } from '@/store/builderStore'
 import { useGuidesStore } from '@/store/guidesStore'
 import { Toolbar } from './Toolbar'
+import { useViewStore } from '@/store/viewStore'
 
 export function CanvasOverlay({
   marquee,
@@ -14,16 +15,18 @@ export function CanvasOverlay({
   const align = useBuilderStore((s) => s.align)
   const showAlign = selectedIds.length > 1
   const guides = useGuidesStore((s) => s.guides.filter((g) => g.visible))
+  const worldToScreen = useViewStore((s) => s.worldToScreen)
+  const zoom = useViewStore((s) => s.zoom)
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
       {marquee && (
         <div
           className="absolute border border-amber-400/70 bg-amber-400/10"
           style={{
-            left: marquee.x,
-            top: marquee.y,
-            width: marquee.w,
-            height: marquee.h,
+            left: worldToScreen({ x: marquee.x, y: marquee.y }).x,
+            top: worldToScreen({ x: marquee.x, y: marquee.y }).y,
+            width: marquee.w * zoom,
+            height: marquee.h * zoom,
           }}
         />
       )}
@@ -32,13 +35,13 @@ export function CanvasOverlay({
           <div
             key={g.id}
             className={`absolute top-0 bottom-0 border-l ${g.locked ? 'border-red-400 border-dashed' : 'border-amber-400/70'}`}
-            style={{ left: g.pos }}
+            style={{ left: worldToScreen({ x: g.pos, y: 0 }).x }}
           />
         ) : (
           <div
             key={g.id}
             className={`absolute left-0 right-0 border-t ${g.locked ? 'border-red-400 border-dashed' : 'border-amber-400/70'}`}
-            style={{ top: g.pos }}
+            style={{ top: worldToScreen({ x: 0, y: g.pos }).y }}
           />
         ),
       )}
@@ -47,13 +50,13 @@ export function CanvasOverlay({
           <div
             key={`snap-${i}`}
             className="absolute top-0 bottom-0 border-l border-sky-400/70"
-            style={{ left: g.pos }}
+            style={{ left: worldToScreen({ x: g.pos, y: 0 }).x }}
           />
         ) : (
           <div
             key={`snap-${i}`}
             className="absolute left-0 right-0 border-t border-sky-400/70"
-            style={{ top: g.pos }}
+            style={{ top: worldToScreen({ x: 0, y: g.pos }).y }}
           />
         ),
       )}
