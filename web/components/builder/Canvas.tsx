@@ -332,7 +332,7 @@ function ElmView({
       className={`${common} ${border} ${shadow} ${elm.locked ? 'cursor-default' : 'cursor-move'} ${isDragging ? 'opacity-60' : ''}`}
       id={elm.id}
       type={elm.type}
-      name={elm.props?.name}
+      name={elm.name}
       style={baseStyle}
       presetProps={{
         presetIds: mergedProps?.presetIds,
@@ -358,18 +358,16 @@ function ElmView({
       {isSel && !elm.locked && <ResizeHandles elm={elm} />}
       {elm.children?.map((cid) => {
         const c = all.find((e) => e.id === cid)
-        return c
-          ? (
-              <ElmView
-                key={cid}
-                elm={c}
-                all={all}
-                offset={{ x: elm.x, y: elm.y }}
-                ctx={ctx}
-                runtimeProps={runtimeProps}
-              />
-            )
-          : null
+        return c ? (
+          <ElmView
+            key={cid}
+            elm={c}
+            all={all}
+            offset={{ x: elm.x, y: elm.y }}
+            ctx={ctx}
+            runtimeProps={runtimeProps}
+          />
+        ) : null
       })}
     </NodeWrapper>
   )

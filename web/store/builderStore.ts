@@ -20,6 +20,7 @@ export type Elm = {
   locked?: boolean
   parentId?: string | null
   children?: string[]
+  name?: string
   props?: {
     text?: string
     color?: string
@@ -85,9 +86,11 @@ type BuilderActions = {
     patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
   ) => void
   reorder: (idsInOrder: string[]) => void
+  reorderWithinParent: (parentId: string | null, orderedIds: string[]) => void
   setVisible: (id: string, v: boolean) => void
   setLocked: (id: string, v: boolean) => void
-  group: (ids: string[]) => void
+  rename: (id: string, name: string) => void
+  group: (ids: string[], opts?: { name?: string }) => string
   ungroup: (id: string) => void
   deleteSelected: () => void
   bringToFront: (id: string) => void
@@ -152,6 +155,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           visible: true,
           locked: false,
           parentId: null,
+          name: meta?.displayName ?? 'Component',
+          children: [],
           code: {
             displayName: meta?.displayName ?? 'Component',
             importPath: meta?.importPath ?? '',
@@ -170,6 +175,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           visible: true,
           locked: false,
           parentId: null,
+          name: type.charAt(0).toUpperCase() + type.slice(1),
+          children: [],
           props: {
             text,
             bg: type === 'button' ? '#0ea5e9' : '#111827',
@@ -415,6 +422,30 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     })
   },
 
+  reorderWithinParent(parentId, orderedIds) {
+    apply((draft: BuilderState) => {
+      const siblings = draft.elements.filter(
+        (e) => (e.parentId ?? null) === (parentId ?? null),
+      )
+      const idSet = new Set(orderedIds)
+      const others = siblings.filter((e) => !idSet.has(e.id)).map((e) => e.id)
+      const newOrder = [...orderedIds, ...others]
+      draft.elements = [
+        ...draft.elements.filter((e) => (e.parentId ?? null) !== (parentId ?? null)),
+        ...newOrder
+          .map((id) => draft.elements.find((e) => e.id === id)!)
+          .filter(Boolean),
+      ]
+      if (parentId) {
+        const parent = draft.elements.find((e) => e.id === parentId)
+        if (parent) {
+          const rest = (parent.children || []).filter((id) => !idSet.has(id))
+          parent.children = [...orderedIds, ...rest]
+        }
+      }
+    })
+  },
+
   setVisible(id, v) {
     apply((draft: BuilderState) => {
       const e = draft.elements.find((x) => x.id === id)
@@ -429,44 +460,98 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     })
   },
 
-  group(ids) {
+  rename(id, name) {
     apply((draft: BuilderState) => {
-      const children = draft.elements.filter((e) => ids.includes(e.id))
-      if (children.length < 2) return
-      const x1 = Math.min(...children.map((e) => e.x))
-      const y1 = Math.min(...children.map((e) => e.y))
-      const x2 = Math.max(...children.map((e) => e.x + e.w))
-      const y2 = Math.max(...children.map((e) => e.y + e.h))
+      const e = draft.elements.find((x) => x.id === id)
+      if (e) e.name = name
+    })
+  },
+
+  group(ids, opts) {
+    let result = ''
+    apply((draft: BuilderState) => {
+      const siblings = draft.elements.filter((e) => ids.includes(e.id))
+      if (siblings.length < 2) return
+      const parentId = siblings[0]?.parentId ?? null
+      if (!siblings.every((e) => (e.parentId ?? null) === parentId)) return
+      const x1 = Math.min(...siblings.map((e) => e.x))
+      const y1 = Math.min(...siblings.map((e) => e.y))
+      const x2 = Math.max(...siblings.map((e) => e.x + e.w))
+      const y2 = Math.max(...siblings.map((e) => e.y + e.h))
       const id = `grp_${Date.now().toString(36)}`
-      draft.elements.push({
+      const groupElm: Elm = {
         id,
-        type: 'group' as ElmType,
+        type: 'group',
         x: x1,
         y: y1,
         w: x2 - x1,
         h: y2 - y1,
+        parentId,
+        children: ids.slice(),
         visible: true,
         locked: false,
-        parentId: null,
-        children: ids.slice(),
-      })
-      children.forEach((c) => (c.parentId = id))
+        name: opts?.name ?? 'Group',
+      }
+      const next = draft.elements.map((el) =>
+        ids.includes(el.id) ? { ...el, parentId: id } : el,
+      )
+      if (parentId) {
+        const parent = next.find((e) => e.id === parentId)
+        if (parent) {
+          const cur = parent.children ?? []
+          const firstIndex = Math.min(
+            ...ids.map((cid) => cur.indexOf(cid)).filter((i) => i >= 0),
+          )
+          parent.children = cur.filter((cid) => !ids.includes(cid))
+          parent.children.splice(firstIndex, 0, id)
+        }
+      }
+      const order = next
+        .filter((e) => (e.parentId ?? null) === parentId)
+        .map((e) => e.id)
+      const firstIndex = Math.min(
+        ...ids.map((cid) => order.indexOf(cid)).filter((i) => i >= 0),
+      )
+      order.splice(firstIndex, 0, id)
+      draft.elements = [
+        ...next.filter((e) => (e.parentId ?? null) !== parentId),
+        ...order
+          .map((eid) => (eid === id ? groupElm : next.find((e) => e.id === eid)!))
+          .filter(Boolean),
+      ]
       draft.selectedId = id
       draft.selectedIds = [id]
+      result = id
     })
+    return result
   },
 
   ungroup(id) {
     apply((draft: BuilderState) => {
-      const gIdx = draft.elements.findIndex((e) => e.id === id)
-      if (gIdx < 0) return
-      const g = draft.elements[gIdx]
-      if (!g.children) return
-      g.children.forEach((cid) => {
-        const c = draft.elements.find((e) => e.id === cid)
-        if (c) c.parentId = g.parentId ?? null
-      })
-      draft.elements.splice(gIdx, 1)
+      const g = draft.elements.find((e) => e.id === id && e.type === 'group')
+      if (!g) return
+      const parentId = g.parentId ?? null
+      const kids = draft.elements.filter((e) => e.parentId === g.id)
+      kids.forEach((k) => (k.parentId = parentId))
+      const order = draft.elements
+        .filter((e) => (e.parentId ?? null) === parentId && e.id !== id)
+        .map((e) => e.id)
+      const idx = draft.elements
+        .filter((e) => (e.parentId ?? null) === parentId)
+        .map((e) => e.id)
+        .indexOf(id)
+      order.splice(idx, 0, ...kids.map((k) => k.id))
+      if (parentId) {
+        const parent = draft.elements.find((e) => e.id === parentId)
+        if (parent) parent.children = order.slice()
+      }
+      const others = draft.elements.filter(
+        (e) => (e.parentId ?? null) !== parentId && e.id !== id,
+      )
+      draft.elements = [
+        ...others,
+        ...order.map((eid) => draft.elements.find((e) => e.id === eid)!),
+      ]
       draft.selectedId = null
       draft.selectedIds = []
     })
@@ -547,7 +632,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     } catch (e) {
       console.error('Failed to hydrate builder state', e)
     }
-  },
-  });
+  }
+}});
 
 
