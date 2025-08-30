@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { produce } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
+import type { Effect } from '@/types/interactions'
 
 export type ElmType =
   | 'header'
@@ -33,6 +34,10 @@ export type Elm = {
       variant: 'solid' | 'outline'
       href?: string
     }
+    presetId?: string | null
+    presetIds?: string[]
+    hoverEffects?: Effect[]
+    hoverTransitionMs?: number
   }
   code?: {
     displayName: string
