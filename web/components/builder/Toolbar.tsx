@@ -2,6 +2,8 @@
 import React from 'react'
 import { useGridStore } from '@/store/gridStore'
 import { useGuidesStore } from '@/store/guidesStore'
+import { useBuilderStore } from '@/store/builderStore'
+import { useHistoryStore } from '@/store/historyStore'
 
 export function Toolbar({
   align,
@@ -20,8 +22,28 @@ export function Toolbar({
 }) {
   const { visible, snap, size, setVisible, setSnap, setSize } = useGridStore()
   const { snapPx, setSnapPx } = useGuidesStore((s) => ({ snapPx: s.snapPx, setSnapPx: s.setSnapPx }))
+  const undo = useBuilderStore((s) => s.undo)
+  const redo = useBuilderStore((s) => s.redo)
+  const { index, stack } = useHistoryStore((s) => ({ index: s.index, stack: s.stack }))
+  const canUndo = index >= 0
+  const canRedo = index < stack.length - 1
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-auto">
+      <button
+        onClick={undo}
+        disabled={!canUndo}
+        className="px-1 py-0.5 text-xs bg-zinc-800 border border-zinc-600 rounded text-amber-200 disabled:opacity-50"
+      >
+        Undo
+      </button>
+      <button
+        onClick={redo}
+        disabled={!canRedo}
+        className="px-1 py-0.5 text-xs bg-zinc-800 border border-zinc-600 rounded text-amber-200 disabled:opacity-50"
+      >
+        Redo
+      </button>
+      <div className="mx-1 w-px bg-zinc-600" />
       <button
         onClick={() => setVisible(!visible)}
         className={`px-1 py-0.5 text-xs bg-zinc-800 border border-zinc-600 rounded text-amber-200 ${
