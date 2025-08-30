@@ -121,7 +121,7 @@ function ElmView({ elm }: { elm: Elm }) {
   )
 }
 
-export function Canvas({
+export default function Canvas({
   canvasRef,
 }: {
   canvasRef?: React.RefObject<HTMLDivElement>
@@ -146,5 +146,3 @@ export function Canvas({
     </div>
   )
 }
-
-export default Canvas

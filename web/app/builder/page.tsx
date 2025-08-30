@@ -10,7 +10,7 @@ import {
   DragMoveEvent,
 } from '@dnd-kit/core'
 import { Palette } from '@/components/builder/Palette'
-import { Canvas } from '@/components/builder/Canvas'
+import Canvas from '@/components/builder/Canvas'
 import { Inspector } from '@/components/builder/Inspector'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
