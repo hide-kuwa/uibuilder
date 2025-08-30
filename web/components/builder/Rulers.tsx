@@ -2,6 +2,7 @@
 import React from 'react'
 import { useGuidesStore } from '@/store/guidesStore'
 import { useUnitStore } from '@/store/unitStore'
+import { useViewStore } from '@/store/viewStore'
 
 export type ScreenToWorld = (p: number, axis: 'x'|'y') => number
 
@@ -95,8 +96,9 @@ export function Rulers({
     return () => window.removeEventListener('click', close)
   }, [])
 
-  const ticksX = getTicks(width, unit, remBase)
-  const ticksY = getTicks(height, unit, remBase)
+  const zoom = useViewStore((s) => s.zoom)
+  const ticksX = React.useMemo(() => getTicks(width * zoom, unit, remBase).map((t) => ({ ...t, px: t.px / zoom })), [width, zoom, unit, remBase])
+  const ticksY = React.useMemo(() => getTicks(height * zoom, unit, remBase).map((t) => ({ ...t, px: t.px / zoom })), [height, zoom, unit, remBase])
 
   return (
     <div className="absolute top-0 left-0 select-none">

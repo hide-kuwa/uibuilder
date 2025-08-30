@@ -98,6 +98,7 @@ type BuilderActions = {
   hydrate: (json: string) => void
   undo: () => void
   redo: () => void
+  updateMany: (patches: Array<{ id: string; patch: Partial<Elm> }>) => void
 }
 
 function snapToGrid(n: number) {
@@ -514,6 +515,15 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
 
   redo() {
     set((state) => useHistoryStore.getState().redo(state))
+  },
+
+  updateMany(patches) {
+    apply((draft: BuilderState) => {
+      patches.forEach(({ id, patch }) => {
+        const el = draft.elements.find((e) => e.id === id)
+        if (el) Object.assign(el, patch)
+      })
+    })
   },
 
   setElements(els) {
