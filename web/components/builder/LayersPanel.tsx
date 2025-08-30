@@ -1,116 +1,205 @@
 'use client'
-import React from 'react'
-import {
-  DndContext,
-  DragEndEvent,
-} from '@dnd-kit/core'
+import * as React from 'react'
+import { useBuilderStore } from '@/store/builderStore'
+import { DndContext, DragEndEvent } from '@dnd-kit/core'
 import {
   SortableContext,
   useSortable,
-  verticalListSortingStrategy,
   arrayMove,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useBuilderStore } from '@/store/builderStore'
 
-function LayerItem({ id }: { id: string }) {
+function Row({ id, depth = 0 }: { id: string; depth?: number }) {
   const el = useBuilderStore((s) => s.elements.find((e) => e.id === id))
-  const selected = useBuilderStore((s) => s.selectedIds.includes(id))
   const select = useBuilderStore((s) => s.select)
   const setVisible = useBuilderStore((s) => s.setVisible)
   const setLocked = useBuilderStore((s) => s.setLocked)
-  const updateProps = useBuilderStore((s) => s.updateProps)
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+  const rename = useBuilderStore((s) => s.rename)
+  const selectedIds = useBuilderStore((s) => s.selectedIds)
+  const childIds = useBuilderStore(
+    (s) => s.elements.filter((e) => e.parentId === id).map((e) => e.id),
+  )
+  const isSelected = selectedIds.includes(id)
+  const [editing, setEditing] = React.useState(false)
+  const [expanded, setExpanded] = React.useState(true)
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id, data: { parentId: el?.parentId ?? null } })
+
   if (!el) return null
+  const isGroup = el.type === 'group'
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
-  const [name, setName] = React.useState(el.props?.name || '')
-  React.useEffect(() => {
-    setName(el.props?.name || '')
-  }, [el.props?.name])
-  const commitName = () => updateProps(el.id, { name })
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => select(id)}
-      className={`flex items-center gap-1 px-1 text-xs border-b border-zinc-800 ${selected ? 'bg-zinc-800' : ''}`}
-    >
-      <button onClick={() => setVisible(el.id, el.visible === false)} className="w-4 text-zinc-400">
-        {el.visible === false ? '🙈' : '👁'}
-      </button>
-      <button onClick={() => setLocked(el.id, !(el.locked))} className="w-4 text-zinc-400">
-        {el.locked ? '🔒' : '🔓'}
-      </button>
-      <input
-        className="flex-1 bg-transparent outline-none"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={commitName}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            commitName()
-            ;(e.target as HTMLInputElement).blur()
-          }
-        }}
-      />
+    <div>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`flex items-center gap-2 h-7 px-2 text-sm ${
+          isSelected ? 'bg-zinc-700' : 'hover:bg-zinc-800'
+        }`}
+        onClick={() => select(id)}
+      >
+        <span
+          {...attributes}
+          {...listeners}
+          className="cursor-grab opacity-70"
+          style={{ marginLeft: depth * 8 }}
+        >
+          ≡
+        </span>
+        {isGroup && childIds.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded((v) => !v)
+            }}
+            className="w-4"
+          >
+            {expanded ? '▾' : '▸'}
+          </button>
+        )}
+        {!isGroup && <span className="w-4" />}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setVisible(id, !(el.visible ?? true))
+          }}
+          title="Toggle visible"
+        >
+          {el.visible === false ? '🚫' : '👁'}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setLocked(id, !(el.locked ?? false))
+          }}
+          title="Toggle lock"
+        >
+          {el.locked ? '🔒' : '🔓'}
+        </button>
+        {editing ? (
+          <input
+            className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-1"
+            autoFocus
+            defaultValue={el.name || el.type}
+            onBlur={(e) => {
+              rename(id, e.currentTarget.value)
+              setEditing(false)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                rename(id, (e.target as HTMLInputElement).value)
+                setEditing(false)
+              }
+              if (e.key === 'Escape') setEditing(false)
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div
+            className="flex-1 truncate"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              setEditing(true)
+            }}
+          >
+            {el.name || el.type}
+            {isGroup ? ' (group)' : ''}
+          </div>
+        )}
+      </div>
+      {isGroup && expanded && childIds.length > 0 && (
+        <div className="pl-4">
+          <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+            {childIds.map((cid) => (
+              <Row key={cid} id={cid} depth={depth + 1} />
+            ))}
+          </SortableContext>
+        </div>
+      )}
     </div>
   )
 }
 
 export default function LayersPanel() {
-  const els = useBuilderStore((s) => s.elements)
-  const ids = React.useMemo(() => [...els].map((e) => e.id).reverse(), [els])
-  const reorder = useBuilderStore((s) => s.reorder)
+  const elements = useBuilderStore((s) => s.elements)
+  const rootIds = elements.filter((e) => !e.parentId).map((e) => e.id)
+  const reorderWithinParent = useBuilderStore((s) => s.reorderWithinParent)
   const selectedIds = useBuilderStore((s) => s.selectedIds)
-  const groupSel = useBuilderStore((s) => s.group)
-  const ungroupSel = useBuilderStore((s) => s.ungroup)
-  const handleDragEnd = (e: DragEndEvent) => {
+  const group = useBuilderStore((s) => s.group)
+  const ungroup = useBuilderStore((s) => s.ungroup)
+
+  const canGroup = React.useMemo(() => {
+    if (selectedIds.length < 2) return false
+    const first = elements.find((e) => e.id === selectedIds[0])
+    const parent = first?.parentId ?? null
+    return selectedIds.every(
+      (sid) => (elements.find((e) => e.id === sid)?.parentId ?? null) === parent,
+    )
+  }, [selectedIds, elements])
+
+  const canUngroup =
+    selectedIds.length === 1 &&
+    elements.find((e) => e.id === selectedIds[0])?.type === 'group'
+
+  const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
-    if (over && active.id !== over.id) {
-      const oldIndex = ids.indexOf(active.id as string)
-      const newIndex = ids.indexOf(over.id as string)
-      const newOrder = arrayMove(ids, oldIndex, newIndex).reverse()
-      reorder(newOrder)
-    }
+    if (!over || active.id === over.id) return
+    const activeParent = (active.data.current as any)?.parentId ?? null
+    const overParent = (over.data.current as any)?.parentId ?? null
+    if (activeParent !== overParent) return
+    const siblings = elements
+      .filter((el) => (el.parentId ?? null) === activeParent)
+      .map((el) => el.id)
+    const oldIndex = siblings.indexOf(active.id as string)
+    const newIndex = siblings.indexOf(over.id as string)
+    const newOrder = arrayMove(siblings, oldIndex, newIndex)
+    reorderWithinParent(activeParent, newOrder)
   }
-  const canUngroup = React.useMemo(() => {
-    if (selectedIds.length !== 1) return false
-    const el = els.find((e) => e.id === selectedIds[0])
-    return Boolean(el?.children && el.children.length)
-  }, [selectedIds, els])
+
   return (
-    <div>
-      <div className="flex gap-1 mb-1 text-xs">
-        <button
-          className="px-1 border border-zinc-700 rounded disabled:opacity-40"
-          disabled={selectedIds.length < 2}
-          onClick={() => groupSel(selectedIds)}
-        >
-          Group
-        </button>
-        <button
-          className="px-1 border border-zinc-700 rounded disabled:opacity-40"
-          disabled={!canUngroup}
-          onClick={() => ungroupSel(selectedIds[0])}
-        >
-          Ungroup
-        </button>
+    <aside
+      className="w-64 border-r border-zinc-800 bg-zinc-950/40 h-full flex flex-col"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && canUngroup) {
+          ungroup(selectedIds[0])
+        }
+      }}
+    >
+      <div className="px-2 py-2 border-b border-zinc-800 flex items-center gap-2">
+        <div className="font-medium text-sm">Layers</div>
+        <div className="ml-auto flex gap-2">
+          <button
+            className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
+            disabled={!canGroup}
+            onClick={() => group(selectedIds, { name: 'Group' })}
+          >
+            Group
+          </button>
+          <button
+            className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
+            disabled={!canUngroup}
+            onClick={() => ungroup(selectedIds[0])}
+          >
+            Ungroup
+          </button>
+        </div>
       </div>
-      <DndContext onDragEnd={handleDragEnd}>
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <div className="text-xs border border-zinc-800">
-            {ids.map((id) => (
-              <LayerItem key={id} id={id} />
+      <div className="flex-1 overflow-auto">
+        <DndContext onDragEnd={onDragEnd}>
+          <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+            {rootIds.map((id) => (
+              <Row key={id} id={id} />
             ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-    </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+    </aside>
   )
 }
 

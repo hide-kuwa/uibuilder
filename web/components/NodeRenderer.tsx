@@ -32,7 +32,7 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
       ref={ref}
       data-node-id={node.id}
       data-node-type={node.type}
-      data-node-name={node.props?.name}
+      data-node-name={node.name || node.props?.name}
       style={{ position: 'absolute', ...style }}
       onMouseDown={(e) => {
         e.stopPropagation()

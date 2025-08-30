@@ -182,10 +182,7 @@ export default function BuilderPage() {
           <h2 className="text-sm font-semibold mb-2">パレット</h2>
           <Palette />
         </aside>
-        <aside className="w-56 border-r border-zinc-800 bg-zinc-950/40 p-3">
-          <h2 className="text-sm font-semibold mb-2">Layers</h2>
-          <LayersPanel />
-        </aside>
+        <LayersPanel />
         <main className="flex-1 relative">
           <DeviceFrame>
             <div className="relative w-full h-full">
