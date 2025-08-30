@@ -1,6 +1,6 @@
 import type { ComponentNode, EditorState, InstanceNode, OverrideMap } from '@/types/editor'
 import { deepCloneNodeTree, findNode } from '@/lib/tree'
-import { resolveBinding } from '@/lib/binding/resolve'
+import { resolveComponentBinding } from '@/lib/binding/resolve'
 
 export function resolveOverrides(root: ComponentNode, overrides: OverrideMap = {}): ComponentNode {
   const clone = deepCloneNodeTree(root)
@@ -40,7 +40,7 @@ export function resolveInstance(state: EditorState, inst: InstanceNode): Compone
   if (!baseRoot) return null
   let root = deepCloneNodeTree(baseRoot)
   if (def.props)
-    root = resolveBinding(root, def.props, inst.propValues || {})
+    root = resolveComponentBinding(root, def.props, inst.propValues || {})
   if (inst.overrides) root = resolveOverrides(root, inst.overrides)
   ;(root as any).props = { ...(root as any).props, ...(inst as any).props }
   ;(root as any).opacity = (inst as any).opacity ?? (root as any).opacity

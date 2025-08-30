@@ -1,6 +1,6 @@
 import type { BuilderNodeMeta } from '@/types/builder'
 
-export function Text({ text, className }: { text: string; className?: string }) {
+export function Text({ text, className }: { text?: string; className?: string }) {
   return <div className={className}>{text}</div>
 }
 

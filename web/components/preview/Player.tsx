@@ -5,37 +5,43 @@ import { findNode } from '@/lib/tree';
 import type { ComponentNode, InstanceNode, PrototypeLink } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
 import { applyOverrides } from '@/lib/overrideMerge';
-import { resolveBinding } from '@/lib/binding/resolve';
+import { resolveComponentBinding, resolveBinding } from '@/lib/binding/resolve';
+import { useBindingStore } from '@/store/bindingStore';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
 import PresetStyle from '@/components/interaction/PresetStyle';
 
 function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: PrototypeLink) => void }) {
   const components = useEditorStore((s) => s.components);
+  const sources = useBindingStore((s) => s.sources);
+  const bindingsForNode = useBindingStore((s) =>
+    s.bindings.filter((b) => b.nodeId === node.id),
+  );
   if (node.type === 'Instance') {
     const inst = node as InstanceNode;
     const def = components[inst.defId || inst.componentId];
     if (!def) return null;
     let resolved = resolveVariant(def, inst.variantProps);
     if (inst.propValues)
-      resolved = resolveBinding(resolved, def.props, inst.propValues || {});
+      resolved = resolveComponentBinding(resolved, def.props, inst.propValues || {});
     if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
     resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
     return <NodeRenderer node={resolved} onLink={onLink} />;
   }
-  const layout = node.props?.layout || 'free';
+  const resolvedProps = resolveBinding(node.props || {}, bindingsForNode, sources);
+  const layout = resolvedProps.layout || 'free';
   const style: any = {};
   if (layout === 'auto') {
     style.display = 'flex';
-    style.flexDirection = node.props?.axis === 'horizontal' ? 'row' : 'column';
-    if (node.props?.gap !== undefined) style.gap = node.props.gap;
+    style.flexDirection = resolvedProps.axis === 'horizontal' ? 'row' : 'column';
+    if (resolvedProps.gap !== undefined) style.gap = resolvedProps.gap;
   } else {
     style.position = 'absolute';
-    style.left = node.props?.x || 0;
-    style.top = node.props?.y || 0;
+    style.left = resolvedProps.x || 0;
+    style.top = resolvedProps.y || 0;
   }
-  if (node.props?.w !== undefined) style.width = node.props.w;
-  if (node.props?.h !== undefined) style.height = node.props.h;
+  if (resolvedProps.w !== undefined) style.width = resolvedProps.w;
+  if (resolvedProps.h !== undefined) style.height = resolvedProps.h;
  
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
@@ -62,7 +68,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         style={style}
         data-node-id={node.id}
         data-node-type={node.type}
-        data-node-name={(node as any).props?.name}
+        data-node-name={resolvedProps?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
@@ -70,10 +76,10 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         <div className="w-full h-full bg-gray-300" />
         <PresetStyle
           nodeId={node.id}
-          presetIds={node.props?.presetIds}
-          presetId={node.props?.presetId}
-          hoverEffects={node.props?.hoverEffects}
-          hoverTransitionMs={node.props?.hoverTransitionMs}
+          presetIds={resolvedProps?.presetIds}
+          presetId={resolvedProps?.presetId}
+          hoverEffects={resolvedProps?.hoverEffects}
+          hoverTransitionMs={resolvedProps?.hoverTransitionMs}
         />
       </div>
     );
@@ -84,18 +90,18 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
         style={style}
         data-node-id={node.id}
         data-node-type={node.type}
-        data-node-name={(node as any).props?.name}
+        data-node-name={resolvedProps?.name}
         onClick={handleClick}
         onMouseEnter={handleHover}
         className={link ? 'cursor-pointer' : undefined}
       >
-        {node.props?.text}
+        {resolvedProps?.text}
         <PresetStyle
           nodeId={node.id}
-          presetIds={node.props?.presetIds}
-          presetId={node.props?.presetId}
-          hoverEffects={node.props?.hoverEffects}
-          hoverTransitionMs={node.props?.hoverTransitionMs}
+          presetIds={resolvedProps?.presetIds}
+          presetId={resolvedProps?.presetId}
+          hoverEffects={resolvedProps?.hoverEffects}
+          hoverTransitionMs={resolvedProps?.hoverTransitionMs}
         />
       </div>
     );
@@ -105,7 +111,7 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       style={style}
       data-node-id={node.id}
       data-node-type={node.type}
-      data-node-name={(node as any).props?.name}
+      data-node-name={resolvedProps?.name}
       onClick={handleClick}
       onMouseEnter={handleHover}
       className={link ? 'cursor-pointer' : undefined}
@@ -115,10 +121,10 @@ function NodeRenderer({ node, onLink }: { node: ComponentNode; onLink: (l: Proto
       ))}
       <PresetStyle
         nodeId={node.id}
-        presetIds={node.props?.presetIds}
-        presetId={node.props?.presetId}
-        hoverEffects={node.props?.hoverEffects}
-        hoverTransitionMs={node.props?.hoverTransitionMs}
+        presetIds={resolvedProps?.presetIds}
+        presetId={resolvedProps?.presetId}
+        hoverEffects={resolvedProps?.hoverEffects}
+        hoverTransitionMs={resolvedProps?.hoverTransitionMs}
       />
     </div>
   );
