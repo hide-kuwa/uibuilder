@@ -5,6 +5,7 @@ import { loadDocgenMeta, parseValue, type DocgenProp } from '@/lib/builder/docge
 import { HeaderInspector } from './header/HeaderInspector'
 import { FooterInspector } from './footer/FooterInspector'
 import { SidebarInspector } from '@/components/app/SidebarInspector'
+import { useInteractionRegistry } from '@/store/interactionRegistry'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -15,6 +16,7 @@ export function Inspector() {
   const sendToBack = useBuilderStore((s) => s.sendToBack)
   const move = useBuilderStore((s) => s.move)
   const resize = useBuilderStore((s) => s.resize)
+  const { presets } = useInteractionRegistry()
   const [docgen, setDocgen] = React.useState<any[]>([])
   React.useEffect(() => {
     loadDocgenMeta().then(setDocgen)
@@ -186,6 +188,35 @@ export function Inspector() {
       {elm.type === 'header' && <HeaderInspector elm={elm} />}
       {elm.type === 'footer' && <FooterInspector elm={elm} />}
       {elm.type === 'sidebar' && <SidebarInspector elm={elm} />}
+
+      <div className="mt-3">
+        <div className="mb-1 text-xs text-zinc-300">Action Preset</div>
+        <div className="flex gap-2 items-center">
+          <select
+            className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-sm"
+            value={elm.props?.presetId ?? ''}
+            onChange={(e) =>
+              updateProps(elm.id, {
+                presetId: e.target.value || null,
+                presetIds: e.target.value ? [e.target.value] : [],
+              })
+            }
+          >
+            <option value="">（なし）</option>
+            {presets.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <a
+            href="/dev/actions"
+            className="px-2 py-1 bg-neutral-800 rounded text-xs whitespace-nowrap"
+          >
+            Open Designer
+          </a>
+        </div>
+      </div>
 
       <div className="flex gap-2">
         <button
