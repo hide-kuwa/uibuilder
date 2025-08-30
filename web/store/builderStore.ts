@@ -27,6 +27,8 @@ export type Elm = {
     color?: string
     bg?: string
     align?: 'left' | 'center' | 'right'
+    presetId?: string | null
+    presetIds?: string[]
     loginButton?: {
       enabled: boolean
       label: string
