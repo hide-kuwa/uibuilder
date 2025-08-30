@@ -1,10 +1,11 @@
 'use client'
 import { create } from 'zustand'
-import { produce } from 'immer'
+import { produce, produceWithPatches } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
 import { registry, type RegistryKey } from '@/lib/registry'
 import { useGridStore } from '@/store/gridStore'
+import { useHistoryStore } from './historyStore'
 
 export type ElmType = RegistryKey | 'code'
 
@@ -87,6 +88,8 @@ type BuilderActions = {
   setElements: (els: Elm[]) => void
   serialize: () => string
   hydrate: (json: string) => void
+  undo: () => void
+  redo: () => void
 }
 
 function snapToGrid(n: number) {
@@ -102,11 +105,20 @@ function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
   return { ...size, text }
 }
 
-export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => ({
-  elements: [],
-  selectedId: null,
-  selectedIds: [],
-  ui: { guides: [] },
+export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => {
+  const apply = (recipe: (draft: BuilderState) => void) => {
+    set((state) => {
+      const [next, patches, inverse] = produceWithPatches(state, recipe)
+      useHistoryStore.getState().push(patches, inverse)
+      return next
+    })
+  }
+
+  return {
+    elements: [],
+    selectedId: null,
+    selectedIds: [],
+    ui: { guides: [] },
 
   addFromPalette(type, at, meta) {
     const id = `elm_${Date.now().toString(36)}`
@@ -114,73 +126,67 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     const snapState = useGridStore.getState()
     const x = snapState.snap ? snapToGrid(at?.x ?? 40) : at?.x ?? 40
     const y = snapState.snap ? snapToGrid(at?.y ?? 40) : at?.y ?? 40
-    set(
-      produce((draft: BuilderState) => {
-        if (type === 'code') {
-          const initProps: Record<string, unknown> = {}
-          meta?.props?.forEach((p) => {
-            const v = parseValue(p.defaultValue?.value)
-            if (v !== undefined) initProps[p.name] = v
-          })
-          draft.elements.push({
-            id,
-            type,
-            x,
-            y,
-            w,
-            h,
-            visible: true,
-            code: {
-              displayName: meta?.displayName ?? 'Component',
-              importPath: meta?.importPath ?? '',
-              exportName: meta?.exportName,
-              props: initProps,
-            },
-          })
-        } else {
-          draft.elements.push({
-            id,
-            type,
-            x,
-            y,
-            w,
-            h,
-            visible: true,
-            props: {
-              text,
-              bg: type === 'button' ? '#0ea5e9' : '#111827',
-              color: '#e5e7eb',
-            },
-          })
-        }
-        draft.selectedId = id
-        draft.selectedIds = [id]
-      }),
-    )
+    apply((draft: BuilderState) => {
+      if (type === 'code') {
+        const initProps: Record<string, unknown> = {}
+        meta?.props?.forEach((p) => {
+          const v = parseValue(p.defaultValue?.value)
+          if (v !== undefined) initProps[p.name] = v
+        })
+        draft.elements.push({
+          id,
+          type,
+          x,
+          y,
+          w,
+          h,
+          visible: true,
+          code: {
+            displayName: meta?.displayName ?? 'Component',
+            importPath: meta?.importPath ?? '',
+            exportName: meta?.exportName,
+            props: initProps,
+          },
+        })
+      } else {
+        draft.elements.push({
+          id,
+          type,
+          x,
+          y,
+          w,
+          h,
+          visible: true,
+          props: {
+            text,
+            bg: type === 'button' ? '#0ea5e9' : '#111827',
+            color: '#e5e7eb',
+          },
+        })
+      }
+      draft.selectedId = id
+      draft.selectedIds = [id]
+    })
   },
 
   move(id, to, snapGrid = true) {
-    set(
-      produce((draft: BuilderState) => {
-        const e = draft.elements.find((x) => x.id === id)
-        if (!e) return
-        const { snap } = useGridStore.getState()
-        e.x = snapGrid && snap ? snapToGrid(to.x) : to.x
-        e.y = snapGrid && snap ? snapToGrid(to.y) : to.y
-      }),
-    )
+    apply((draft: BuilderState) => {
+      const e = draft.elements.find((x) => x.id === id)
+      if (!e) return
+      const { snap } = useGridStore.getState()
+      e.x = snapGrid && snap ? snapToGrid(to.x) : to.x
+      e.y = snapGrid && snap ? snapToGrid(to.y) : to.y
+    })
   },
 
   resize(id, to, snapGrid = true) {
-    set(
-      produce((draft: BuilderState) => {
-        const e = draft.elements.find((x) => x.id === id)
-        if (!e) return
-        const { snap } = useGridStore.getState()
-        e.w = Math.max(16, snapGrid && snap ? snapToGrid(to.w) : to.w)
-        e.h = Math.max(16, snapGrid && snap ? snapToGrid(to.h) : to.h)
-      }),
-    )
+    apply((draft: BuilderState) => {
+      const e = draft.elements.find((x) => x.id === id)
+      if (!e) return
+      const { snap } = useGridStore.getState()
+      e.w = Math.max(16, snapGrid && snap ? snapToGrid(to.w) : to.w)
+      e.h = Math.max(16, snapGrid && snap ? snapToGrid(to.h) : to.h)
+    })
   },
 
   setDragDraft(d) {
@@ -254,140 +260,130 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
 
   align(kind) {
     const ids = get().selectedIds
-    const els = get()
-      .elements.filter((e) => ids.includes(e.id) && e.visible !== false)
+    const els = get().elements.filter((e) => ids.includes(e.id) && e.visible !== false)
     if (els.length < 2) return
     const x1 = Math.min(...els.map((e) => e.x))
     const y1 = Math.min(...els.map((e) => e.y))
     const x2 = Math.max(...els.map((e) => e.x + e.w))
     const y2 = Math.max(...els.map((e) => e.y + e.h))
-    set(
-      produce((draft: BuilderState) => {
-        const targets = draft.elements.filter((e) =>
-          ids.includes(e.id) && e.visible !== false,
-        )
-        switch (kind) {
-          case 'left':
-            targets.forEach((e) => {
-              e.x = x1
-            })
-            break
-          case 'centerX': {
-            const cx = (x1 + x2) / 2
-            targets.forEach((e) => {
-              e.x = Math.round(cx - e.w / 2)
-            })
-            break
-          }
-          case 'right':
-            targets.forEach((e) => {
-              e.x = x2 - e.w
-            })
-            break
-          case 'top':
-            targets.forEach((e) => {
-              e.y = y1
-            })
-            break
-          case 'centerY': {
-            const cy = (y1 + y2) / 2
-            targets.forEach((e) => {
-              e.y = Math.round(cy - e.h / 2)
-            })
-            break
-          }
-          case 'bottom':
-            targets.forEach((e) => {
-              e.y = y2 - e.h
-            })
-            break
-          case 'hSpace': {
-            const sorted = [...targets].sort((a, b) => a.x - b.x)
-            const min = sorted[0].x
-            const max = sorted[sorted.length - 1].x +
-              sorted[sorted.length - 1].w
-            const total = sorted.reduce((s, e) => s + e.w, 0)
-            const gap = sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
-            let cur = min
-            sorted.forEach((e) => {
-              e.x = cur
-              cur += e.w + gap
-            })
-            break
-          }
-          case 'vSpace': {
-            const sorted = [...targets].sort((a, b) => a.y - b.y)
-            const min = sorted[0].y
-            const max = sorted[sorted.length - 1].y +
-              sorted[sorted.length - 1].h
-            const total = sorted.reduce((s, e) => s + e.h, 0)
-            const gap = sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
-            let cur = min
-            sorted.forEach((e) => {
-              e.y = cur
-              cur += e.h + gap
-            })
-            break
-          }
+    apply((draft: BuilderState) => {
+      const targets = draft.elements.filter(
+        (e) => ids.includes(e.id) && e.visible !== false,
+      )
+      switch (kind) {
+        case 'left':
+          targets.forEach((e) => {
+            e.x = x1
+          })
+          break
+        case 'centerX': {
+          const cx = (x1 + x2) / 2
+          targets.forEach((e) => {
+            e.x = Math.round(cx - e.w / 2)
+          })
+          break
         }
-      }),
-    )
+        case 'right':
+          targets.forEach((e) => {
+            e.x = x2 - e.w
+          })
+          break
+        case 'top':
+          targets.forEach((e) => {
+            e.y = y1
+          })
+          break
+        case 'centerY': {
+          const cy = (y1 + y2) / 2
+          targets.forEach((e) => {
+            e.y = Math.round(cy - e.h / 2)
+          })
+          break
+        }
+        case 'bottom':
+          targets.forEach((e) => {
+            e.y = y2 - e.h
+          })
+          break
+        case 'hSpace': {
+          const sorted = [...targets].sort((a, b) => a.x - b.x)
+          const min = sorted[0].x
+          const max = sorted[sorted.length - 1].x + sorted[sorted.length - 1].w
+          const total = sorted.reduce((s, e) => s + e.w, 0)
+          const gap =
+            sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
+          let cur = min
+          sorted.forEach((e) => {
+            e.x = cur
+            cur += e.w + gap
+          })
+          break
+        }
+        case 'vSpace': {
+          const sorted = [...targets].sort((a, b) => a.y - b.y)
+          const min = sorted[0].y
+          const max = sorted[sorted.length - 1].y + sorted[sorted.length - 1].h
+          const total = sorted.reduce((s, e) => s + e.h, 0)
+          const gap =
+            sorted.length > 1 ? Math.round((max - min - total) / (sorted.length - 1)) : 0
+          let cur = min
+          sorted.forEach((e) => {
+            e.y = cur
+            cur += e.h + gap
+          })
+          break
+        }
+      }
+    })
   },
 
   updateProps(id, patch) {
-    set(
-      produce((draft: BuilderState) => {
-        const e = draft.elements.find((x) => x.id === id)
-        if (!e) return
-        const { code, ...rest } = patch as any
-        if (Object.keys(rest).length) {
-          e.props = { ...(e.props ?? {}), ...rest }
+    apply((draft: BuilderState) => {
+      const e = draft.elements.find((x) => x.id === id)
+      if (!e) return
+      const { code, ...rest } = patch as any
+      if (Object.keys(rest).length) {
+        e.props = { ...(e.props ?? {}), ...rest }
+      }
+      if (code) {
+        e.code = {
+          ...(e.code ?? { displayName: '', importPath: '', props: {} }),
+          ...code,
+          props: {
+            ...(e.code?.props ?? {}),
+            ...(code.props ?? {}),
+          },
         }
-        if (code) {
-          e.code = {
-            ...(e.code ?? { displayName: '', importPath: '', props: {} }),
-            ...code,
-            props: {
-              ...(e.code?.props ?? {}),
-              ...(code.props ?? {}),
-            },
-          }
-        }
-      }),
-    )
+      }
+    })
   },
 
   deleteSelected() {
     const id = get().selectedId
     if (!id) return
-    set(
-      produce((draft: BuilderState) => {
-        draft.elements = draft.elements.filter((x) => x.id !== id)
-        draft.selectedId = null
-      }),
-    )
+    apply((draft: BuilderState) => {
+      draft.elements = draft.elements.filter((x) => x.id !== id)
+      draft.selectedId = null
+      draft.selectedIds = []
+    })
   },
 
   bringToFront(id) {
-    set(
-      produce((draft: BuilderState) => {
-        const i = draft.elements.findIndex((x) => x.id === id)
-        if (i < 0) return
-        const [e] = draft.elements.splice(i, 1)
-        draft.elements.push(e)
-      }),
-    )
+    apply((draft: BuilderState) => {
+      const i = draft.elements.findIndex((x) => x.id === id)
+      if (i < 0) return
+      const [e] = draft.elements.splice(i, 1)
+      draft.elements.push(e)
+    })
   },
 
   sendToBack(id) {
-    set(
-      produce((draft: BuilderState) => {
-        const i = draft.elements.findIndex((x) => x.id === id)
-        if (i < 0) return
-        const [e] = draft.elements.splice(i, 1)
-        draft.elements.unshift(e)
-      }),
-    )
+    apply((draft: BuilderState) => {
+      const i = draft.elements.findIndex((x) => x.id === id)
+      if (i < 0) return
+      const [e] = draft.elements.splice(i, 1)
+      draft.elements.unshift(e)
+    })
   },
 
   nudge(dx, dy) {
@@ -397,6 +393,14 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     if (!el) return
     const { snap } = useGridStore.getState()
     get().move(id, { x: el.x + dx, y: el.y + dy }, snap)
+  },
+
+  undo() {
+    set((state) => useHistoryStore.getState().undo(state))
+  },
+
+  redo() {
+    set((state) => useHistoryStore.getState().redo(state))
   },
 
   setElements(els) {
@@ -421,5 +425,5 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       console.error('Failed to hydrate builder state', e)
     }
   },
-}))
+})
 

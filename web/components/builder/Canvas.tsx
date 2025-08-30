@@ -4,6 +4,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
 import { useGridStore } from '@/store/gridStore'
+import { useHistoryStore } from '@/store/historyStore'
 import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
@@ -81,6 +82,8 @@ function ResizeHandles({ elm }: { elm: Elm }) {
   const setDragDraft = useBuilderStore((s) => s.setDragDraft)
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
+  const startBatch = useHistoryStore((s) => s.start)
+  const commitBatch = useHistoryStore((s) => s.commit)
   const [resizing, setResizing] = React.useState(false)
   const startRef = React.useRef({
     x: 0,
@@ -108,6 +111,7 @@ function ResizeHandles({ elm }: { elm: Elm }) {
   const onPointerDown = (dir: HandleDir) => (e: React.PointerEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    startBatch()
     startRef.current = {
       x: elm.x,
       y: elm.y,
@@ -192,6 +196,7 @@ function ResizeHandles({ elm }: { elm: Elm }) {
       document.body.style.cursor = ''
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commitBatch()
     }
 
     window.addEventListener('pointermove', onMove)
@@ -238,6 +243,14 @@ function ElmView({ elm }: { elm: Elm }) {
     id: `elm_${elm.id}`,
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
   })
+  const startBatch = useHistoryStore((s) => s.start)
+  const commitBatch = useHistoryStore((s) => s.commit)
+  const prevDragging = React.useRef(false)
+  React.useEffect(() => {
+    if (isDragging && !prevDragging.current) startBatch()
+    if (!isDragging && prevDragging.current) commitBatch()
+    prevDragging.current = isDragging
+  }, [isDragging, startBatch, commitBatch])
 
   const common = 'absolute rounded border text-[12px] select-none'
   const border = isSel ? 'border-amber-400' : 'border-zinc-700'
@@ -302,6 +315,8 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const toggleSelect = useBuilderStore((s) => s.toggleSelect)
   const nudge = useBuilderStore((s) => s.nudge)
   const align = useBuilderStore((s) => s.align)
+  const undo = useBuilderStore((s) => s.undo)
+  const redo = useBuilderStore((s) => s.redo)
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
@@ -319,6 +334,12 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
       ) {
         e.preventDefault()
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+        return
+      }
       if (e.altKey && e.shiftKey) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') align('hSpace')
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') align('vSpace')
@@ -331,7 +352,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nudge, align, gridSize])
+  }, [nudge, align, gridSize, undo, redo])
 
   React.useLayoutEffect(() => {
     const el = canvasRef.current
