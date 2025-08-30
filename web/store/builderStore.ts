@@ -4,6 +4,7 @@ import { produce } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
 import { registry, type RegistryKey } from '@/lib/registry'
+import { useGridStore } from '@/store/gridStore'
 
 export type ElmType = RegistryKey | 'code'
 
@@ -41,7 +42,6 @@ type BuilderState = {
   elements: Elm[]
   selectedId: string | null
   selectedIds: string[]
-  snap: number
   ui: {
     dragDraft?: { id: string; rect: { x: number; y: number; w: number; h: number } }
     guides: Array<{ axis: 'x' | 'y'; pos: number }>
@@ -84,9 +84,9 @@ type BuilderActions = {
   setElements: (els: Elm[]) => void
 }
 
-const SNAP = 8
-function snap(n: number, step = SNAP) {
-  return Math.round(n / step) * step
+function snapToGrid(n: number) {
+  const size = useGridStore.getState().size
+  return Math.round(n / size) * size
 }
 
 function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
@@ -101,14 +101,14 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   elements: [],
   selectedId: null,
   selectedIds: [],
-  snap: SNAP,
   ui: { guides: [] },
 
   addFromPalette(type, at, meta) {
     const id = `elm_${Date.now().toString(36)}`
     const { w, h, text } = defaultSize(type)
-    const x = snap(at?.x ?? 40)
-    const y = snap(at?.y ?? 40)
+    const snapState = useGridStore.getState()
+    const x = snapState.snap ? snapToGrid(at?.x ?? 40) : at?.x ?? 40
+    const y = snapState.snap ? snapToGrid(at?.y ?? 40) : at?.y ?? 40
     set(
       produce((draft: BuilderState) => {
         if (type === 'code') {
@@ -159,8 +159,9 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       produce((draft: BuilderState) => {
         const e = draft.elements.find((x) => x.id === id)
         if (!e) return
-        e.x = snapGrid ? snap(to.x) : to.x
-        e.y = snapGrid ? snap(to.y) : to.y
+        const { snap } = useGridStore.getState()
+        e.x = snapGrid && snap ? snapToGrid(to.x) : to.x
+        e.y = snapGrid && snap ? snapToGrid(to.y) : to.y
       }),
     )
   },
@@ -170,8 +171,9 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       produce((draft: BuilderState) => {
         const e = draft.elements.find((x) => x.id === id)
         if (!e) return
-        e.w = Math.max(16, snapGrid ? snap(to.w) : to.w)
-        e.h = Math.max(16, snapGrid ? snap(to.h) : to.h)
+        const { snap } = useGridStore.getState()
+        e.w = Math.max(16, snapGrid && snap ? snapToGrid(to.w) : to.w)
+        e.h = Math.max(16, snapGrid && snap ? snapToGrid(to.h) : to.h)
       }),
     )
   },
@@ -351,7 +353,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     if (!id) return
     const el = get().elements.find((x) => x.id === id)
     if (!el) return
-    get().move(id, { x: el.x + dx, y: el.y + dy })
+    const { snap } = useGridStore.getState()
+    get().move(id, { x: el.x + dx, y: el.y + dy }, snap)
   },
 
   setElements(els) {
