@@ -3,6 +3,8 @@ import React from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
+import { useInteractionRegistry } from '@/store/interactionRegistry'
+import { buildCombinedCss } from '@/lib/interactionCss'
 import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
@@ -234,6 +236,15 @@ function ElmView({ elm }: { elm: Elm }) {
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
   })
 
+  const { presets } = useInteractionRegistry()
+  const ids = Array.isArray(elm.props?.presetIds)
+    ? elm.props?.presetIds ?? []
+    : elm.props?.presetId
+      ? [elm.props.presetId]
+      : []
+  const chosen = presets.filter((p) => ids.includes(p.id))
+  const css = buildCombinedCss(elm.id, chosen)
+
   const common = 'absolute rounded border text-[12px] select-none'
   const border = isSel ? 'border-amber-400' : 'border-zinc-700'
   const shadow = isSel ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.6)]' : ''
@@ -260,6 +271,7 @@ function ElmView({ elm }: { elm: Elm }) {
       onMouseDown={() => select(elm.id)}
       className={`${common} ${border} ${shadow} cursor-move ${isDragging ? 'opacity-60' : ''}`}
       style={baseStyle}
+      data-node-id={elm.id}
     >
       {elm.type === 'header' && <HeaderView elm={elm} />}
       {elm.type === 'footer' && <FooterView elm={elm} />}
@@ -272,6 +284,7 @@ function ElmView({ elm }: { elm: Elm }) {
       {elm.type === 'text' && <div className="h-full flex items-center px-2">{elm.props?.text ?? 'Text'}</div>}
       {elm.type === 'code' && <CodePreview elm={elm} />}
       {isSel && <ResizeHandles elm={elm} />}
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
     </div>
   )
 }
