@@ -291,12 +291,22 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const els = useBuilderStore((s) => s.elements)
   const select = useBuilderStore((s) => s.select)
   const nudge = useBuilderStore((s) => s.nudge)
+  const align = useBuilderStore((s) => s.align)
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Backspace'].includes(e.key)) {
+      if (
+        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Backspace'].includes(
+          e.key,
+        )
+      ) {
         e.preventDefault()
+      }
+      if (e.altKey && e.shiftKey) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') align('hSpace')
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') align('vSpace')
+        return
       }
       if (e.key === 'ArrowUp') nudge(0, -GRID)
       if (e.key === 'ArrowDown') nudge(0, GRID)
@@ -305,7 +315,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nudge])
+  }, [nudge, align])
 
   return (
     <div className="h-full w-full flex items-center justify-center bg-black">
