@@ -94,6 +94,7 @@ type BuilderActions = {
   ) => void
   updateProp: (nodeId: string, key: string, value: any) => void,
   updateActions: (nodeId: string, map: ActionMap) => void,
+  setMeta: (id: string, meta: any) => void,
   reorder: (idsInOrder: string[]) => void
   reorderWithinParent: (parentId: string | null, orderedIds: string[]) => void
   setVisible: (id: string, v: boolean) => void
@@ -466,6 +467,15 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
         }
         if ((n as any).children) q.push(...(n as any).children)
       }
+    })
+  },
+
+  setMeta(id, meta) {
+    set((s) => {
+      const els = s.elements.slice()
+      const n: any = els.find((e: any) => e.id === id)
+      if (n) n.meta = meta
+      return { elements: els }
     })
   },
 

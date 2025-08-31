@@ -63,9 +63,25 @@ const ContainerMeta: BuilderNodeMeta = {
 }
 
 export const registry = {
-  button:   { cmp: Button,   meta: ButtonMeta },
-  container:{ cmp: Container,meta: ContainerMeta },
-  text:     { cmp: Text,     meta: TextMeta },
+  button: {
+    cmp: Button,
+    meta: ButtonMeta,
+    defaultProps: { text: 'Button', variant: 'solid', color: '#2563eb' },
+    variants: [
+      { id: 'solid', label: 'Solid', props: { variant: 'solid' } },
+      { id: 'ghost', label: 'Ghost', props: { variant: 'ghost' } },
+    ],
+  },
+  container: { cmp: Container, meta: ContainerMeta },
+  text: {
+    cmp: Text,
+    meta: TextMeta,
+    defaultProps: { text: 'Text', color: '#e5e7eb', size: 14 },
+    variants: [
+      { id: 'body', label: 'Body', props: { size: 14 } },
+      { id: 'title', label: 'Title', props: { size: 24 } },
+    ],
+  },
   header:   { cmp: Header,   meta: HeaderMeta },
   footer:   { cmp: Footer,   meta: FooterMeta },
   sidebar:  { cmp: Sidebar,  meta: SidebarMeta },

@@ -1,4 +1,7 @@
 'use client';
+import { useBuilderStore } from '@/store/builderStore';
+import { NodeRendererCompat } from '@/components/NodeRendererCompat';
+import { ENABLE_UNIFIED_PREVIEW } from '@/lib/flags';
 import { useEditorStore } from '@/store/editorStore';
 import type { ComponentNode, InstanceNode } from '@/types/editor';
 import { resolveVariant } from '@/lib/variantResolver';
@@ -50,6 +53,16 @@ function renderNode(
 }
 
 export default function PreviewPage() {
+  const elements = useBuilderStore((s) => s.elements);
+  if (ENABLE_UNIFIED_PREVIEW) {
+    return (
+      <div data-actions-enabled="true" className="w-full h-screen relative">
+        {elements.filter((e: any) => !e.parentId).map((n: any) => (
+          <NodeRendererCompat key={String(n.id)} node={n} />
+        ))}
+      </div>
+    );
+  }
   const tree = useEditorStore((s) => s.tree);
   const components = useEditorStore((s) => s.components);
   const sources = useBindingStore((s) => s.sources);
