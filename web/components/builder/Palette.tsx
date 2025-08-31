@@ -2,7 +2,7 @@
 import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { ElmType } from '@/store/builderStore'
-import { registry, type RegistryKey } from '@/lib/registry'
+import { registry, type RegistryKey } from '@/lib/registry.ts'
 import { loadDocgenMeta, type DocgenMetaItem } from '@/lib/builder/docgen'
 
 function DraggableItem({ type, label }: { type: ElmType; label: string }) {

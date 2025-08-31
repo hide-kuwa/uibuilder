@@ -5,7 +5,7 @@ import ActionPresetField from '@/components/props/ActionPresetField';
 import { useUnitStore } from '@/store/unitStore';
 import { worldToUnit, unitToWorld } from '@/lib/units';
 import AutoPropsForm from '@/components/props/AutoPropsForm';
-import { registry } from '@/lib/registry';
+import { registry } from '@/lib/registry.ts';
 import PresetApplyBar from '@/components/props/PresetApplyBar';
 
 export default function RightInspector() {

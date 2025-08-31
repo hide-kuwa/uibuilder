@@ -2,7 +2,8 @@
 
 import React from 'react'
 import { useEditorActions, ComponentNode } from './store'
-import { registry } from '@/lib/registry'
+import { registry } from '@/lib/registry.ts'
+import { resolveBinding } from '@/lib/binding/resolve'
 import { useRects } from './canvas/RectsStore'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 
@@ -11,8 +12,12 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
   const { setRect } = useRects()
   const ref = React.useRef<HTMLDivElement>(null)
   const entry = (registry as any)[node.type]
-  const Comp = entry?.Comp || ((p: any) => <div {...p}>{p.children}</div>)
+  const Comp = entry?.cmp || ((p: any) => <div {...p}>{p.children}</div>)
   const style = node.props?.style || {}
+  let resolvedProps = node.propValues || {}
+  if (node.propValues) {
+    resolvedProps = resolveBinding(resolvedProps, [], [])
+  }
 
  
 
@@ -46,7 +51,7 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
           selectComponent(node.id)
         }}
       >
-        <Comp {...node.props}>
+        <Comp {...resolvedProps}>
           {node.children?.map((child) => (
             <NodeRenderer key={child.id} node={child} />
           ))}
