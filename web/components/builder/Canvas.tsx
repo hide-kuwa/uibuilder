@@ -71,8 +71,8 @@ function ResizeHandles({ elm }: { elm: Elm }) {
   const setDragDraft = useBuilderStore((s) => s.setDragDraft)
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
-  const startBatch = useHistoryStore((s) => s.start)
-  const commitBatch = useHistoryStore((s) => s.commit)
+  const startBatch = useBuilderStore((s) => s.beginBatch)
+  const commitBatch = useBuilderStore((s) => s.endBatch)
   const [resizing, setResizing] = React.useState(false)
   const startRef = React.useRef({
     x: 0,
@@ -266,8 +266,8 @@ function ElmView({
     runActionsForNode(elm.id, 'mount', ctx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elm.id])
-  const startBatch = useHistoryStore((s) => s.start)
-  const commitBatch = useHistoryStore((s) => s.commit)
+  const startBatch = useBuilderStore((s) => s.beginBatch)
+  const commitBatch = useBuilderStore((s) => s.endBatch)
   const prevDragging = React.useRef(false)
   React.useEffect(() => {
     if (isDragging && !prevDragging.current) startBatch()

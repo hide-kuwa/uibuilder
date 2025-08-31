@@ -2,7 +2,6 @@
 import React from 'react'
 import { useGridStore } from '@/store/gridStore'
 import { useGuidesStore } from '@/store/guidesStore'
-import { useBuilderStore } from '@/store/builderStore'
 import { useHistoryStore } from '@/store/historyStore'
 
 export function Toolbar({
@@ -22,11 +21,11 @@ export function Toolbar({
 }) {
   const { visible, snap, size, setVisible, setSnap, setSize } = useGridStore()
   const { snapPx, setSnapPx } = useGuidesStore((s) => ({ snapPx: s.snapPx, setSnapPx: s.setSnapPx }))
-  const undo = useBuilderStore((s) => s.undo)
-  const redo = useBuilderStore((s) => s.redo)
-  const { index, stack } = useHistoryStore((s) => ({ index: s.index, stack: s.stack }))
-  const canUndo = index >= 0
-  const canRedo = index < stack.length - 1
+  const undo = useHistoryStore((s) => s.undo)
+  const redo = useHistoryStore((s) => s.redo)
+  const { pastCount, futureCount } = useHistoryStore((s) => ({ pastCount: s.past.length, futureCount: s.future.length }))
+  const canUndo = pastCount > 0
+  const canRedo = futureCount > 0
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-auto">
       <button
