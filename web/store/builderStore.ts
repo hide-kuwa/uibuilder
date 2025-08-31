@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { produce, produceWithPatches } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
-import { registry, type RegistryKey } from '@/lib/registry'
+import { registry, getDef, type RegistryKey } from '@/lib/registry.ts'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 
@@ -35,6 +35,7 @@ export type Elm = {
       href?: string
     }
   }
+  propValues?: Record<string, any>
   code?: {
     displayName: string
     importPath: string
@@ -47,6 +48,7 @@ export type ElmPatch = { id: string; x?: number; y?: number; w?: number; h?: num
 
 type BuilderState = {
   elements: Elm[]
+  tree: Elm[]
   selectedId: string | null
   selectedIds: string[]
   ui: {
@@ -88,6 +90,7 @@ type BuilderActions = {
     id: string,
     patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
   ) => void
+  updateProp: (nodeId: string, key: string, value: any) => void,
   reorder: (idsInOrder: string[]) => void
   reorderWithinParent: (parentId: string | null, orderedIds: string[]) => void
   setVisible: (id: string, v: boolean) => void
@@ -122,6 +125,15 @@ function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
   return { ...size, text }
 }
 
+function defaultsFor(key: string) {
+  const meta = getDef(key as any).meta
+  const o: Record<string, any> = {}
+  meta.propertySchema.forEach(d => {
+    if (typeof d.default !== 'undefined') o[d.id] = d.default
+  })
+  return o
+}
+
 export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => {
   const apply = (recipe: (draft: BuilderState) => void) => {
     set((state) => {
@@ -133,6 +145,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
 
   return {
     elements: [],
+    tree: [],
     selectedId: null,
     selectedIds: [],
     ui: { guides: [] },
@@ -171,6 +184,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           },
         })
       } else {
+        const defaults = defaultsFor(type as string)
         draft.elements.push({
           id,
           type,
@@ -183,11 +197,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           parentId: null,
           name: type.charAt(0).toUpperCase() + type.slice(1),
           children: [],
-          props: {
-            text,
-            bg: type === 'button' ? '#0ea5e9' : '#111827',
-            color: '#e5e7eb',
-          },
+          propValues: defaults,
+          props: { ...defaults },
         })
       }
       draft.selectedId = id
@@ -412,6 +423,26 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
             ...(e.code?.props ?? {}),
             ...(code.props ?? {}),
           },
+        }
+      }
+    })
+  },
+  updateProp(nodeId, key, value) {
+    apply((draft: BuilderState) => {
+      const stack: any[] = [...draft.elements]
+      while (stack.length) {
+        const n: any = stack.pop()
+        if (n?.id === nodeId) {
+          if (!n.propValues) n.propValues = {}
+          n.propValues[key] = value
+          if (n.props) n.props[key] = value
+          break
+        }
+        if (n?.children) {
+          n.children.forEach((cid: string) => {
+            const c = draft.elements.find((e) => e.id === cid)
+            if (c) stack.push(c)
+          })
         }
       }
     })
@@ -650,6 +681,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     set(
       produce((draft: BuilderState) => {
         draft.elements = els
+        draft.tree = els
       }),
     )
   },
@@ -662,7 +694,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     try {
       const data = JSON.parse(json)
       if (Array.isArray(data.elements)) {
-        set({ elements: data.elements, selectedId: null, selectedIds: [], ui: { guides: [] } })
+        set({ elements: data.elements, tree: data.elements, selectedId: null, selectedIds: [], ui: { guides: [] } })
       }
     } catch (e) {
       console.error('Failed to hydrate builder state', e)
