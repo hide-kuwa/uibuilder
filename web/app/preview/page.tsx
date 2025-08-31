@@ -16,6 +16,8 @@ import { useSearchParams } from 'next/navigation'
 import '@/styles/preview.css'
 import ActionGate from '@/components/interaction/ActionGate'
 import PresetApplyBus from '@/components/interaction/PresetApplyBus'
+import ErrorBoundary from '@/components/hud/ErrorBoundary'
+import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
 
 function renderNode(
   node: ComponentNode,
@@ -71,10 +73,13 @@ export default function PreviewPage() {
   if (ENABLE_UNIFIED_PREVIEW) {
     if (!ready) return null
     return (
-      <div data-actions-enabled="true" className="w-full h-screen relative bg-black">
-        {elements.filter((e: any) => !e.parentId).map((n: any) => (
-          <NodeRendererCompat key={String(n.id)} node={n} />
-        ))}
+      <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-screen relative bg-black">
+        <ErrorBoundary>
+          {elements.filter((e: any) => !e.parentId).map((n: any) => (
+            <NodeRendererCompat key={String(n.id)} node={n} />
+          ))}
+        </ErrorBoundary>
+        {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
       </div>
     )
   }
@@ -114,13 +119,16 @@ export default function PreviewPage() {
   return (
     <ActionGate enabled>
       <PresetApplyBus />
-      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-        <div style={style}>
-          {safe}
-          {tree.map((n) => renderNode(n, components, sources, bindings))}
-          {showComments && <AnnotationsOverlay />}
-        </div>
+      <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-full flex items-center justify-center bg-gray-100">
+        <ErrorBoundary>
+          <div style={style}>
+            {safe}
+            {tree.map((n) => renderNode(n, components, sources, bindings))}
+            {showComments && <AnnotationsOverlay />}
+          </div>
+        </ErrorBoundary>
       </div>
+      {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
     </ActionGate>
   );
 }
