@@ -8,6 +8,7 @@ import UiButton from '@/components/defs/ui/Button'
 import UiText from '@/components/defs/ui/Text'
 import UiHeader from '@/components/defs/ui/Header'
 import UiCard from '@/components/defs/ui/Card'
+// 追加予定の Footer/Sidebar/Panel/HUD があればここで import して REGISTRY に列挙
 
 export const REGISTRY: Record<string, ComponentDef> = {
   'ui.button': UiButton,
@@ -15,9 +16,6 @@ export const REGISTRY: Record<string, ComponentDef> = {
   'ui.header': UiHeader,
   'ui.card': UiCard,
 }
-
-export const registry = REGISTRY
-export type RegistryKey = keyof typeof REGISTRY
 
 export function getDef(key: string): ComponentDef | undefined {
   return REGISTRY[key]

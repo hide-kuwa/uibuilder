@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { useDraggable, DndContext } from '@dnd-kit/core'
+import { useDraggable } from '@dnd-kit/core'
 import { listDefs } from '@/lib/registry'
 
 function Item({ comp }: { comp: { key: string; label: string } }) {
@@ -31,8 +31,6 @@ export function Palette() {
           <Item key={d.key} comp={d} />
         ))}
       </div>
-      <div className="text-xs opacity-70 mt-3">Code Components</div>
-      <div className="text-xs opacity-60">（動的コードカタログは現在OFF。必要なら後述のフラグでONにできます）</div>
     </div>
   )
 }

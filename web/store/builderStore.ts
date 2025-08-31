@@ -1,7 +1,6 @@
 'use client'
 import { create } from 'zustand'
 import { produce } from 'immer'
-import { parseValue } from '@/lib/builder/docgen'
 import { getDef } from '@/lib/registry'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
@@ -137,34 +136,27 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
 
   addFromPalette(type, pos, meta) {
     const s = get()
+    const x = Math.round(pos?.x ?? 40)
+    const y = Math.round(pos?.y ?? 40)
+
     if (type === 'code') {
       const id = crypto.randomUUID()
-      const initProps: Record<string, unknown> = {}
-      meta?.props?.forEach((p: any) => {
-        const v = parseValue(p.defaultValue?.value)
-        if (v !== undefined) initProps[p.name] = v
-      })
       const el: any = {
         id,
         type: 'code',
-        x: Math.round(pos?.x ?? 40),
-        y: Math.round(pos?.y ?? 40),
-        w: 160,
-        h: 40,
-        visible: true,
-        locked: false,
-        parentId: null,
-        children: [],
+        x, y, w: 160, h: 40,
+        visible: true, locked: false, parentId: null,
         code: {
           displayName: meta?.displayName ?? 'Component',
           importPath: meta?.importPath ?? '',
           exportName: meta?.exportName,
-          props: initProps,
+          props: meta?.props ?? {},
         },
       }
       set({ elements: [...s.elements, el] })
       return
     }
+
     if (type === 'instance' && meta?.componentId) {
       const def = getDef(meta.componentId)
       const id = crypto.randomUUID()
@@ -174,15 +166,14 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
         id,
         type: 'instance',
         componentId: meta.componentId,
-        x: Math.round(pos.x),
-        y: Math.round(pos.y),
-        w,
-        h,
-        propValues: {},
+        x, y, w, h,
+        propValues: {}, // 後で defaults を注入する場合は mergeDefaults を利用
+        visible: true, locked: false, parentId: null,
       }
       set({ elements: [...s.elements, el] })
       return
     }
+
     const legacyMap: Record<string, string> = {
       button: 'ui.button',
       text: 'ui.text',
@@ -198,14 +189,11 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
         id,
         type: 'instance',
         componentId: legacyMap[type],
-        x: Math.round(pos.x),
-        y: Math.round(pos.y),
-        w,
-        h,
+        x, y, w, h,
         propValues: {},
+        visible: true, locked: false, parentId: null,
       }
       set({ elements: [...s.elements, el] })
-      return
     }
   },
 
