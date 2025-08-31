@@ -184,10 +184,13 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       return
     }
     const legacyMap: Record<string, string> = {
-      button: 'ui.button',
-      text: 'ui.text',
       header: 'ui.header',
+      footer: 'ui.footer',
+      sidebar: 'ui.sidebar',
+      text: 'ui.text',
       card: 'ui.card',
+      panel: 'ui.panel',
+      hud: 'ui.hud',
     }
     if (legacyMap[type]) {
       const def = getDef(legacyMap[type])
