@@ -198,7 +198,6 @@ export function LayersContent() {
           ungroup(selectedIds[0])
         }
       }}
-      className="overflow-auto"
     >
       <DndContext onDragEnd={onDragEnd}>
         <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
@@ -229,7 +228,11 @@ export default function LayersPanel() {
           </button>
         </div>
       </div>
-      {!collapsed && <LayersContent />}
+      {!collapsed && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <LayersContent />
+        </div>
+      )}
     </aside>
   )
 }
