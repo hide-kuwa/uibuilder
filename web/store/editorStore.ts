@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { produceWithPatches } from "immer";
+import { produceWithPatches, enablePatches } from "immer";
 import type {
   EditorState,
   ComponentNode,
@@ -56,6 +56,8 @@ import {
   type SnapshotDoc,
 } from "@/lib/persist/snapshot";
 import { commitWithRetry } from "@/lib/persist/commit";
+
+enablePatches();
 
 const updateUsageCounts = (draft: EditorState) => {
   const counts: Record<string, number> = {};
