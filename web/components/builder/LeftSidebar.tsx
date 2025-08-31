@@ -78,8 +78,15 @@ function SortablePanel({
 }
 
 export default function LeftSidebar() {
-  const panels: Record<PanelId, { title: string; render: () => React.ReactNode; extra?: React.ReactNode }> = {
-    layers: { title: 'Layers', render: () => <LayersContent />, extra: <LayersControls /> },
+  const panels: Record<
+    PanelId,
+    { title: string; render: () => React.ReactNode; extra?: React.ReactNode }
+  > = {
+    layers: {
+      title: 'Layers',
+      render: () => <LayersContent />,
+      extra: <LayersControls />,
+    },
     pages: {
       title: 'Pages',
       render: () => <PagesPanel showHeader={false} />,
@@ -87,6 +94,7 @@ export default function LeftSidebar() {
     },
     palette: { title: 'パレット', render: () => <Palette /> },
   }
+
   const [order, setOrder] = React.useState<PanelId[]>([
     'layers',
     'pages',
@@ -97,7 +105,10 @@ export default function LeftSidebar() {
     pages: false,
     palette: false,
   })
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  )
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
@@ -130,4 +141,3 @@ export default function LeftSidebar() {
     </aside>
   )
 }
-
