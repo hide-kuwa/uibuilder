@@ -9,7 +9,7 @@ import { CanvasOverlay } from './CanvasOverlay'
 import { HeaderView } from './header/HeaderView'
 import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
-import NodeWrapper from './NodeWrapper'
+import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
@@ -59,37 +59,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 function CodePreview({ elm }: { elm: Elm }) {
-  const Comp = React.useMemo(() => {
-    if (!elm.code?.importPath) return null
-    return React.lazy(async () => {
-      try {
-        const mod: any = await import(/* @vite-ignore */ elm.code.importPath)
-        return {
-          default: elm.code.exportName ? mod[elm.code.exportName] : mod.default,
-        }
-      } catch {
-        return {
-          default: () => (
-            <div className="text-[11px] text-red-400">load error</div>
-          ),
-        }
-      }
-    })
-  }, [elm.code?.importPath, elm.code?.exportName])
-  if (!Comp) {
-    return <div className="text-[11px] text-zinc-400">no component</div>
-  }
-  return (
-    <ErrorBoundary>
-      <React.Suspense
-        fallback={<div className="text-[11px] text-zinc-400">loading...</div>}
-      >
-        <div className="w-full h-full pointer-events-none">
-          <Comp {...(elm.code?.props ?? {})} />
-        </div>
-      </React.Suspense>
-    </ErrorBoundary>
-  )
+  return <div className="text-[11px] text-zinc-400">no component</div>
 }
 
 type HandleDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'
@@ -281,11 +251,16 @@ function ElmView({
   }))
   const isSel = selectedId === elm.id
   const dragDraft = useBuilderStore((s) => s.ui.dragDraft)
+  const dragId = React.useMemo(() => `drag-${elm.id}`, [elm.id])
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `elm_${elm.id}`,
+    id: dragId,
     data: { from: 'canvas', id: elm.id, anchorX: elm.w / 2, anchorY: elm.h / 2 },
     disabled: elm.locked,
   })
+  const dragAttrs = React.useMemo(() => ({
+    ...attributes,
+    id: dragId,
+  }), [attributes, dragId])
   React.useEffect(() => {
     runActionsForNode(elm.id, 'mount', ctx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,28 +297,33 @@ function ElmView({
 
   return (
     <NodeWrapper
-      ref={setNodeRef}
-      {...(!elm.locked ? listeners : {})}
-      {...attributes}
-      onClick={() => runActionsForNode(elm.id, 'click', ctx)}
-      onMouseEnter={() => runActionsForNode(elm.id, 'hover', ctx)}
-      onMouseDown={(e) => {
-        if (e.shiftKey) addSelect(elm.id)
-        else if (e.altKey || e.ctrlKey) toggleSelect(elm.id)
-        else select(elm.id)
-      }}
-      className={`${common} ${border} ${shadow} ${elm.locked ? 'cursor-default' : 'cursor-move'} ${isDragging ? 'opacity-60' : ''}`}
-      id={elm.id}
-      type={elm.type}
-      name={elm.name}
-      style={baseStyle}
-      presetProps={{
-        presetIds: mergedProps?.presetIds,
-        presetId: mergedProps?.presetId,
-        hoverEffects: mergedProps?.hoverEffects,
-        hoverTransitionMs: mergedProps?.hoverTransitionMs,
-      }}
+      nodeId={elm.id}
+      nodeType={elm.type}
+      nodeName={elm.name}
+      presetIds={mergedProps?.presetIds || undefined}
+      presetId={mergedProps?.presetId || undefined}
+      hoverEffects={mergedProps?.hoverEffects || undefined}
+      hoverTransitionMs={mergedProps?.hoverTransitionMs || undefined}
     >
+      <div
+        ref={setNodeRef}
+        {...(!elm.locked ? listeners : {})}
+        {...dragAttrs}
+        id={dragId}
+        data-drag-id={dragId}
+        onClick={() => runActionsForNode(elm.id, 'click', ctx)}
+        onMouseEnter={() => runActionsForNode(elm.id, 'hover', ctx)}
+        onMouseDown={(e) => {
+          if (e.shiftKey) addSelect(elm.id)
+          else if (e.altKey || e.ctrlKey) toggleSelect(elm.id)
+          else select(elm.id)
+        }}
+        className={`${common} ${border} ${shadow} ${elm.locked ? 'cursor-default' : 'cursor-move'} ${isDragging ? 'opacity-60' : ''}`}
+        data-node-id={elm.id}
+        data-node-type={elm.type}
+        data-node-name={elm.name}
+        style={baseStyle}
+      >
       {elm.type === 'header' && <HeaderView elm={elm} />}
       {elm.type === 'footer' && <FooterView elm={elm} />}
       {elm.type === 'sidebar' && <SidebarView elm={elm} />}
@@ -358,20 +338,21 @@ function ElmView({
         <div className="h-full flex items-center px-2">{mergedProps?.text ?? 'Text'}</div>
       )}
       {elm.type === 'code' && <CodePreview elm={{ ...elm, props: mergedProps }} />}
-      {isSel && !elm.locked && selectedIds.length === 1 && <ResizeHandles elm={elm} />}
-      {elm.children?.map((cid) => {
-        const c = all.find((e) => e.id === cid)
-        return c ? (
-          <ElmView
-            key={cid}
-            elm={c}
-            all={all}
-            offset={{ x: elm.x, y: elm.y }}
-            ctx={ctx}
-            runtimeProps={runtimeProps}
-          />
-        ) : null
-      })}
+        {isSel && !elm.locked && selectedIds.length === 1 && <ResizeHandles elm={elm} />}
+        {elm.children?.map((cid) => {
+          const c = all.find((e) => e.id === cid)
+          return c ? (
+            <ElmView
+              key={cid}
+              elm={c}
+              all={all}
+              offset={{ x: elm.x, y: elm.y }}
+              ctx={ctx}
+              runtimeProps={runtimeProps}
+            />
+          ) : null
+        })}
+      </div>
     </NodeWrapper>
   )
 }

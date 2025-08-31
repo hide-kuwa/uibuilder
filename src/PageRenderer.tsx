@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
-import PresetStyle from '@/components/interaction/PresetStyle';
+import { NodeWrapper } from '@/components/shared/NodeWrapper';
+import { getByKey } from '../lib/registry';
 
 function getByPath(obj: any, path: string) {
   if (!path || !path.startsWith('$.')) return undefined;
@@ -83,7 +84,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
   const Comp =
     typeof type === 'string' && type[0] === type[0].toLowerCase()
       ? type // div, span などネイティブ要素
-      : (require('../lib/registry').components as any)[type] || type;
+      : getByKey(type as any);
 
   const childrenArr =
     node.children?.map((c) => (
@@ -91,22 +92,17 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
     )) || [];
 
   return (
-    <div
-      {...{
-        'data-node-id': node.id,
-        'data-node-type': node.type,
-        'data-node-name': (node as any).props?.name,
-      }}
+    <NodeWrapper
+      nodeId={node.id}
+      nodeType={node.type}
+      nodeName={(node as any).props?.name}
+      presetIds={node.props?.presetIds}
+      presetId={node.props?.presetId}
+      hoverEffects={node.props?.hoverEffects}
+      hoverTransitionMs={node.props?.hoverTransitionMs}
     >
       {React.createElement(Comp as any, props, childrenArr)}
-      <PresetStyle
-        nodeId={node.id}
-        presetIds={node.props?.presetIds}
-        presetId={node.props?.presetId}
-        hoverEffects={node.props?.hoverEffects}
-        hoverTransitionMs={node.props?.hoverTransitionMs}
-      />
-    </div>
+    </NodeWrapper>
   );
 };
 

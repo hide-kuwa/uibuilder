@@ -4,7 +4,7 @@ import React from 'react'
 import { useEditorActions, ComponentNode } from './store'
 import { registry } from '@/lib/registry'
 import { useRects } from './canvas/RectsStore'
-import PresetStyle from '@/components/interaction/PresetStyle'
+import { NodeWrapper } from '@/components/shared/NodeWrapper'
 
 export function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
@@ -27,31 +27,32 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
     setRect(node.id, { x, y, w: r.width, h: r.height })
   })
 
+  const nodeName = node.name || node.props?.name
   return (
-    <div
-      ref={ref}
-      data-node-id={node.id}
-      data-node-type={node.type}
-      data-node-name={node.name || node.props?.name}
-      style={{ position: 'absolute', ...style }}
-      onMouseDown={(e) => {
-        e.stopPropagation()
-        selectComponent(node.id)
-      }}
+    <NodeWrapper
+      nodeId={node.id}
+      nodeType={node.type}
+      nodeName={nodeName}
+      presetIds={node.props?.presetIds}
+      presetId={node.props?.presetId}
+      hoverEffects={node.props?.hoverEffects}
+      hoverTransitionMs={node.props?.hoverTransitionMs}
     >
-      <Comp {...node.props}>
-        {node.children?.map((child) => (
-          <NodeRenderer key={child.id} node={child} />
-        ))}
-      </Comp>
-      <PresetStyle
-        nodeId={node.id}
-        presetIds={node.props?.presetIds}
-        presetId={node.props?.presetId}
-        hoverEffects={node.props?.hoverEffects}
-        hoverTransitionMs={node.props?.hoverTransitionMs}
-      />
-    </div>
+      <div
+        ref={ref}
+        style={{ position: 'absolute', ...style }}
+        onMouseDown={(e) => {
+          e.stopPropagation()
+          selectComponent(node.id)
+        }}
+      >
+        <Comp {...node.props}>
+          {node.children?.map((child) => (
+            <NodeRenderer key={child.id} node={child} />
+          ))}
+        </Comp>
+      </div>
+    </NodeWrapper>
   )
 }
 
