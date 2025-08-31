@@ -13,6 +13,7 @@ import { mountHistorySync } from '@/store/historySync'
 import StatusCenter from '@/components/hud/StatusCenter'
 import ErrorBoundary from '@/components/hud/ErrorBoundary'
 import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
+import ModalHost from '@/components/hud/ModalHost'
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   useAlignShortcuts()
@@ -34,6 +35,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       <StatusCenter />
       <HistoryHotkeys />
       {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
+      <ModalHost />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import type { InstanceLike } from '@/types/instanceLike'
 import { getDef } from '@/lib/registry'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { useActionRunner } from '@/lib/actions/runActions'
+import { runInteraction } from '@/components/interaction/ActionRunner'
 
 export function NodeRendererCompat({ node }: { node: any }) {
   const inst: InstanceLike = toInstanceLike(node)
@@ -14,7 +15,13 @@ export function NodeRendererCompat({ node }: { node: any }) {
   const run = useActionRunner()
   const props = resolveProps({ defDefault: def.defaultProps, variants: def.variants, inst })
   const Cmp = def.cmp
-  const onClick = inst.actions?.onClick?.length ? () => run(inst.actions?.onClick, { nodeId: inst.id }) : undefined
+  const onClick = inst.actions?.onClick?.length || (inst as any).interactions?.onClick
+    ? () => {
+        if (inst.actions?.onClick?.length) run(inst.actions.onClick, { nodeId: inst.id })
+        const inter = (inst as any).interactions?.onClick
+        if (inter) runInteraction(inter)
+      }
+    : undefined
   return (
     <NodeWrapper nodeId={inst.id} nodeType={def.key || inst.componentId} nodeName={inst.name} presetId={undefined}>
       <div style={{ position: 'absolute', left: inst.x ?? 0, top: inst.y ?? 0, width: inst.w ?? undefined, height: inst.h ?? undefined }} onClick={onClick}>

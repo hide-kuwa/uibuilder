@@ -17,6 +17,7 @@ import {
 import ActionGate from '@/components/interaction/ActionGate'
 import ActionDevConsole from '@/components/interaction/ActionDevConsole'
 import { useActionDebugStore } from '@/store/actionDebugStore'
+import { runInteraction } from '@/components/interaction/ActionRunner'
 
 function setByPath(obj: any, path: string, value: any) {
   const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
@@ -84,6 +85,8 @@ function NodeRenderer({
   const link = node.prototypeLink;
   const handleClick = (e: any) => {
     runActionsForNode(node.id, 'click', ctx);
+    const inter = (node as any).interactions?.onClick;
+    if (inter) runInteraction(inter);
     if (!link) return;
     e.stopPropagation();
     const trig = link.trigger?.type || 'click';
