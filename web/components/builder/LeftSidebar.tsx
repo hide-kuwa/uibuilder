@@ -16,9 +16,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { PagesPanel } from './PagesPanel'
 import { Palette } from './Palette'
+import { LayersContent, LayersControls } from './LayersPanel'
 import { usePageStore } from '@/store/pageStore'
 
-type PanelId = 'pages' | 'palette'
+type PanelId = 'layers' | 'pages' | 'palette'
 
 function AddPageButton() {
   const addPage = usePageStore((s) => s.addPage)
@@ -77,16 +78,37 @@ function SortablePanel({
 }
 
 export default function LeftSidebar() {
-  const panels: Record<PanelId, { title: string; render: () => React.ReactNode; extra?: React.ReactNode }> = {
-    pages: { title: 'Pages', render: () => <PagesPanel showHeader={false} />, extra: <AddPageButton /> },
+  const panels: Record<
+    PanelId,
+    { title: string; render: () => React.ReactNode; extra?: React.ReactNode }
+  > = {
+    layers: {
+      title: 'Layers',
+      render: () => <LayersContent />,
+      extra: <LayersControls />,
+    },
+    pages: {
+      title: 'Pages',
+      render: () => <PagesPanel showHeader={false} />,
+      extra: <AddPageButton />,
+    },
     palette: { title: 'パレット', render: () => <Palette /> },
   }
-  const [order, setOrder] = React.useState<PanelId[]>(['pages', 'palette'])
+
+  const [order, setOrder] = React.useState<PanelId[]>([
+    'layers',
+    'pages',
+    'palette',
+  ])
   const [collapsed, setCollapsed] = React.useState<Record<PanelId, boolean>>({
+    layers: false,
     pages: false,
     palette: false,
   })
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  )
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
@@ -119,4 +141,3 @@ export default function LeftSidebar() {
     </aside>
   )
 }
-

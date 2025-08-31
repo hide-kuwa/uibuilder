@@ -55,10 +55,7 @@ export default function BuilderPage() {
         if (!elm) return
         startRectRef.current = { x: elm.x, y: elm.y, w: elm.w, h: elm.h }
         setDragDraft({ id: data.id, rect: { x: elm.x, y: elm.y, w: elm.w, h: elm.h } })
-        snapPointsRef.current = collectSnapPoints(
-          useBuilderStore.getState().elements,
-          data.id,
-        )
+        snapPointsRef.current = collectSnapPoints(useBuilderStore.getState().elements, data.id)
       }
     },
     [setDragDraft],
@@ -71,9 +68,7 @@ export default function BuilderPage() {
       if (data.from === 'canvas' && startRectRef.current && snapPointsRef.current) {
         const s = startRectRef.current
         const candidate = { x: s.x + e.delta.x, y: s.y + e.delta.y, w: s.w, h: s.h }
-        const { rect, guides } = snapRect(candidate, snapPointsRef.current, {
-          mode: 'move',
-        })
+        const { rect, guides } = snapRect(candidate, snapPointsRef.current, { mode: 'move' })
         setDragDraft({ id: data.id, rect })
         setGuides(guides)
       }
@@ -136,22 +131,18 @@ export default function BuilderPage() {
       }
     })
     const importLines = Array.from(imports.values()).map((m) =>
-      m.exp
-        ? `import { ${m.exp} as ${m.name} } from "${m.path}"`
-        : `import ${m.name} from "${m.path}"`,
+      m.exp ? `import { ${m.exp} as ${m.name} } from "${m.path}"` : `import ${m.name} from "${m.path}"`,
     )
     const body = codeEls
       .map((e) => {
         const name = e.code!.displayName
         const propsStr = Object.entries(e.code!.props || {})
-          .map(([k, v]) =>
-            typeof v === 'string'
-              ? `${k}=${JSON.stringify(v)}`
-              : `${k}={${JSON.stringify(v)}}`,
-          )
+          .map(([k, v]) => (typeof v === 'string' ? `${k}=${JSON.stringify(v)}` : `${k}={${JSON.stringify(v)}}`))
           .join(' ')
-        return `      <div style={{ position: 'absolute', left: ${e.x}, top: ${e.y}, width: ${e.w}, height: ${e.h} }}>` +
+        return (
+          `      <div style={{ position: 'absolute', left: ${e.x}, top: ${e.y}, width: ${e.w}, height: ${e.h} }}>` +
           `\n        <${name}${propsStr ? ' ' + propsStr : ''} />\n      </div>`
+        )
       })
       .join('\n')
     const content =
@@ -177,12 +168,7 @@ export default function BuilderPage() {
     <ActionGate enabled debug={debug} intercept={intercept}>
       <PresetApplyBus />
       <div className="flex h-[calc(100vh-40px)]">
-        <DndContext
-          sensors={sensors}
-          onDragStart={onDragStart}
-          onDragMove={onDragMove}
-          onDragEnd={onDragEnd}
-        >
+        <DndContext sensors={sensors} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd}>
           <LeftSidebar />
           <LayersPanel />
           <main className="flex-1 relative">
@@ -210,4 +196,3 @@ export default function BuilderPage() {
     </ActionGate>
   )
 }
-

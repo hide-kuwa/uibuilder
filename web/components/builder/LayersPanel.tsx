@@ -125,15 +125,11 @@ function Row({ id, depth = 0 }: { id: string; depth?: number }) {
   )
 }
 
-export default function LayersPanel() {
+export function LayersControls() {
   const elements = useBuilderStore((s) => s.elements)
-  const rootIds = elements.filter((e) => !e.parentId).map((e) => e.id)
-  const reorderWithinParent = useBuilderStore((s) => s.reorderWithinParent)
   const selectedIds = useBuilderStore((s) => s.selectedIds)
   const group = useBuilderStore((s) => s.group)
   const ungroup = useBuilderStore((s) => s.ungroup)
-
-  const [collapsed, setCollapsed] = React.useState(false)
 
   const canGroup = React.useMemo(() => {
     if (selectedIds.length < 2) return false
@@ -143,6 +139,37 @@ export default function LayersPanel() {
       (sid) => (elements.find((e) => e.id === sid)?.parentId ?? null) === parent,
     )
   }, [selectedIds, elements])
+
+  const canUngroup =
+    selectedIds.length === 1 &&
+    elements.find((e) => e.id === selectedIds[0])?.type === 'group'
+
+  return (
+    <>
+      <button
+        className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
+        disabled={!canGroup}
+        onClick={() => group(selectedIds, { name: 'Group' })}
+      >
+        Group
+      </button>
+      <button
+        className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
+        disabled={!canUngroup}
+        onClick={() => ungroup(selectedIds[0])}
+      >
+        Ungroup
+      </button>
+    </>
+  )
+}
+
+export function LayersContent() {
+  const elements = useBuilderStore((s) => s.elements)
+  const rootIds = elements.filter((e) => !e.parentId).map((e) => e.id)
+  const reorderWithinParent = useBuilderStore((s) => s.reorderWithinParent)
+  const selectedIds = useBuilderStore((s) => s.selectedIds)
+  const ungroup = useBuilderStore((s) => s.ungroup)
 
   const canUngroup =
     selectedIds.length === 1 &&
@@ -164,32 +191,35 @@ export default function LayersPanel() {
   }
 
   return (
-    <aside
-      className="w-64 border-r border-zinc-800 bg-zinc-950/40 h-full flex flex-col"
+    <div
       tabIndex={0}
       onKeyDown={(e) => {
         if ((e.key === 'Delete' || e.key === 'Backspace') && canUngroup) {
           ungroup(selectedIds[0])
         }
       }}
+      className="overflow-auto"
     >
+      <DndContext onDragEnd={onDragEnd}>
+        <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+          {rootIds.map((id) => (
+            <Row key={id} id={id} />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  )
+}
+
+export default function LayersPanel() {
+  const [collapsed, setCollapsed] = React.useState(false)
+
+  return (
+    <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 h-full flex flex-col">
       <div className="px-2 py-2 border-b border-zinc-800 flex items-center gap-2">
         <div className="font-medium text-sm">Layers</div>
         <div className="ml-auto flex gap-2 items-center">
-          <button
-            className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
-            disabled={!canGroup}
-            onClick={() => group(selectedIds, { name: 'Group' })}
-          >
-            Group
-          </button>
-          <button
-            className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
-            disabled={!canUngroup}
-            onClick={() => ungroup(selectedIds[0])}
-          >
-            Ungroup
-          </button>
+          <LayersControls />
           <button
             className="px-1 text-xs border border-zinc-700 rounded"
             onClick={() => setCollapsed((v) => !v)}
@@ -199,18 +229,7 @@ export default function LayersPanel() {
           </button>
         </div>
       </div>
-      {!collapsed && (
-        <div className="flex-1 overflow-auto">
-          <DndContext onDragEnd={onDragEnd}>
-            <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
-              {rootIds.map((id) => (
-                <Row key={id} id={id} />
-              ))}
-            </SortableContext>
-          </DndContext>
-        </div>
-      )}
+      {!collapsed && <LayersContent />}
     </aside>
   )
 }
-
