@@ -1,12 +1,6 @@
 'use client'
 import React from 'react'
-import {
-  DndContext,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  DragEndEvent,
-} from '@dnd-kit/core'
+import { useDndMonitor } from '@dnd-kit/core'
 import {
   SortableContext,
   useSortable,
@@ -116,40 +110,41 @@ export default function LeftSidebar() {
     palette: false,
   })
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-  )
-
-  const handleDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e
-    if (!over || active.id === over.id) return
-    const oldIndex = order.indexOf(active.id as PanelId)
-    const newIndex = order.indexOf(over.id as PanelId)
-    setOrder(arrayMove(order, oldIndex, newIndex))
-  }
+  useDndMonitor({
+    onDragEnd: ({ active, over }) => {
+      if (!over) return
+      const activeId = active.id as PanelId
+      const overId = over.id as PanelId
+      setOrder((prev) => {
+        if (!prev.includes(activeId) || !prev.includes(overId)) return prev
+        const oldIndex = prev.indexOf(activeId)
+        const newIndex = prev.indexOf(overId)
+        if (oldIndex === newIndex) return prev
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    },
+  })
 
   return (
     <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-2 flex flex-col gap-2">
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          {order.map((id) => (
-            <SortablePanel
-              key={id}
-              id={id}
-              title={panels[id].title}
-              collapsed={collapsed[id]}
-              onToggle={() =>
-                setCollapsed((c) => ({ ...c, [id]: !c[id] }))
-              }
-              extraHeader={panels[id].extra}
-              className={id === 'layers' ? 'flex-1 min-h-0' : undefined}
-              contentClassName={id === 'layers' ? 'flex-1 min-h-0 overflow-y-auto' : undefined}
-            >
-              {panels[id].render()}
-            </SortablePanel>
-          ))}
-        </SortableContext>
-      </DndContext>
+      <SortableContext items={order} strategy={verticalListSortingStrategy}>
+        {order.map((id) => (
+          <SortablePanel
+            key={id}
+            id={id}
+            title={panels[id].title}
+            collapsed={collapsed[id]}
+            onToggle={() =>
+              setCollapsed((c) => ({ ...c, [id]: !c[id] }))
+            }
+            extraHeader={panels[id].extra}
+            className={id === 'layers' ? 'flex-1 min-h-0' : undefined}
+            contentClassName={id === 'layers' ? 'flex-1 min-h-0 overflow-y-auto' : undefined}
+          >
+            {panels[id].render()}
+          </SortablePanel>
+        ))}
+      </SortableContext>
     </aside>
   )
 }
