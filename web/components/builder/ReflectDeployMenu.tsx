@@ -2,6 +2,8 @@
 import React, { useState } from 'react'
 import { useBuilderStore } from '@/store/builderStore'
 import { useStatusCenter } from '@/store/statusCenterStore'
+import { useDesignTokens } from '@/store/designTokensStore'
+import { useDataSources } from '@/store/dataBindingStore'
 
 export default function ReflectDeployMenu() {
   const state = useBuilderStore(s => ({ elements: s.elements, meta: (s as any).meta || { id: 'local', name: 'Local Project' } }))
@@ -14,10 +16,12 @@ export default function ReflectDeployMenu() {
     try {
       setBusy('reflect')
       setMsg('')
+      const tokens = useDesignTokens.getState().getAll()
+      const data = useDataSources.getState().sources
       const res = await fetch('/api/gh/reflect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: state.meta.id || 'project', project: { schemaVersion: 1, meta: state.meta, elements: state.elements, designTokens: {}, assets: [] } }),
+        body: JSON.stringify({ projectId: state.meta.id || 'project', project: { schemaVersion: 1, meta: state.meta, elements: state.elements, designTokens: tokens, dataSources: data, assets: [] } }),
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j?.error || 'reflect failed')
