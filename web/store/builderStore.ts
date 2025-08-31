@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { produce, produceWithPatches } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
-import { registry, getDef, type RegistryKey } from '@/lib/registry.ts'
+import { registry, type RegistryKey } from '@/lib/registry.ts'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 import type { ActionMap } from '@/types/actions'
@@ -129,11 +129,15 @@ function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
 }
 
 function defaultsFor(key: string) {
-  const meta = getDef(key as any).meta
+  const meta = (registry as any)[key]?.meta
   const o: Record<string, any> = {}
-  meta.propertySchema.forEach(d => {
-    if (typeof d.default !== 'undefined') o[d.id] = d.default
-  })
+  const schema = meta?.propertySchema
+  if (schema?.kind === 'object') {
+    Object.entries(schema.properties).forEach(([k, v]) => {
+      const def = v as any
+      if (typeof def.default !== 'undefined') o[k] = def.default
+    })
+  }
   return o
 }
 
