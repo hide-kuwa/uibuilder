@@ -2,13 +2,21 @@
 import React, { useMemo } from 'react'
 import { useInteractionRegistry } from '@/store/interactionRegistry'
 import { defaultEffect } from '@/types/interactions'
-import type { Effect, InteractionPreset, Trigger } from '@/types/interactions'
+import type {
+  Effect,
+  InteractionPreset,
+  Trigger,
+  Action,
+  BehaviorTrigger,
+} from '@/types/interactions'
 import { buildPresetCss } from '@/lib/interactionCss'
 import { emitApply } from '@/lib/presetChannel'
 import { useEditorStore } from '@/store/editorStore'
 
 const ALL_TRIGGERS: Trigger[] = ['hover','active','focus','focusWithin','groupHover']
 const EFFECT_OPTIONS: Effect['kind'][] = ['bgColor','textColor','borderColor','shadow','scale','opacity','translate','rotate','outline','cursor']
+const BEHAVIOR_TRIGGERS: BehaviorTrigger[] = ['click','doubleClick','mount','delay','inView']
+const ACTION_KINDS: Action['kind'][] = ['openUrl','navigate','emitEvent','setProp']
 
 export default function ActionDesignerPage() {
   const { presets, selectedId, add, update, remove, duplicate, select, import: importPresets, export: exportPresets } = useInteractionRegistry()
@@ -172,6 +180,13 @@ export default function ActionDesignerPage() {
               {/* Effects */}
               <div className="mt-3 text-xs text-neutral-300">Effects</div>
               <EffectEditor preset={sel} onChange={(fx)=>update(sel.id, { effects: fx })} />
+
+              {/* Behavior Actions */}
+              <div className="mt-6 text-xs text-neutral-300">Actions</div>
+              <ActionList actions={sel.actions || []} onChange={(acts)=>update(sel.id, { actions: acts })} />
+
+              <div className="mt-3 text-xs text-neutral-300">When</div>
+              <WhenEditor when={sel.when || []} onChange={(w)=>update(sel.id, { when: w })} />
             </>
           )}
         </div>
@@ -187,6 +202,175 @@ export default function ActionDesignerPage() {
           {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function ActionList({ actions, onChange }: { actions: Action[]; onChange: (a: Action[]) => void }) {
+  const add = () => onChange([...(actions || []), { kind: 'openUrl', url: '' } as Action])
+  const patch = (i: number, next: Partial<Action>) => {
+    const arr = actions.slice()
+    arr[i] = { ...arr[i], ...next }
+    onChange(arr)
+  }
+  const remove = (i: number) => {
+    const arr = actions.slice()
+    arr.splice(i, 1)
+    onChange(arr)
+  }
+  return (
+    <div className="space-y-2 mt-2">
+      {actions.map((a, i) => (
+        <div key={i} className="border border-neutral-700 rounded p-2 flex flex-col gap-1">
+          <div className="flex gap-2 items-center">
+            <select
+              value={a.kind}
+              onChange={(e) => patch(i, { kind: e.target.value as Action['kind'] })}
+              className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-sm"
+            >
+              {ACTION_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+            <button
+              className="ml-auto px-2 py-1 bg-neutral-800 rounded text-xs"
+              onClick={() => remove(i)}
+            >
+              Del
+            </button>
+          </div>
+
+          {a.kind === 'openUrl' && (
+            <input
+              className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+              placeholder="url"
+              value={a.url || ''}
+              onChange={(e) => patch(i, { url: e.target.value })}
+            />
+          )}
+          {a.kind === 'navigate' && (
+            <input
+              className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+              placeholder="to"
+              value={a.to || ''}
+              onChange={(e) => patch(i, { to: e.target.value })}
+            />
+          )}
+          {a.kind === 'emitEvent' && (
+            <>
+              <input
+                className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+                placeholder="name"
+                value={a.name || ''}
+                onChange={(e) => patch(i, { name: e.target.value })}
+              />
+              <textarea
+                className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs font-mono"
+                placeholder="payload"
+                rows={2}
+                value={typeof a.payload === 'string' ? a.payload : JSON.stringify(a.payload ?? '', null, 2)}
+                onChange={(e) => patch(i, { payload: e.target.value })}
+              />
+            </>
+          )}
+          {a.kind === 'setProp' && (
+            <>
+              <input
+                className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+                placeholder="prop"
+                value={a.prop || ''}
+                onChange={(e) => patch(i, { prop: e.target.value })}
+              />
+              <input
+                className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+                placeholder="value"
+                value={typeof a.value === 'string' ? a.value : JSON.stringify(a.value ?? '')}
+                onChange={(e) => patch(i, { value: e.target.value })}
+              />
+            </>
+          )}
+
+          <textarea
+            className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs font-mono"
+            placeholder="If (JSON logic)"
+            rows={2}
+            value={a.if ? JSON.stringify(a.if, null, 2) : ''}
+            onChange={(e) => {
+              try {
+                patch(i, { if: e.target.value ? JSON.parse(e.target.value) : undefined })
+              } catch {}
+            }}
+          />
+          <div className="flex gap-2">
+            <input
+              type="number"
+              className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+              placeholder="Throttle (ms)"
+              value={a.throttleMs ?? ''}
+              onChange={(e) =>
+                patch(i, {
+                  throttleMs: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                })
+              }
+            />
+            <input
+              type="number"
+              className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs"
+              placeholder="Debounce (ms)"
+              value={a.debounceMs ?? ''}
+              onChange={(e) =>
+                patch(i, {
+                  debounceMs: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                })
+              }
+            />
+          </div>
+        </div>
+      ))}
+      <button
+        className="px-2 py-1 bg-neutral-800 rounded text-xs"
+        type="button"
+        onClick={add}
+      >
+        Add action
+      </button>
+    </div>
+  )
+}
+
+function WhenEditor({
+  when,
+  onChange,
+}: {
+  when: BehaviorTrigger[]
+  onChange: (w: BehaviorTrigger[]) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-1">
+      {BEHAVIOR_TRIGGERS.map((t) => {
+        const on = when.includes(t)
+        return (
+          <label
+            key={t}
+            className={`px-2 py-[6px] rounded border ${
+              on ? 'border-sky-500 bg-sky-500/10' : 'border-neutral-700'
+            }`}
+          >
+            <input
+              type="checkbox"
+              className="mr-1"
+              checked={on}
+              onChange={() => {
+                const next = on ? when.filter((x) => x !== t) : [...when, t]
+                onChange(next)
+              }}
+            />
+            {t}
+          </label>
+        )
+      })}
     </div>
   )
 }

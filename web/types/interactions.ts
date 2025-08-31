@@ -21,6 +21,8 @@ export type InteractionPreset = {
   easing?: string
   tags?: string[]
   updatedAt: number
+  actions?: Action[]
+  when?: BehaviorTrigger[]
 }
 
 export const defaultEffect = (k: Effect['kind']): Effect => {
@@ -67,3 +69,31 @@ export type ActionLogEntry = {
   status: 'ok' | 'error' | 'skipped'
   error?: string
 }
+
+export type Json =
+  | null | boolean | number | string
+  | Json[] | { [k: string]: Json }
+
+export type Logic =
+  | { '==': [Json, Json] } | { '===': [Json, Json] }
+  | { '!=': [Json, Json] } | { '!==': [Json, Json] }
+  | { '<': [Json, Json] }  | { '<=': [Json, Json] }
+  | { '>': [Json, Json] }  | { '>=': [Json, Json] }
+  | { 'and': Logic[] } | { 'or': Logic[] } | { '!': [Logic] }
+  | { '+': Json[] } | { '-': Json[] } | { '*': Json[] } | { '/': Json[] } | { '%': [Json, Json] }
+  | { 'var': string }
+  | Json
+
+export type ActionBase = {
+  if?: Logic
+  throttleMs?: number
+  debounceMs?: number
+}
+
+export type Action =
+  | (ActionBase & { kind:'openUrl';  url:string; target?:'_blank'|'_self' })
+  | (ActionBase & { kind:'navigate'; to:string })
+  | (ActionBase & { kind:'emitEvent'; name:string; payload?:Json })
+  | (ActionBase & { kind:'setProp';   selector?:Target; prop:string; value:Json | string })
+
+export type Target = { type:'nodeId'; value:string } | { type:'query'; value:string }
