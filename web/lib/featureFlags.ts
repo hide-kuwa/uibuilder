@@ -1,0 +1,1 @@
+export const ENABLE_CODE_CATALOG = process.env.NEXT_PUBLIC_ENABLE_CODE_CATALOG === '1'
