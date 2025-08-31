@@ -1,19 +1,21 @@
-'use client';
-import { useBuilderStore } from '@/store/builderStore';
-import { NodeRendererCompat } from '@/components/NodeRendererCompat';
-import { ENABLE_UNIFIED_PREVIEW } from '@/lib/flags';
-import { useEditorStore } from '@/store/editorStore';
-import type { ComponentNode, InstanceNode } from '@/types/editor';
-import { resolveVariant } from '@/lib/variantResolver';
-import { applyOverrides } from '@/lib/overrideMerge';
-import { resolveComponentBinding, resolveBinding } from '@/lib/binding/resolve';
-import { useBindingStore } from '@/store/bindingStore';
-import { DEVICE_PRESETS } from '@/lib/devicePresets';
-import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
-import { useSearchParams } from 'next/navigation';
-import '@/styles/preview.css';
-import ActionGate from '@/components/interaction/ActionGate';
-import PresetApplyBus from '@/components/interaction/PresetApplyBus';
+'use client'
+import React, { useEffect, useState } from 'react'
+import { useBuilderStore } from '@/store/builderStore'
+import { NodeRendererCompat } from '@/components/NodeRendererCompat'
+import { ENABLE_UNIFIED_PREVIEW } from '@/lib/flags'
+import { decodeShare } from '@/lib/share'
+import { useEditorStore } from '@/store/editorStore'
+import type { ComponentNode, InstanceNode } from '@/types/editor'
+import { resolveVariant } from '@/lib/variantResolver'
+import { applyOverrides } from '@/lib/overrideMerge'
+import { resolveComponentBinding, resolveBinding } from '@/lib/binding/resolve'
+import { useBindingStore } from '@/store/bindingStore'
+import { DEVICE_PRESETS } from '@/lib/devicePresets'
+import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay'
+import { useSearchParams } from 'next/navigation'
+import '@/styles/preview.css'
+import ActionGate from '@/components/interaction/ActionGate'
+import PresetApplyBus from '@/components/interaction/PresetApplyBus'
 
 function renderNode(
   node: ComponentNode,
@@ -53,15 +55,28 @@ function renderNode(
 }
 
 export default function PreviewPage() {
-  const elements = useBuilderStore((s) => s.elements);
+  const [ready, setReady] = useState(false)
+  const elements = useBuilderStore((s) => s.elements)
+  useEffect(() => {
+    const p = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    const d = p.get('d')
+    if (d) {
+      const data = decodeShare(d)
+      if (data?.elements) {
+        useBuilderStore.setState({ elements: data.elements, tree: data.elements, meta: data.meta ?? {} })
+      }
+    }
+    setReady(true)
+  }, [])
   if (ENABLE_UNIFIED_PREVIEW) {
+    if (!ready) return null
     return (
-      <div data-actions-enabled="true" className="w-full h-screen relative">
+      <div data-actions-enabled="true" className="w-full h-screen relative bg-black">
         {elements.filter((e: any) => !e.parentId).map((n: any) => (
           <NodeRendererCompat key={String(n.id)} node={n} />
         ))}
       </div>
-    );
+    )
   }
   const tree = useEditorStore((s) => s.tree);
   const components = useEditorStore((s) => s.components);

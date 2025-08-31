@@ -51,6 +51,7 @@ export type ElmPatch = { id: string; x?: number; y?: number; w?: number; h?: num
 type BuilderState = {
   elements: Elm[]
   tree: Elm[]
+  meta: any
   selectedId: string | null
   selectedIds: string[]
   ui: {
@@ -154,6 +155,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   return {
     elements: [],
     tree: [],
+    meta: {},
     selectedId: null,
     selectedIds: [],
     ui: { guides: [] },
@@ -718,14 +720,21 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   },
 
   serialize() {
-    return JSON.stringify({ elements: get().elements })
+    return JSON.stringify({ elements: get().elements, meta: get().meta })
   },
 
   hydrate(json) {
     try {
       const data = JSON.parse(json)
       if (Array.isArray(data.elements)) {
-        set({ elements: data.elements, tree: data.elements, selectedId: null, selectedIds: [], ui: { guides: [] } })
+        set({
+          elements: data.elements,
+          tree: data.elements,
+          meta: data.meta ?? {},
+          selectedId: null,
+          selectedIds: [],
+          ui: { guides: [] },
+        })
       }
     } catch (e) {
       console.error('Failed to hydrate builder state', e)
