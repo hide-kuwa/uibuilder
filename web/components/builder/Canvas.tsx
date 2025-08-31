@@ -20,6 +20,7 @@ import {
   runActionsForNode,
   type ActionRuntimeContext,
 } from '@/lib/actions/runtime'
+import { runInteraction } from '@/components/interaction/ActionRunner'
 
 function setByPath(obj: any, path: string, value: any) {
   const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
@@ -311,7 +312,12 @@ function ElmView({
         {...dragAttrs}
         id={dragId}
         data-drag-id={dragId}
-        onClick={() => runActionsForNode(elm.id, 'click', ctx)}
+        onClick={() => {
+          runActionsForNode(elm.id, 'click', ctx)
+          if (elm.interactions?.onClick) {
+            runInteraction(elm.interactions.onClick)
+          }
+        }}
         onMouseEnter={() => runActionsForNode(elm.id, 'hover', ctx)}
         onMouseDown={(e) => {
           if (e.shiftKey) addSelect(elm.id)

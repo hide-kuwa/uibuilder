@@ -7,6 +7,7 @@ import { registry, type RegistryKey } from '@/lib/registry.ts'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 import type { ActionMap } from '@/types/actions'
+import type { ElementInteractions } from '@/lib/interaction/types'
 
 export type ElmType = RegistryKey | 'code'
 
@@ -44,6 +45,7 @@ export type Elm = {
     props: Record<string, unknown>
   }
   actions?: ActionMap
+  interactions?: ElementInteractions
 }
 
 export type ElmPatch = { id: string; x?: number; y?: number; w?: number; h?: number; props?: any }

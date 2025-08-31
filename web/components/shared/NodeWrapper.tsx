@@ -25,6 +25,7 @@ export function NodeWrapper({
 }: Props) {
   return (
     <div data-node-id={nodeId} data-node-type={nodeType} data-node-name={nodeName}>
+      {/* data-node-id is used by interaction runtime (e.g. scrollTo) */}
       <PresetStyle
         nodeId={nodeId}
         presetIds={presetIds}

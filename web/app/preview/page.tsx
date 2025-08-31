@@ -7,6 +7,7 @@ import { mountLiveSync } from '@/store/liveSync'
 import TokenStyle from '@/components/theme/TokenStyle'
 import { useDesignTokens } from '@/store/designTokensStore'
 import { useDataSources } from '@/store/dataBindingStore'
+import ModalHost from '@/components/hud/ModalHost'
 
 export default function PreviewPage() {
   const [ready, setReady] = useState(false)
@@ -33,6 +34,7 @@ export default function PreviewPage() {
     <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-screen relative bg-black">
       {roots.map((n: any) => <NodeRendererCompat key={String(n.id)} node={n} />)}
       <TokenStyle />
+      <ModalHost />
     </div>
   )
 }
