@@ -13,7 +13,7 @@ class SyncDB extends Dexie {
 
   constructor() {
     super('uibuilder-sync');
-    this.version(1).stores({
+    this.version(2).stores({
       draft: '&docId',
       ops: '&id, docId, baseRev',
       snapshots: '[docId+rev]',

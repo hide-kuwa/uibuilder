@@ -1,5 +1,4 @@
 const DB_NAME = 'ui-builder'
-const DB_VER = 1
 const STORE_STATE = 'states'
 const STORE_SNAP = 'snapshots'
 const STORE_KV = 'kv'
@@ -21,7 +20,8 @@ export type Snapshot = {
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(DB_NAME, DB_VER)
+    // Open without version to avoid VersionError when DB already upgraded
+    const req = indexedDB.open(DB_NAME)
     req.onupgradeneeded = () => {
       const db = req.result
       if (!db.objectStoreNames.contains(STORE_KV)) {
@@ -38,8 +38,40 @@ function openDB(): Promise<IDBDatabase> {
         })
       }
     }
-    req.onsuccess = () => res(req.result)
-    req.onerror = () => rej(req.error)
+    req.onsuccess = () => {
+      const db = req.result
+      const need = [STORE_KV, STORE_STATE, STORE_SNAP]
+      const hasAll = need.every((n) => db.objectStoreNames.contains(n))
+      if (hasAll) return res(db)
+      // Upgrade path to add missing stores
+      db.close()
+      const up = indexedDB.open(DB_NAME, db.version + 1)
+      up.onupgradeneeded = () => {
+        const u = up.result
+        if (!u.objectStoreNames.contains(STORE_KV)) u.createObjectStore(STORE_KV, { keyPath: 'key' })
+        if (!u.objectStoreNames.contains(STORE_STATE)) u.createObjectStore(STORE_STATE, { keyPath: 'projectId' })
+        if (!u.objectStoreNames.contains(STORE_SNAP)) {
+          const s = u.createObjectStore(STORE_SNAP, { keyPath: 'id' })
+          s.createIndex('byProject', 'projectId', { unique: false })
+          s.createIndex('byProjectCreated', ['projectId', 'createdAt'], { unique: false })
+        }
+      }
+      up.onsuccess = () => res(up.result)
+      up.onerror = () => rej(up.error)
+      up.onblocked = () => rej(new Error('IndexedDB upgrade blocked'))
+    }
+    req.onerror = () => {
+      const err: any = req.error
+      if (err && String(err.name || err).includes('VersionError')) {
+        try { req.result?.close?.() } catch {}
+        const retry = indexedDB.open(DB_NAME)
+        retry.onsuccess = () => res(retry.result)
+        retry.onerror = () => rej(retry.error)
+        return
+      }
+      rej(req.error)
+    }
+    req.onblocked = () => rej(new Error('IndexedDB open blocked'))
   })
 }
 

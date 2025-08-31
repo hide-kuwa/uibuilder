@@ -2,7 +2,8 @@ const DB_NAME = "ui-builder";
 const STORE = "projects";
 function open() {
   return new Promise<IDBDatabase>((res, rej) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    // Open without version to avoid VersionError when a higher version already exists
+    const request = indexedDB.open(DB_NAME);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -34,7 +35,18 @@ function open() {
       }
     };
 
-    request.onerror = () => rej(request.error);
+    request.onerror = () => {
+      // If VersionError occurs because of version mismatch, retry without version
+      const err = request.error as any
+      if (err && String(err.name || err).includes('VersionError')) {
+        try { request.result?.close?.() } catch {}
+        const retry = indexedDB.open(DB_NAME)
+        retry.onsuccess = () => res(retry.result)
+        retry.onerror = () => rej(retry.error)
+        return
+      }
+      rej(request.error)
+    };
     request.onblocked = () => {
       try { request.result?.close?.() } catch {}
       rej(new Error('IndexedDB open blocked'))

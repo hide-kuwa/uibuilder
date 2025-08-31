@@ -17,7 +17,7 @@ class SnapshotDB extends Dexie {
   snapshots!: Table<SnapshotRow, number>;
   constructor() {
     super("ui_builder_snapshots_v1");
-    this.version(1).stores({
+    this.version(2).stores({
       snapshots: "++id, ts",
     });
   }

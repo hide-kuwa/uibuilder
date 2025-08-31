@@ -1,17 +1,17 @@
 import type { Config } from 'tailwindcss'
 
-const config: Config = {
+export default {
+  darkMode: ['class', '[data-theme="dark"]'],
   content: [
-    './app/**/*.{ts,tsx,js,jsx,mdx}',
-    './pages/**/*.{ts,tsx,js,jsx,mdx}',
-    './components/**/*.{ts,tsx,js,jsx,mdx}',
-    './lib/**/*.{ts,tsx,js,jsx,mdx}',
+    './app/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './core/**/*.{ts,tsx}',
+    './pages/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
   ],
-  theme: {
-    extend: {
-      // 必要に応じてカスタム（例：CSS変数と連動）
-    },
-  },
-  plugins: [],
-}
-export default config
+  theme: { extend: {} },
+  plugins: [
+    // require('daisyui'),
+  ],
+} satisfies Config
+
