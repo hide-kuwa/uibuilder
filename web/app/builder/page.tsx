@@ -6,6 +6,7 @@ import { loadProjectFromQuery, makeProject, saveProject } from '@/lib/project/io
 import { mountLiveSync } from '@/store/liveSync'
 import { useDesignTokens } from '@/store/designTokensStore'
 import { useDataSources } from '@/store/dataBindingStore'
+import { hydrateProjectStores } from '@/lib/project/loaders'
 
 export default function BuilderPageWrapper() {
   useEffect(() => {
@@ -14,12 +15,10 @@ export default function BuilderPageWrapper() {
       const pj = await loadProjectFromQuery()
       if (mounted) {
         if (pj) {
-          useBuilderStore.setState({ elements: pj.elements, meta: pj.meta || {} })
-          useDesignTokens.getState().replaceAll(pj.designTokens || {})
-          useDataSources.getState().replaceAll(pj.dataSources || {})
+          hydrateProjectStores(pj)
         } else {
           const init = makeProject([], { id: 'local', name: 'Local Project' }, useDesignTokens.getState().getAll(), useDataSources.getState().sources)
-          useBuilderStore.setState({ elements: init.elements, meta: init.meta || {} })
+          hydrateProjectStores(init)
         }
       }
       mountLiveSync('builder')
