@@ -6,6 +6,19 @@ import { registry } from '@/lib/registry.ts'
 import { resolveBinding } from '@/lib/binding/resolve'
 import { useRects } from './canvas/RectsStore'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
+import { useActionRunner } from '@/lib/actions/runActions'
+
+export function InstanceView({ inst, children }: { inst: any; children: React.ReactNode }) {
+  const run = useActionRunner()
+  const onClick = React.useCallback(
+    (e: React.MouseEvent) => {
+      if (!inst?.actions?.onClick?.length) return
+      run(inst.actions.onClick, { nodeId: inst.id })
+    },
+    [inst, run],
+  )
+  return <div onClick={onClick}>{children}</div>
+}
 
 export function NodeRenderer({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
@@ -18,6 +31,7 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
   if (node.propValues) {
     resolvedProps = resolveBinding(resolvedProps, [], [])
   }
+
 
  
 
@@ -33,6 +47,22 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
   })
 
   const nodeName = node.name || node.props?.name
+  const rendered = (
+    <div
+      ref={ref}
+      style={{ position: 'absolute', ...style }}
+      onMouseDown={(e) => {
+        e.stopPropagation()
+        selectComponent(node.id)
+      }}
+    >
+      <Comp {...resolvedProps}>
+        {node.children?.map((child) => (
+          <NodeRenderer key={child.id} node={child} />
+        ))}
+      </Comp>
+    </div>
+  )
   return (
     <NodeWrapper
       nodeId={node.id}
@@ -43,20 +73,7 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
       hoverEffects={node.props?.hoverEffects}
       hoverTransitionMs={node.props?.hoverTransitionMs}
     >
-      <div
-        ref={ref}
-        style={{ position: 'absolute', ...style }}
-        onMouseDown={(e) => {
-          e.stopPropagation()
-          selectComponent(node.id)
-        }}
-      >
-        <Comp {...resolvedProps}>
-          {node.children?.map((child) => (
-            <NodeRenderer key={child.id} node={child} />
-          ))}
-        </Comp>
-      </div>
+      <InstanceView inst={node}>{rendered}</InstanceView>
     </NodeWrapper>
   )
 }

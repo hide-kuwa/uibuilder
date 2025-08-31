@@ -6,6 +6,7 @@ import { parseValue } from '@/lib/builder/docgen'
 import { registry, getDef, type RegistryKey } from '@/lib/registry.ts'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
+import type { ActionMap } from '@/types/actions'
 
 export type ElmType = RegistryKey | 'code'
 
@@ -42,6 +43,7 @@ export type Elm = {
     exportName?: string
     props: Record<string, unknown>
   }
+  actions?: ActionMap
 }
 
 export type ElmPatch = { id: string; x?: number; y?: number; w?: number; h?: number; props?: any }
@@ -91,6 +93,7 @@ type BuilderActions = {
     patch: Partial<Elm['props']> & { code?: Partial<Elm['code']> },
   ) => void
   updateProp: (nodeId: string, key: string, value: any) => void,
+  updateActions: (nodeId: string, map: ActionMap) => void,
   reorder: (idsInOrder: string[]) => void
   reorderWithinParent: (parentId: string | null, orderedIds: string[]) => void
   setVisible: (id: string, v: boolean) => void
@@ -444,6 +447,20 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
             if (c) stack.push(c)
           })
         }
+      }
+    })
+  },
+  updateActions(nodeId, map) {
+    apply((draft: BuilderState) => {
+      const q: any[] = draft.tree.slice()
+      while (q.length) {
+        const n = q.pop()
+        if (!n) continue
+        if (n.id === nodeId) {
+          ;(n as any).actions = map
+          break
+        }
+        if ((n as any).children) q.push(...(n as any).children)
       }
     })
   },
