@@ -93,11 +93,16 @@ export default function BuilderPage() {
         const rect = canvasRef.current?.getBoundingClientRect()
         const x = rect ? clientX - rect.left : 40
         const y = rect ? clientY - rect.top : 40
+
         if (data.type === 'code') {
           addFromPalette('code', { x, y }, data.meta)
+        } else if (data.type === 'instance' && data.meta?.componentId) {
+          addFromPalette('instance', { x, y }, { componentId: data.meta.componentId })
         } else {
+          // backward compatibility for legacy palette items
           addFromPalette(data.type as any, { x, y })
         }
+        return
       } else if (data.from === 'canvas' && typeof data.id === 'string') {
         if (overId === 'CANVAS') {
           const draft = useBuilderStore.getState().ui.dragDraft

@@ -1,19 +1,19 @@
 'use client'
 import { create } from 'zustand'
 import { produce } from 'immer'
-import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
-import { registry, type RegistryKey } from '@/lib/registry.ts'
+import { getDef } from '@/lib/registry'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 import type { ActionMap } from '@/types/actions'
 import type { ElementInteractions } from '@/lib/interaction/types'
 
-export type ElmType = RegistryKey | 'code'
+export type ElmType = string
 
 export type Elm = {
   id: string
   type: ElmType
+  componentId?: string
   x: number
   y: number
   w: number
@@ -64,11 +64,7 @@ type BuilderState = {
 }
 
 type BuilderActions = {
-  addFromPalette: (
-    type: ElmType,
-    at?: { x: number; y: number },
-    meta?: DocgenMetaItem,
-  ) => void
+  addFromPalette: (type: string, at?: { x: number; y: number }, meta?: any) => void
   move: (id: string, to: { x: number; y: number }, snapGrid?: boolean) => void
   resize: (id: string, to: { w: number; h: number }, snapGrid?: boolean) => void
   setDragDraft: (
@@ -124,26 +120,6 @@ function snapToGrid(n: number) {
   return Math.round(n / size) * size
 }
 
-function defaultSize(type: ElmType): { w: number; h: number; text?: string } {
-  if (type === 'code') return { w: 160, h: 40 }
-  const entry = (registry as any)[type]
-  const size = entry?.meta?.defaultSize ?? { w: 320, h: 200 }
-  const text = entry?.meta?.displayName
-  return { ...size, text }
-}
-
-function defaultsFor(key: string) {
-  const meta = (registry as any)[key]?.meta
-  const o: Record<string, any> = {}
-  const schema = meta?.propertySchema
-  if (schema?.kind === 'object') {
-    Object.entries(schema.properties).forEach(([k, v]) => {
-      const def = v as any
-      if (typeof def.default !== 'undefined') o[k] = def.default
-    })
-  }
-  return o
-}
 
 export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => {
   const apply = (recipe: (draft: BuilderState) => void) => {
@@ -159,59 +135,78 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     ui: { guides: [] },
     historyBatchDepth: 0,
 
-  addFromPalette(type, at, meta) {
-    const id = `elm_${Date.now().toString(36)}`
-    const { w, h, text } = defaultSize(type)
-    const snapState = useGridStore.getState()
-    const x = snapState.snap ? snapToGrid(at?.x ?? 40) : at?.x ?? 40
-    const y = snapState.snap ? snapToGrid(at?.y ?? 40) : at?.y ?? 40
-    apply((draft: BuilderState) => {
-      if (type === 'code') {
-        const initProps: Record<string, unknown> = {}
-        meta?.props?.forEach((p) => {
-          const v = parseValue(p.defaultValue?.value)
-          if (v !== undefined) initProps[p.name] = v
-        })
-        draft.elements.push({
-          id,
-          type,
-          x,
-          y,
-          w,
-          h,
-          visible: true,
-          locked: false,
-          parentId: null,
-          name: meta?.displayName ?? 'Component',
-          children: [],
-          code: {
-            displayName: meta?.displayName ?? 'Component',
-            importPath: meta?.importPath ?? '',
-            exportName: meta?.exportName,
-            props: initProps,
-          },
-        })
-      } else {
-        const defaults = defaultsFor(type as string)
-        draft.elements.push({
-          id,
-          type,
-          x,
-          y,
-          w,
-          h,
-          visible: true,
-          locked: false,
-          parentId: null,
-          name: type.charAt(0).toUpperCase() + type.slice(1),
-          children: [],
-          propValues: defaults,
-          props: { ...defaults },
-        })
+  addFromPalette(type, pos, meta) {
+    const s = get()
+    if (type === 'code') {
+      const id = crypto.randomUUID()
+      const initProps: Record<string, unknown> = {}
+      meta?.props?.forEach((p: any) => {
+        const v = parseValue(p.defaultValue?.value)
+        if (v !== undefined) initProps[p.name] = v
+      })
+      const el: any = {
+        id,
+        type: 'code',
+        x: Math.round(pos?.x ?? 40),
+        y: Math.round(pos?.y ?? 40),
+        w: 160,
+        h: 40,
+        visible: true,
+        locked: false,
+        parentId: null,
+        children: [],
+        code: {
+          displayName: meta?.displayName ?? 'Component',
+          importPath: meta?.importPath ?? '',
+          exportName: meta?.exportName,
+          props: initProps,
+        },
       }
-      draft.selectedId = id
-      draft.selectedIds = [id]
-    })
+      set({ elements: [...s.elements, el] })
+      return
+    }
+    if (type === 'instance' && meta?.componentId) {
+      const def = getDef(meta.componentId)
+      const id = crypto.randomUUID()
+      const w = def?.meta?.defaultW ?? 160
+      const h = def?.meta?.defaultH ?? 40
+      const el: any = {
+        id,
+        type: 'instance',
+        componentId: meta.componentId,
+        x: Math.round(pos.x),
+        y: Math.round(pos.y),
+        w,
+        h,
+        propValues: {},
+      }
+      set({ elements: [...s.elements, el] })
+      return
+    }
+    const legacyMap: Record<string, string> = {
+      button: 'ui.button',
+      text: 'ui.text',
+      header: 'ui.header',
+      card: 'ui.card',
+    }
+    if (legacyMap[type]) {
+      const def = getDef(legacyMap[type])
+      const id = crypto.randomUUID()
+      const w = def?.meta?.defaultW ?? 160
+      const h = def?.meta?.defaultH ?? 40
+      const el: any = {
+        id,
+        type: 'instance',
+        componentId: legacyMap[type],
+        x: Math.round(pos.x),
+        y: Math.round(pos.y),
+        w,
+        h,
+        propValues: {},
+      }
+      set({ elements: [...s.elements, el] })
+      return
+    }
   },
 
   move(id, to, snapGrid = true) {
