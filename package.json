@@ -10,7 +10,9 @@
     "test": "npm install --no-save --prefix .tmp jest ts-jest @testing-library/react @testing-library/jest-dom react-test-renderer @types/jest jest-environment-jsdom > /dev/null && NODE_PATH=\"$(pwd)/.tmp/node_modules\" node .tmp/node_modules/jest/bin/jest.js --config jest.config.cjs --coverage",
     "run:prompts": "node scripts/run-prompts.mjs",
     "meta": "ts-node scripts/generate-meta.ts",
-    "gen:meta": "ts-node scripts/extract-props.ts"
+    "gen:meta": "ts-node scripts/extract-props.ts",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:ci": "E2E_BUILD=1 playwright test -c e2e/playwright.config.ts"
   },
   "bin": {
     "json2tsx": "./scripts/json2tsx.js"
@@ -38,6 +40,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.47",
+    "@playwright/test": "^1.47.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.4.0"
   }
