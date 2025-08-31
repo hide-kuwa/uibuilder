@@ -19,9 +19,22 @@ import ModalHost from '@/components/hud/ModalHost'
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   useAlignShortcuts()
   useEffect(() => { mountHistorySync() }, [])
+  // Apply a global builder theme on /builder route only
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    html.classList.add('builder-theme')
+    body.classList.add('builder-theme')
+    body.dataset.theme = 'compact'
+    return () => {
+      html.classList.remove('builder-theme')
+      body.classList.remove('builder-theme')
+      try { delete (body.dataset as any).theme } catch {}
+    }
+  }, [])
   return (
-    <div data-actions-enabled="true" suppressHydrationWarning>
-      <div className="w-full h-10 px-3 border-b flex items-center gap-3">
+    <div data-actions-enabled="true" suppressHydrationWarning className="page-builder">
+      <div className="w-full h-10 px-3 border-b flex items-center gap-3 builder-topbar topbar">
         <div className="text-sm font-semibold mr-auto">Builder</div>
         <UndoRedoButtons />
         <LoadFromGitHubMenu />

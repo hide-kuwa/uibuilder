@@ -50,5 +50,9 @@ export default function BuilderPageWrapper() {
     return () => { unsub1(); unsub2(); unsub3() }
   }, [])
 
-  return <BuilderPage />
+  return (
+    <div className="page-builder" data-theme="compact">
+      <BuilderPage />
+    </div>
+  )
 }

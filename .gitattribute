@@ -1,0 +1,27 @@
+# 既定はテキスト自動判定
+*                 text=auto
+
+# Web/JS系は LF 固定
+*.js              text eol=lf
+*.mjs             text eol=lf
+*.cjs             text eol=lf
+*.ts              text eol=lf
+*.tsx             text eol=lf
+*.json            text eol=lf
+*.css             text eol=lf
+*.scss            text eol=lf
+*.html            text eol=lf
+*.md              text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+
+# 各種設定/ロックも LF 固定
+pnpm-lock.yaml    text eol=lf
+pnpm-workspace.yaml text eol=lf
+.postcss.config.* text eol=lf
+tailwind.config.* text eol=lf
+
+# Windowsスクリプトは CRLF でOK
+*.bat             text eol=crlf
+*.cmd             text eol=crlf
+*.ps1             text eol=crlf

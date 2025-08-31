@@ -4,3 +4,221 @@
 
 html, body { height: 100%; }
 
+/* ===== Compact /builder theme tokens ===== */
+[data-theme="compact"] {
+  --bg:       #0c0f12;  /* 画面の背景 */
+  --surface:  #0f1216;  /* キャンバスなど大きい面 */
+  --panel:    #14181f;  /* 左右パネル/ツールバー */
+  --panel-2:  #171b23;  /* パネル内サブ面 */
+  --border:   #262b33;  /* 罫線 */
+  --text:     #e5e7eb;  /* 通常文字 */
+  --muted:    #9aa0a6;  /* 補助文字 */
+  --accent:   #5562ff;  /* 最小限のアクセント（リンク/選択） */
+  --grid:     #1c222c;  /* グリッド線（控えめ） */
+}
+
+/* ===== /builder 専用の見た目上書き（色数を減らす） ===== */
+.page-builder {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* 左/右パネル、上部バーなど（クラス名は一例。該当するラッパーに合わせて複数指定） */
+.page-builder .topbar,
+.page-builder .left-panel,
+.page-builder .right-panel,
+.page-builder .palette,
+.page-builder .properties,
+.page-builder .data-panel,
+.page-builder .hud-bar {
+  background: var(--panel);
+  border-color: var(--border);
+}
+
+/* キャンバス面（グリッドは薄め） */
+.page-builder .canvas {
+  background: var(--surface);
+  /*
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  */
+}
+
+/* ボタン/入力は基本 “無彩色＋枠のみ”。アクション時だけアクセント */
+.page-builder button,
+.page-builder .btn {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.page-builder button:hover,
+.page-builder .btn:hover {
+  background-color: var(--panel-2);
+}
+.page-builder .btn-primary,
+.page-builder .is-accent {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* セレクタ等が色ベタになっていた場合の“色消し”セーフティ */
+.page-builder [class*="bg-"]:not(.btn-primary):not(.is-accent) {
+  background-color: transparent;
+}
+
+/* 入力、カード、リストなど */
+.page-builder input,
+.page-builder select,
+.page-builder textarea,
+.page-builder .card,
+.page-builder .list {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* 枠線・罫線の統一 */
+.page-builder .divider,
+.page-builder .border,
+.page-builder hr {
+  border-color: var(--border);
+}
+
+/* ヘルプ/サブテキスト */
+.page-builder .muted,
+.page-builder .hint,
+.page-builder .desc {
+  color: var(--muted);
+}
+
+/* プレビュー/リンク色（最小限） */
+.page-builder a { color: var(--accent); }
+.page-builder a:hover { text-decoration: underline; }
+
+/* ===== tokens (scoped to /builder) ===== */
+.page-builder {
+  --bg:      #0b0e12;
+  --surface: #0f1318;
+  --panel:   #141922;
+  --panel2:  #171d27;
+  --border:  #2a313b;
+  --text:    #e6e9ee;
+  --muted:   #9aa3ad;
+  --accent:  #5260ff;
+  color-scheme: dark;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* 1) neutralize backgrounds inside /builder except key surfaces */
+.page-builder :where(*):not(html):not(body):not(.builder-canvas):not(.builder-panel):not(.builder-topbar) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* 2) repaint key surfaces */
+.page-builder :where(
+  .builder-topbar,
+  .builder-panel,
+  .builder-dock,
+  .menu, .dropdown, .modal, .popover
+) {
+  background-color: var(--panel) !important;
+  border-color: var(--border) !important;
+}
+
+/* Canvas surface */
+.page-builder .builder-canvas { background: var(--surface) !important; }
+
+/* 3) common UI elements */
+.page-builder :where(button,.btn,input,select,textarea,.tag,.badge,.chip,.card,.list,.toolbar) {
+  background-color: var(--panel2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+.page-builder :where(button,.btn):hover { background-color: var(--panel) !important; }
+
+/* 4) disable Tailwind bg-* shadows within /builder */
+.page-builder [class*="bg-"] { background-color: transparent !important; }
+.page-builder [class*="shadow"] { box-shadow: none !important; }
+
+/* 5) borders and text */
+.page-builder :where(hr,.divider,.border) { border-color: var(--border) !important; }
+.page-builder :where(.muted,.hint,.help,.desc) { color: var(--muted) !important; }
+
+/* 6) links */
+.page-builder a { color: var(--accent) !important; }
+.page-builder a:hover { text-decoration: underline; }
+
+/* 7) scrollbars (optional) */
+.page-builder *::-webkit-scrollbar { width: 10px; height: 10px; }
+.page-builder *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+.page-builder *::-webkit-scrollbar-track { background: var(--panel); }
+
+/* Inline style white background killer (temporary, optional) */
+.page-builder [style*="background: white"],
+.page-builder [style*="background:#fff"],
+.page-builder [style*="background-color: white"],
+.page-builder [style*="background-color:#fff"] {
+  background: transparent !important;
+}
+
+/* ===== /builder: document-level dark scope ===== */
+.builder-theme {
+  --bg:      #0b0e12;
+  --surface: #0f1318;
+  --panel:   #141922;
+  --panel-2: #171d27;
+  --border:  #2a313b;
+  --text:    #e6e9ee;
+  --muted:   #9aa3ad;
+  --accent:  #5260ff;
+  color-scheme: dark;
+}
+
+html.builder-theme,
+body.builder-theme {
+  background: var(--surface) !important;
+  color: var(--text);
+}
+
+.page-builder {
+  min-height: 100vh;
+  background: transparent !important;
+}
+
+.builder-theme body * {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.builder-theme :where([class*="panel"], [class*="Panel"],
+                     [class*="sidebar"], [class*="Sidebar"],
+                     [role="toolbar"], .toolbar,
+                     .menu, .dropdown, .popover, .context-menu,
+                     .modal, .dialog, .sheet, .drawer) {
+  background-color: var(--panel) !important;
+  border-color: var(--border) !important;
+}
+
+.builder-theme .builder-canvas { background: var(--surface) !important; }
+
+.builder-theme :where(button,.btn,input,select,textarea,.card,.list,.tag,.badge,.chip) {
+  background-color: var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+.builder-theme :where(button,.btn):hover { background-color: var(--panel) !important; }
+
+.builder-theme [class*="bg-"] { background-color: transparent !important; }
+.builder-theme :where(hr,.divider,.border) { border-color: var(--border) !important; }
+.builder-theme :where(.muted,.hint,.help,.desc,label,small) { color: var(--muted) !important; }
+.builder-theme a { color: var(--accent) !important; }
+.builder-theme a:hover { text-decoration: underline; }
+.builder-theme *::-webkit-scrollbar { width: 10px; height: 10px; }
+.builder-theme *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+.builder-theme *::-webkit-scrollbar-track { background: var(--panel); }

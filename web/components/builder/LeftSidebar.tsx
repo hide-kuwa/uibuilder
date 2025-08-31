@@ -134,7 +134,7 @@ export default function LeftSidebar() {
   })
 
   return (
-    <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-2 flex flex-col gap-2">
+    <aside className="w-64 border-r border-zinc-800 bg-zinc-950/40 p-2 flex flex-col gap-2 builder-left builder-panel left-panel">
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
         {order.map((id) => (
           <SortablePanel

@@ -169,16 +169,16 @@ export default function BuilderPage() {
       <div className="flex h-[calc(100vh-40px)]">
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd}>
           <LeftSidebar />
-          <main className="flex-1 relative">
+          <main className="flex-1 relative builder-canvas canvas">
             <DeviceFrame>
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full builder-canvas">
                 <Canvas canvasRef={canvasRef} />
                 <GridOverlay />
               </div>
             </DeviceFrame>
             <BuilderHUD />
           </main>
-          <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col">
+          <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col builder-right builder-panel right-panel">
             <h2 className="text-sm font-semibold mb-2">プロパティ</h2>
             <Inspector />
             <button
