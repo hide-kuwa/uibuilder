@@ -1,134 +1,39 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useBuilderStore } from '@/store/builderStore'
+import { loadProjectFromQuery } from '@/lib/project/io'
 import { NodeRendererCompat } from '@/components/NodeRendererCompat'
-import { ENABLE_UNIFIED_PREVIEW } from '@/lib/flags'
-import { decodeShare } from '@/lib/share'
-import { useEditorStore } from '@/store/editorStore'
-import type { ComponentNode, InstanceNode } from '@/types/editor'
-import { resolveVariant } from '@/lib/variantResolver'
-import { applyOverrides } from '@/lib/overrideMerge'
-import { resolveComponentBinding, resolveBinding } from '@/lib/binding/resolve'
-import { useBindingStore } from '@/store/bindingStore'
-import { DEVICE_PRESETS } from '@/lib/devicePresets'
-import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay'
-import { useSearchParams } from 'next/navigation'
-import '@/styles/preview.css'
-import ActionGate from '@/components/interaction/ActionGate'
-import PresetApplyBus from '@/components/interaction/PresetApplyBus'
+import { mountLiveSync } from '@/store/liveSync'
 import ErrorBoundary from '@/components/hud/ErrorBoundary'
 import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
-
-function renderNode(
-  node: ComponentNode,
-  components: Record<string, any>,
-  sources: ReturnType<typeof useBindingStore.getState>['sources'],
-  bindings: ReturnType<typeof useBindingStore.getState>['bindings'],
-): JSX.Element {
-  if (node.type === 'Instance') {
-    const inst = node as InstanceNode;
-    const def = components[inst.componentId];
-    if (def) {
-      let resolved = resolveVariant(def, inst.variant);
-      if (inst.propValues)
-        resolved = resolveComponentBinding(resolved, def.props, inst.propValues || {});
-      if (inst.overrides) resolved = applyOverrides(resolved, inst.overrides);
-      resolved.props = { ...(resolved.props || {}), ...(inst.props || {}) };
-      return renderNode(resolved, components, sources, bindings);
-    }
-  }
-  const nodeBindings = bindings.filter((b) => b.nodeId === node.id);
-  const props = resolveBinding(node.props || {}, nodeBindings, sources);
-  const style: React.CSSProperties = {
-    position: 'absolute',
-    left: props.x || 0,
-    top: props.y || 0,
-    width: props.w || 0,
-    height: props.h || 0,
-    transform: `rotate(${props.rotation || 0}deg)`,
-  };
-  if (props.visible === false) style.display = 'none';
-  return (
-    <div key={node.id} style={style} className={props.className}>
-      {props.text}
-      {node.children?.map((c) => renderNode(c, components, sources, bindings))}
-    </div>
-  );
-}
 
 export default function PreviewPage() {
   const [ready, setReady] = useState(false)
   const elements = useBuilderStore((s) => s.elements)
+
   useEffect(() => {
-    const p = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-    const d = p.get('d')
-    if (d) {
-      const data = decodeShare(d)
-      if (data?.elements) {
-        useBuilderStore.setState({ elements: data.elements, tree: data.elements, meta: data.meta ?? {} })
-      }
+    let mounted = true
+    ;(async () => {
+      const pj = await loadProjectFromQuery()
+      if (mounted && pj) useBuilderStore.setState({ elements: pj.elements, meta: pj.meta || {} })
+      mountLiveSync('preview')
+      setReady(true)
+    })()
+    return () => {
+      mounted = false
     }
-    setReady(true)
   }, [])
-  if (ENABLE_UNIFIED_PREVIEW) {
-    if (!ready) return null
-    return (
-      <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-screen relative bg-black">
-        <ErrorBoundary>
-          {elements.filter((e: any) => !e.parentId).map((n: any) => (
-            <NodeRendererCompat key={String(n.id)} node={n} />
-          ))}
-        </ErrorBoundary>
-        {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
-      </div>
-    )
-  }
-  const tree = useEditorStore((s) => s.tree);
-  const components = useEditorStore((s) => s.components);
-  const sources = useBindingStore((s) => s.sources);
-  const bindings = useBindingStore((s) => s.bindings);
-  const params = useSearchParams();
-  const device = (params.get('device') as 'desktop' | 'tablet' | 'mobile') || 'desktop';
-  const zoom = parseFloat(params.get('zoom') || '1');
-  const showBorder = params.get('border') === '1';
-  const showSafe = params.get('safe') === '1';
-  const showComments = params.get('comments') === '1';
-  const preset = DEVICE_PRESETS[device];
-  const style: React.CSSProperties = {
-    width: preset.width,
-    height: preset.height,
-    transform: `scale(${zoom})`,
-    transformOrigin: 'top left',
-    position: 'relative',
-    background: '#fff',
-    border: showBorder ? '1px solid #ddd' : undefined,
-  };
-  const safe = showSafe && preset.safeArea ? (
-    <div
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: preset.safeArea.top,
-        bottom: preset.safeArea.bottom,
-        border: '1px dashed rgba(0,0,0,0.2)',
-        pointerEvents: 'none',
-      }}
-    />
-  ) : null;
+
+  const roots = useMemo(() => (elements as any[]).filter((e) => !e.parentId), [elements])
+  if (!ready) return null
   return (
-    <ActionGate enabled>
-      <PresetApplyBus />
-      <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-full flex items-center justify-center bg-gray-100">
-        <ErrorBoundary>
-          <div style={style}>
-            {safe}
-            {tree.map((n) => renderNode(n, components, sources, bindings))}
-            {showComments && <AnnotationsOverlay />}
-          </div>
-        </ErrorBoundary>
-      </div>
+    <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-screen relative bg-black">
+      <ErrorBoundary>
+        {roots.map((n: any) => (
+          <NodeRendererCompat key={String(n.id)} node={n} />
+        ))}
+      </ErrorBoundary>
       {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
-    </ActionGate>
-  );
+    </div>
+  )
 }
