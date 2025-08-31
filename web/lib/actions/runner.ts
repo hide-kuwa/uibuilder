@@ -2,49 +2,78 @@
 import { useActionDebugStore } from '@/store/actionDebugStore'
 import { useInteractionRegistry } from '@/store/interactionRegistry'
 import { useEditorStore } from '@/store/editorStore'
-import type { ActionKind, BehaviorTrigger, ActionLogEntry } from '@/types/interactions'
+import type {
+  ActionKind,
+  BehaviorTrigger,
+  ActionLogEntry,
+  Action,
+  Target,
+} from '@/types/interactions'
+import { evaluate, template } from './logic'
 
-type Action = { kind: ActionKind; [key: string]: any }
+const throttleMap = new Map<string, number>()
+const debounceMap = new Map<string, number>()
 
-async function execAction(a: Action, currentEl: HTMLElement, intercept: boolean) {
+function keyFor(nodeId: string, idx: number, kind: string) {
+  return `${nodeId}:${idx}:${kind}`
+}
+
+function resolveTargets(selector: Target | undefined, el: HTMLElement): HTMLElement[] {
+  if (!selector) return [el]
+  if (selector.type === 'nodeId') {
+    const t = document.querySelector(
+      `[data-node-id="${CSS.escape(selector.value)}"]`,
+    ) as HTMLElement | null
+    return t ? [t] : []
+  }
+  if (selector.type === 'query') {
+    return Array.from(document.querySelectorAll<HTMLElement>(selector.value))
+  }
+  return [el]
+}
+
+function setNodePropById(id: string, prop: string, value: any) {
+  const setProp = (useEditorStore.getState() as any).setProp
+  if (typeof setProp === 'function') setProp(id, prop, value)
+}
+
+async function execOne(a: Action, el: HTMLElement, ctx: any) {
   switch (a.kind) {
     case 'openUrl': {
-      if (intercept) return
-      const url = (a as any).url || (a as any).payload?.url
-      try {
-        if (typeof url === 'string') {
-          const u = new URL(url, window.location.href)
-          window.open(u.toString(), (a as any).target || '_blank')
-        }
-      } catch {
-        /* ignore */
-      }
-      return
+      const url = template(a.url, ctx)
+      const t = a.target ?? '_self'
+      if ((window as any).__ACTIONS_INTERCEPT__) break
+      if (t === '_blank') window.open(url, '_blank', 'noopener,noreferrer')
+      else window.location.href = url
+      break
     }
     case 'navigate': {
-      if (intercept) return
-      const frameId = (a as any).frameId || (a as any).target
-      if (typeof frameId === 'string') {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { frameId } }))
+      const to = template(a.to, ctx)
+      if ((window as any).__ACTIONS_INTERCEPT__) break
+      try {
+        const r = (await import('next/navigation'))
+        r.useRouter?.().push?.(to)
+      } catch {
+        try {
+          ;(await import('next/router')).default.push?.(to)
+        } catch {}
       }
-      return
+      break
     }
     case 'emitEvent': {
-      const name = (a as any).name || (a as any).event || (a as any).payload?.name
-      if (name) {
-        window.dispatchEvent(new CustomEvent(name, { detail: (a as any).detail }))
-      }
-      return
+      const payload = typeof a.payload === 'string' ? template(a.payload, ctx) : a.payload
+      window.dispatchEvent(new CustomEvent(a.name, { detail: payload }))
+      break
     }
     case 'setProp': {
-      const path = (a as any).path || (a as any).payload?.path
-      const value = (a as any).value ?? (a as any).payload?.value
-      const nodeId = currentEl.getAttribute('data-node-id')
-      const setProp = (useEditorStore.getState() as any).setProp
-      if (nodeId && typeof setProp === 'function' && typeof path === 'string') {
-        setProp(nodeId, path, value)
-      }
-      return
+      const value = typeof a.value === 'string' ? template(a.value, ctx) : a.value
+      const els = resolveTargets(a.selector, el)
+      els.forEach((elm) => {
+        const id = elm.getAttribute('data-node-id')
+        if (!id) return
+        setNodePropById(id, a.prop, value)
+      })
+      break
     }
   }
 }
@@ -64,12 +93,58 @@ function collectNodeMeta(nodeId: string) {
   return { actions, when, presetIds: ids }
 }
 
+async function runActionsFor(
+  nodeId: string,
+  targetEl: HTMLElement,
+  trigger: BehaviorTrigger,
+) {
+  const { actions } = collectNodeMeta(nodeId)
+  if (!actions?.length) return
+  const st = useEditorStore.getState() as any
+  const node = st.tree.find((n: any) => n.id === nodeId)
+  const ctx = {
+    node,
+    props: node?.props || {},
+    dataset: Object.fromEntries(
+      Array.from(targetEl.attributes).map((a) => [a.name, a.value]),
+    ),
+    now: Date.now(),
+    env: { pathname: location.pathname },
+  }
+
+  for (let i = 0; i < actions.length; i++) {
+    const a = actions[i] as any
+    if (a.if !== undefined && !evaluate(a.if, ctx)) continue
+    const k = keyFor(nodeId, i, a.kind)
+    const now = performance.now()
+    const tms = a.throttleMs as number | undefined
+    const dms = a.debounceMs as number | undefined
+    if (tms && throttleMap.has(k)) {
+      const last = throttleMap.get(k)!
+      if (now - last < tms) continue
+    }
+    if (dms) {
+      const prev = debounceMap.get(k)
+      if (prev) clearTimeout(prev as unknown as number)
+      const id = window.setTimeout(() => {
+        throttleMap.set(k, performance.now())
+        execOne(a, targetEl, ctx)
+      }, dms)
+      debounceMap.set(k, id as unknown as number)
+      continue
+    }
+    throttleMap.set(k, now)
+    await execOne(a, targetEl, ctx)
+  }
+}
+
 export function installActionRuntime(
   root: HTMLElement,
   opts?: { debug?: boolean; intercept?: boolean },
 ) {
   const debug = !!opts?.debug
   const intercept = !!opts?.intercept
+  ;(window as any).__ACTIONS_INTERCEPT__ = intercept
   const log = (entry: ActionLogEntry) => {
     if (debug) useActionDebugStore.getState().push(entry)
   }
@@ -91,14 +166,7 @@ export function installActionRuntime(
       status: 'ok',
     }
     try {
-      for (const a of meta.actions ?? []) {
-        const kind = (a as any).kind as ActionKind
-        if (intercept && (kind === 'openUrl' || kind === 'navigate')) {
-          entry.status = 'skipped'
-          continue
-        }
-        await execAction(a, target, intercept)
-      }
+      await runActionsFor(nodeId, target, trigger)
     } catch (e: any) {
       entry.status = 'error'
       entry.error = e?.message ?? String(e)
