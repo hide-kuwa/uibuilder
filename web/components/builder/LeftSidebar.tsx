@@ -13,8 +13,9 @@ import { Palette } from './Palette'
 import { LayersContent, LayersControls } from './LayersPanel'
 import { usePageStore } from '@/store/pageStore'
 import DataSourcesPanel from '@/components/data/DataSourcesPanel'
+import UIAuditPanel from '@/components/panel/UIAuditPanel'
 
-type PanelId = 'layers' | 'pages' | 'palette' | 'data'
+type PanelId = 'layers' | 'pages' | 'palette' | 'data' | 'audit'
 
 function AddPageButton() {
   const addPage = usePageStore((s) => s.addPage)
@@ -99,6 +100,7 @@ export default function LeftSidebar() {
     },
     palette: { title: 'パレット', render: () => <Palette /> },
     data: { title: 'Data', render: () => <DataSourcesPanel /> },
+    audit: { title: 'UI Audit', render: () => <UIAuditPanel /> },
   }
 
   const [order, setOrder] = React.useState<PanelId[]>([
@@ -106,12 +108,14 @@ export default function LeftSidebar() {
     'pages',
     'palette',
     'data',
+    'audit',
   ])
   const [collapsed, setCollapsed] = React.useState<Record<PanelId, boolean>>({
     layers: false,
     pages: false,
     palette: false,
     data: false,
+    audit: false,
   })
 
   useDndMonitor({
