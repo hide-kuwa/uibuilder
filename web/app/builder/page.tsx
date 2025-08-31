@@ -24,6 +24,7 @@ import { useAutosave } from '@/hooks/useAutosave'
 import ActionGate from '@/components/interaction/ActionGate'
 import ActionDevConsole from '@/components/interaction/ActionDevConsole'
 import { useActionDebugStore } from '@/store/actionDebugStore'
+import PresetApplyBus from '@/components/interaction/PresetApplyBus'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -175,6 +176,7 @@ export default function BuilderPage() {
 
   return (
     <ActionGate enabled debug={debug} intercept={intercept}>
+      <PresetApplyBus />
       <div className="flex h-[calc(100vh-40px)]">
         <DndContext
           sensors={sensors}

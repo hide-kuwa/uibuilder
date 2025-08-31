@@ -38,6 +38,7 @@ import { resolveComponentBinding } from "@/lib/binding/resolve";
 import { mapNodesForSwap } from "@/lib/override/compat";
 import { resolveOverrides } from "@/lib/override/resolve";
 import { MIN_ZOOM, MAX_ZOOM } from "@/lib/layout/constants";
+import { applyPresetToNode, type ApplyMode } from "@/lib/presetApply";
 import { reflectHandle } from "@/lib/vector/bezier";
 import { flattenPath } from "@/lib/vector/flatten";
 import {
@@ -1876,3 +1877,14 @@ useEditorStore.subscribe(() => {
     }
   }, SCHEDULE_MS);
 });
+
+export function applyPresetToSelection(presetId: string | null, mode: ApplyMode) {
+  const st = useEditorStore.getState()
+  const ids = (st.selectedIds as string[]) || []
+  ids.forEach((id) => applyPresetToNode(id, presetId, mode))
+}
+
+export function applyPresetToAll(presetId: string | null, mode: ApplyMode) {
+  const st = useEditorStore.getState()
+  st.tree.forEach((n: any) => applyPresetToNode(n.id, presetId, mode))
+}

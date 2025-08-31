@@ -9,6 +9,8 @@ import { DEVICE_PRESETS } from '@/lib/devicePresets';
 import AnnotationsOverlay from '@/components/editor/AnnotationsOverlay';
 import { useSearchParams } from 'next/navigation';
 import '@/styles/preview.css';
+import ActionGate from '@/components/interaction/ActionGate';
+import PresetApplyBus from '@/components/interaction/PresetApplyBus';
 
 function renderNode(
   node: ComponentNode,
@@ -82,12 +84,15 @@ export default function PreviewPage() {
     />
   ) : null;
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-      <div style={style}>
-        {safe}
-        {tree.map((n) => renderNode(n, components, sources, bindings))}
-        {showComments && <AnnotationsOverlay />}
+    <ActionGate enabled>
+      <PresetApplyBus />
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <div style={style}>
+          {safe}
+          {tree.map((n) => renderNode(n, components, sources, bindings))}
+          {showComments && <AnnotationsOverlay />}
+        </div>
       </div>
-    </div>
+    </ActionGate>
   );
 }

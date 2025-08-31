@@ -6,6 +6,7 @@ import { useUnitStore } from '@/store/unitStore';
 import { worldToUnit, unitToWorld } from '@/lib/units';
 import AutoPropsForm from '@/components/props/AutoPropsForm';
 import { registry } from '@/lib/registry';
+import PresetApplyBar from '@/components/props/PresetApplyBar';
 
 export default function RightInspector() {
   const selected = useEditorStore((s) => s.selectedIds[0]);
@@ -242,10 +243,13 @@ export default function RightInspector() {
         </div>
       </div>
       {node && (
-        <ActionPresetField
-          nodeId={node.id}
-          value={node.props?.presetId ?? (node.props?.presetIds?.[0] ?? '')}
-        />
+        <>
+          <ActionPresetField
+            nodeId={node.id}
+            value={node.props?.presetId ?? (node.props?.presetIds?.[0] ?? '')}
+          />
+          <PresetApplyBar />
+        </>
       )}
     </div>
   );
