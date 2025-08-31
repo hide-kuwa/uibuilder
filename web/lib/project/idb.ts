@@ -27,29 +27,73 @@ function open() {
       };
       fix.onsuccess = () => res(fix.result);
       fix.onerror = () => rej(fix.error);
+      fix.onblocked = () => {
+        // If blocked, still fail gracefully so callers can retry later
+        try { fix.result?.close?.() } catch {}
+        rej(new Error('IndexedDB upgrade blocked'))
+      }
     };
 
     request.onerror = () => rej(request.error);
+    request.onblocked = () => {
+      try { request.result?.close?.() } catch {}
+      rej(new Error('IndexedDB open blocked'))
+    }
   });
 }
 export async function idbSet(key: string, value: any) {
-  const db = await open();
-  await new Promise<void>((res, rej) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(value, key);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
-  db.close();
+  let db = await open();
+  try {
+    await new Promise<void>((res, rej) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(value, key);
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  } catch (e: any) {
+    // Retry once if store missing due to race
+    if (e && String(e).includes('NotFoundError')) {
+      try { db.close() } catch {}
+      db = await open()
+      await new Promise<void>((res, rej) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).put(value, key);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
+    } else {
+      try { db.close() } catch {}
+      throw e
+    }
+  }
+  try { db.close() } catch {}
 }
 export async function idbGet<T>(key: string): Promise<T | undefined> {
-  const db = await open();
-  const out = await new Promise<T | undefined>((res, rej) => {
-    const tx = db.transaction(STORE, "readonly");
-    const req = tx.objectStore(STORE).get(key);
-    req.onsuccess = () => res(req.result as any);
-    req.onerror = () => rej(req.error);
-  });
-  db.close();
-  return out;
+  let db = await open();
+  try {
+    const out = await new Promise<T | undefined>((res, rej) => {
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).get(key);
+      req.onsuccess = () => res(req.result as any);
+      req.onerror = () => rej(req.error);
+    });
+    try { db.close() } catch {}
+    return out;
+  } catch (e: any) {
+    if (e && String(e).includes('NotFoundError')) {
+      try { db.close() } catch {}
+      db = await open();
+      const out = await new Promise<T | undefined>((res, rej) => {
+        const tx = db.transaction(STORE, "readonly");
+        const req = tx.objectStore(STORE).get(key);
+        req.onsuccess = () => res(req.result as any);
+        req.onerror = () => rej(req.error);
+      });
+      try { db.close() } catch {}
+      return out;
+    } else {
+      try { db.close() } catch {}
+      throw e
+    }
+  }
 }
