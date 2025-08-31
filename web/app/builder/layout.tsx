@@ -8,6 +8,7 @@ import { ShareMenu } from '@/components/builder/ShareMenu'
 import ReflectDeployMenu from '@/components/builder/ReflectDeployMenu'
 import ProjectMetaMenu from '@/components/builder/ProjectMetaMenu'
 import UndoRedoButtons from '@/components/builder/UndoRedoButtons'
+import LoadFromGitHubMenu from '@/components/builder/LoadFromGitHubMenu'
 import HistoryHotkeys from '@/components/hud/HistoryHotkeys'
 import { mountHistorySync } from '@/store/historySync'
 import StatusCenter from '@/components/hud/StatusCenter'
@@ -23,6 +24,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       <div className="w-full h-10 px-3 border-b flex items-center gap-3">
         <div className="text-sm font-semibold mr-auto">Builder</div>
         <UndoRedoButtons />
+        <LoadFromGitHubMenu />
         <ProjectMetaMenu />
         <ShareMenu />
         <ReflectDeployMenu />

@@ -4,10 +4,8 @@ import { useBuilderStore } from '@/store/builderStore'
 import { loadProjectFromQuery } from '@/lib/project/io'
 import { NodeRendererCompat } from '@/components/NodeRendererCompat'
 import { mountLiveSync } from '@/store/liveSync'
-import TokenStyle from '@/components/theme/TokenStyle'
-import { useDesignTokens } from '@/store/designTokensStore'
-import { useDataSources } from '@/store/dataBindingStore'
 import ModalHost from '@/components/hud/ModalHost'
+import { hydrateProjectStores } from '@/lib/project/loaders'
 
 export default function PreviewPage() {
   const [ready, setReady] = useState(false)
@@ -18,9 +16,7 @@ export default function PreviewPage() {
     ;(async () => {
       const pj = await loadProjectFromQuery()
       if (mounted && pj) {
-        useBuilderStore.setState({ elements: pj.elements, meta: pj.meta || {} })
-        useDesignTokens.getState().replaceAll(pj.designTokens || {})
-        useDataSources.getState().replaceAll(pj.dataSources || {})
+        hydrateProjectStores(pj)
       }
       mountLiveSync('preview')
       setReady(true)
@@ -33,7 +29,6 @@ export default function PreviewPage() {
   return (
     <div data-actions-enabled="true" suppressHydrationWarning className="w-full h-screen relative bg-black">
       {roots.map((n: any) => <NodeRendererCompat key={String(n.id)} node={n} />)}
-      <TokenStyle />
       <ModalHost />
     </div>
   )
