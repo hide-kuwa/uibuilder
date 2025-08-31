@@ -40,6 +40,8 @@ function SortablePanel({
   onToggle,
   children,
   extraHeader,
+  className,
+  contentClassName,
 }: {
   id: PanelId
   title: string
@@ -47,6 +49,8 @@ function SortablePanel({
   onToggle: () => void
   children: React.ReactNode
   extraHeader?: React.ReactNode
+  className?: string
+  contentClassName?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id })
@@ -55,7 +59,11 @@ function SortablePanel({
     transition,
   }
   return (
-    <div ref={setNodeRef} style={style} className="border border-zinc-800 rounded">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border border-zinc-800 rounded flex flex-col ${className || ''}`}
+    >
       <div
         className="flex items-center justify-between bg-zinc-900 px-2 py-1 cursor-grab select-none"
         {...attributes}
@@ -72,7 +80,9 @@ function SortablePanel({
           </button>
         </div>
       </div>
-      {!collapsed && <div className="p-2">{children}</div>}
+      {!collapsed && (
+        <div className={`p-2 ${contentClassName || ''}`}>{children}</div>
+      )}
     </div>
   )
 }
@@ -132,6 +142,8 @@ export default function LeftSidebar() {
                 setCollapsed((c) => ({ ...c, [id]: !c[id] }))
               }
               extraHeader={panels[id].extra}
+              className={id === 'layers' ? 'flex-1 min-h-0' : undefined}
+              contentClassName={id === 'layers' ? 'flex-1 min-h-0 overflow-y-auto' : undefined}
             >
               {panels[id].render()}
             </SortablePanel>

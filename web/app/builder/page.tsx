@@ -13,7 +13,6 @@ import { Canvas } from '@/components/builder/Canvas'
 import { Inspector } from '@/components/builder/Inspector'
 import { useBuilderStore, type Elm } from '@/store/builderStore'
 import { collectSnapPoints, snapRect } from '@/lib/builder/snap'
-import LayersPanel from '@/components/builder/LayersPanel'
 import LeftSidebar from '@/components/builder/LeftSidebar'
 import { usePageStore } from '@/store/pageStore'
 import { DeviceFrame } from '@/components/hud/DeviceFrame'
@@ -170,7 +169,6 @@ export default function BuilderPage() {
       <div className="flex h-[calc(100vh-40px)]">
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd}>
           <LeftSidebar />
-          <LayersPanel />
           <main className="flex-1 relative">
             <DeviceFrame>
               <div className="relative w-full h-full">
