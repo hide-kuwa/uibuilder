@@ -34,8 +34,20 @@ export async function saveProject(p: Project): Promise<void> {
   if (id === 'local') await idbSet(LOCAL_KEY, p)
 }
 
-export function makeProject(elements: any[], meta?: Project['meta']): Project {
-  return { schemaVersion: SCHEMA, meta: meta || { id: 'local', name: 'Local Project' }, elements, designTokens: {}, assets: [] }
+export function makeProject(
+  elements: any[],
+  meta?: Project['meta'],
+  designTokens?: Record<string, any>,
+  dataSources?: Record<string, any>
+): Project {
+  return {
+    schemaVersion: SCHEMA,
+    meta: meta || { id: 'local', name: 'Local Project' },
+    elements,
+    designTokens: designTokens || {},
+    dataSources: dataSources || {},
+    assets: [],
+  }
 }
 
 function normalizeProject(p: any, forceId: string | null): Project {
@@ -44,6 +56,7 @@ function normalizeProject(p: any, forceId: string | null): Project {
     schemaVersion: typeof p?.schemaVersion === 'number' ? p.schemaVersion : SCHEMA,
     meta: { id, name: p?.meta?.name || 'Project ' + id },
     designTokens: p?.designTokens || {},
+    dataSources: p?.dataSources || {},
     elements: Array.isArray(p?.elements) ? p.elements : [],
     assets: p?.assets || [],
   }

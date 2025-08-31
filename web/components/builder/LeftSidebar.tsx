@@ -12,8 +12,9 @@ import { PagesPanel } from './PagesPanel'
 import { Palette } from './Palette'
 import { LayersContent, LayersControls } from './LayersPanel'
 import { usePageStore } from '@/store/pageStore'
+import DataSourcesPanel from '@/components/data/DataSourcesPanel'
 
-type PanelId = 'layers' | 'pages' | 'palette'
+type PanelId = 'layers' | 'pages' | 'palette' | 'data'
 
 function AddPageButton() {
   const addPage = usePageStore((s) => s.addPage)
@@ -97,17 +98,20 @@ export default function LeftSidebar() {
       extra: <AddPageButton />,
     },
     palette: { title: 'パレット', render: () => <Palette /> },
+    data: { title: 'Data', render: () => <DataSourcesPanel /> },
   }
 
   const [order, setOrder] = React.useState<PanelId[]>([
     'layers',
     'pages',
     'palette',
+    'data',
   ])
   const [collapsed, setCollapsed] = React.useState<Record<PanelId, boolean>>({
     layers: false,
     pages: false,
     palette: false,
+    data: false,
   })
 
   useDndMonitor({

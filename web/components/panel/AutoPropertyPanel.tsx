@@ -1,74 +1,167 @@
-'use client'
-import React, { useMemo } from 'react'
-import { getDef } from '@/lib/registry.ts'
-import type { PropertyDef } from '@/types/propertySchema'
+"use client"
+import React, { useMemo, useState } from 'react'
+import { getDef } from '@/lib/registry'
+import { useDesignTokens } from '@/store/designTokensStore'
+import { useDataSources, listPaths } from '@/store/dataBindingStore'
 
-type Props = {
-  componentKey: string
-  propValues: Record<string, any> | undefined
-  onChange: (id: string, v: any) => void
-}
+type Field = { id: string; type: string; label?: string; options?: string[]; default?: any }
 
-function Control({ def, value, onChange }: { def: PropertyDef; value: any; onChange: (v:any)=>void }) {
-  if (def.kind === 'string') return <input className="w-full border p-1 rounded" placeholder={def.placeholder} value={value ?? ''} onChange={(e)=>onChange(e.target.value)} />
-  if (def.kind === 'number') return <input type="number" className="w-full border p-1 rounded" value={value ?? ''} onChange={(e)=>onChange(e.target.value === '' ? undefined : Number(e.target.value))} min={def.min} max={def.max} step={def.step ?? 1} />
-  if (def.kind === 'boolean') return <input type="checkbox" checked={!!value} onChange={(e)=>onChange(e.target.checked)} />
-  if (def.kind === 'select') return (
-    <select className="w-full border p-1 rounded" value={value ?? ''} onChange={(e)=>onChange(e.target.value)}>
-      {(def.options ?? []).map(o=> <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  )
-  if (def.kind === 'multiselect') return (
-    <select multiple className="w-full border p-1 rounded" value={Array.isArray(value)?value:[]} onChange={(e)=>onChange(Array.from(e.target.selectedOptions).map(o=>o.value))}>
-      {(def.options ?? []).map(o=> <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  )
-  if (def.kind === 'color') return <input type="color" value={value ?? '#000000'} onChange={(e)=>onChange(e.target.value)} />
-  return null
-}
-
-export function AutoPropertyPanel({ componentKey, propValues, onChange }: Props) {
-  const meta = getDef(componentKey as any).meta
-  const groups = useMemo(() => {
-    const map = new Map<string, PropertyDef[]>()
-    meta.propertySchema.forEach(d => {
-      const g = d.group ?? 'General'
-      if (!map.has(g)) map.set(g, [])
-      map.get(g)!.push(d)
-    })
-    return Array.from(map.entries())
-  }, [meta])
-
+function BindEditor({ value, onChange }: { value?: any; onChange: (v:any)=>void }) {
+  const sources = useDataSources(s => s.sources)
+  const names = Object.keys(sources)
+  const initial = value && value.$bind ? value.$bind : { source: names[0] || '', path: '', fallback: '', transform: '' }
+  const [src, setSrc] = useState<string>(initial.source || names[0] || '')
+  const [path, setPath] = useState<string>(initial.path || '')
+  const [fallback, setFallback] = useState<string>(initial.fallback ?? '')
+  const [transform, setTransform] = useState<string>(initial.transform || '')
+  const paths = useMemo(() => listPaths(sources[src] || {}, 300), [src, sources])
   return (
-    <div className="space-y-4 p-2">
-      {groups.map(([g, defs]) => (
-        <div key={g} className="space-y-2">
-          <div className="text-xs font-semibold text-gray-500">{g}</div>
-          {defs.map(def => {
-            const v = propValues?.[def.id] ?? def.default
-            return (
-              <div key={def.id} className="grid grid-cols-3 gap-2 items-center">
-                <label className="text-sm col-span-1">{def.label}</label>
-                <div className="col-span-2">
-                  <Control def={def} value={v} onChange={(nv)=>onChange(def.id, nv)} />
-                  {def.bindable && (
-                    <details className="mt-1">
-                      <summary className="text-[11px] cursor-pointer">Bind</summary>
-                      <div className="flex gap-1">
-                        <select defaultValue="data" onChange={(e)=>onChange(def.id, { source: e.target.value, path: '' })} className="border p-1 rounded">
-                          <option value="data">data</option>
-                        </select>
-                        <input className="flex-1 border p-1 rounded" placeholder="path e.g. user.name" value={typeof v==='object'&&v? v.path ?? '' : ''} onChange={(e)=>onChange(def.id, { source: 'data', path: e.target.value })} />
-                        <button className="border px-2 rounded" onClick={()=>onChange(def.id, def.default)}>Reset</button>
-                      </div>
-                    </details>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      ))}
+    <div className="grid grid-cols-2 gap-2">
+      <select
+        className="border rounded h-8 px-2 text-sm"
+        value={src}
+        onChange={e => setSrc(e.target.value)}
+      >
+        {names.length === 0 ? <option value="">(no sources)</option> : names.map(n => <option key={n} value={n}>{n}</option>)}
+      </select>
+      <input
+        list="bind-paths"
+        className="border rounded h-8 px-2 text-sm"
+        value={path}
+        onChange={e => setPath(e.target.value)}
+        placeholder="user.name"
+      />
+      <datalist id="bind-paths">
+        {paths.map(p => <option key={p} value={p} />)}
+      </datalist>
+      <input
+        className="border rounded h-8 px-2 text-sm"
+        value={fallback}
+        onChange={e => setFallback(e.target.value)}
+        placeholder="fallback"
+      />
+      <select
+        className="border rounded h-8 px-2 text-sm col-span-2"
+        value={transform}
+        onChange={e => setTransform(e.target.value)}
+      >
+        <option value="">no transform</option>
+        <option value="upper">upper</option>
+        <option value="lower">lower</option>
+        <option value="stringify">stringify</option>
+      </select>
+      <button
+        className="border rounded h-8 px-2 text-sm col-span-2"
+        onClick={() => onChange({ $bind: { source: src, path, fallback, transform: transform || undefined } })}
+      >
+        Apply Binding
+      </button>
     </div>
   )
 }
+
+function FieldRow({ label, children, bindable, value, onBindChange }: { label: string; children: React.ReactNode; bindable: boolean; value?: any; onBindChange: (v:any)=>void }) {
+  const isBound = value && typeof value === 'object' && '$bind' in value
+  const [mode, setMode] = useState<'value'|'bind'>(isBound ? 'bind' : 'value')
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <div className="text-xs opacity-70">{label}</div>
+        {bindable ? (
+          <div className="ml-auto flex items-center gap-1">
+            <button className="border rounded h-6 px-2 text-xs" onClick={() => setMode(mode === 'value' ? 'bind' : 'value')}>{mode === 'value' ? 'Bind' : 'Value'}</button>
+          </div>
+        ) : null}
+      </div>
+      {mode === 'bind' ? children : children}
+    </div>
+  )
+}
+
+export function AutoPropertyPanel({ componentKey, propValues, onChange }: { componentKey: string; propValues?: Record<string, any>; onChange: (k: string, v: any) => void }) {
+  const def = getDef(componentKey as any) as any
+  const fields: Field[] = def?.meta?.propertySchema || []
+  const tokens = useDesignTokens(s => s.tokens)
+
+  function tokenOptions(group: 'color' | 'radius' | 'space' | 'fontSize') {
+    return Object.keys(tokens[group] || {}).map(k => `${group}.${k}`)
+  }
+
+  function renderEditor(f: Field, val: any) {
+    const isBound = val && typeof val === 'object' && '$bind' in val
+    const bindable = true
+    if (isBound) {
+      return <BindEditor value={val} onChange={v => onChange(f.id, v)} />
+    }
+    if (f.type === 'string') {
+      return <input className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, e.target.value)} />
+    }
+    if (f.type === 'number') {
+      return <input type="number" className="w-full border rounded h-8 px-2 text-sm" value={val ?? 0} onChange={e => onChange(f.id, parseFloat(e.target.value || '0'))} />
+    }
+    if (f.type === 'enum') {
+      return (
+        <select className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, e.target.value)}>
+          {(f.options || []).map(op => <option key={op} value={op}>{op}</option>)}
+        </select>
+      )
+    }
+    if (f.type === 'colorToken') {
+      const opts = tokenOptions('color')
+      return (
+        <select className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, 'token:' + e.target.value)}>
+          {opts.map(op => <option key={op} value={op}>{op}</option>)}
+        </select>
+      )
+    }
+    if (f.type === 'radiusToken') {
+      const opts = tokenOptions('radius')
+      return (
+        <select className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, 'token:' + e.target.value)}>
+          {opts.map(op => <option key={op} value={op}>{op}</option>)}
+        </select>
+      )
+    }
+    if (f.type === 'spaceToken') {
+      const opts = tokenOptions('space')
+      return (
+        <select className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, 'token:' + e.target.value)}>
+          {opts.map(op => <option key={op} value={op}>{op}</option>)}
+        </select>
+      )
+    }
+    if (f.type === 'fontSizeToken') {
+      const opts = tokenOptions('fontSize')
+      return (
+        <select className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, 'token:' + e.target.value)}>
+          {opts.map(op => <option key={op} value={op}>{op}</option>)}
+        </select>
+      )
+    }
+    return <input className="w-full border rounded h-8 px-2 text-sm" value={val ?? ''} onChange={e => onChange(f.id, e.target.value)} />
+  }
+
+  return (
+    <div className="space-y-3">
+      {fields.map((f) => {
+        const val = propValues?.[f.id] ?? f.default
+        const isBound = val && typeof val === 'object' && '$bind' in val
+        return (
+          <div key={f.id}>
+            <div className="flex items-center mb-1">
+              <div className="text-xs opacity-70">{f.label || f.id}</div>
+              <div className="ml-auto">
+                <button className="border rounded h-6 px-2 text-xs" onClick={() => {
+                  if (isBound) onChange(f.id, f.default)
+                  else onChange(f.id, { $bind: { source: 'project', path: '', fallback: '' } })
+                }}>{isBound ? 'Value' : 'Bind'}</button>
+              </div>
+            </div>
+            {renderEditor(f, val)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
