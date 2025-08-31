@@ -18,7 +18,6 @@ import { usePageStore } from '@/store/pageStore'
 import { DeviceFrame } from '@/components/hud/DeviceFrame'
 import { GridOverlay } from '@/components/hud/GridOverlay'
 import { BuilderHUD } from '@/components/hud/BuilderHUD'
-import { useAutosave } from '@/hooks/useAutosave'
 import ActionGate from '@/components/interaction/ActionGate'
 import ActionDevConsole from '@/components/interaction/ActionDevConsole'
 import { useActionDebugStore } from '@/store/actionDebugStore'
@@ -34,7 +33,6 @@ export default function BuilderPage() {
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
   const setElements = useBuilderStore((s) => s.setElements)
-  useAutosave()
 
   const debug = true
   const intercept = useActionDebugStore((s) => s.intercept)
