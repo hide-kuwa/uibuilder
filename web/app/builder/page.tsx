@@ -1,19 +1,37 @@
 'use client'
 import React, { useEffect } from 'react'
-import { decodeShare } from '@/lib/share'
-import { useBuilderStore } from '@/store/builderStore'
 import BuilderPage from './BuilderPage'
+import { useBuilderStore } from '@/store/builderStore'
+import { loadProjectFromQuery, makeProject, saveProject } from '@/lib/project/io'
+import { mountLiveSync } from '@/store/liveSync'
 
 export default function BuilderPageWrapper() {
   useEffect(() => {
-    const p = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-    const d = p.get('d')
-    if (d) {
-      const data = decodeShare(d)
-      if (data?.elements) {
-        useBuilderStore.setState({ elements: data.elements, tree: data.elements, meta: data.meta ?? {} })
+    let mounted = true
+    ;(async () => {
+      const pj = await loadProjectFromQuery()
+      if (mounted) {
+        if (pj) useBuilderStore.setState({ elements: pj.elements, meta: pj.meta || {} })
+        else
+          useBuilderStore.setState({
+            elements: makeProject([], { id: 'local', name: 'Local Project' }).elements,
+            meta: { id: 'local', name: 'Local Project' },
+          })
       }
+      mountLiveSync('builder')
+    })()
+    return () => {
+      mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    const unsub = useBuilderStore.subscribe((s) => {
+      const meta = (s as any).meta || { id: 'local', name: 'Local Project' }
+      saveProject({ schemaVersion: 1, meta, elements: s.elements, designTokens: {}, assets: [] })
+    })
+    return () => unsub()
+  }, [])
+
   return <BuilderPage />
 }
