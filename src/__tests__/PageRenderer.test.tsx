@@ -4,7 +4,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 import PageRenderer from '../PageRenderer';
 import { ComponentNode } from '../store';
 import { DataSourcesProvider, useDataSources, DataSource } from '../dataSources';
-jest.mock('@/components/interaction/PresetStyle', () => () => null);
+jest.mock('@/components/styles/PresetStyle', () => ({ PresetStyle: () => null }));
 
 function renderTree(tree: ComponentNode[], sources: DataSource[] = [], previewHover = false) {
   const SetSources: React.FC<{ sources: DataSource[] }> = ({ sources }) => {

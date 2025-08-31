@@ -9,7 +9,7 @@ import { resolveComponentBinding, resolveBinding } from '@/lib/binding/resolve';
 import { useBindingStore } from '@/store/bindingStore';
 import { PresenterHUD } from '@/components/preview/PresenterHUD';
 import { buildPoseMap, diffPoses, easeStandard } from '@/lib/animate/smart';
-import PresetStyle from '@/components/interaction/PresetStyle';
+import { NodeWrapper } from '@/components/shared/NodeWrapper';
 import {
   runActionsForNode,
   type ActionRuntimeContext,
@@ -108,75 +108,75 @@ function NodeRenderer({
   }, [link, onLink]);
   if (node.type === 'Image') {
     return (
-      <div
-        style={style}
-        data-node-id={node.id}
-        data-node-type={node.type}
-        data-node-name={merged?.name}
-        onClick={handleClick}
-        onMouseEnter={handleHover}
-        className={link ? 'cursor-pointer' : undefined}
-      >
-        <div className="w-full h-full bg-gray-300" />
-        <PresetStyle
-          nodeId={node.id}
-          presetIds={merged?.presetIds}
-          presetId={merged?.presetId}
-          hoverEffects={merged?.hoverEffects}
-          hoverTransitionMs={merged?.hoverTransitionMs}
-        />
-      </div>
-    );
-  }
-  if (node.type === 'Text') {
-    return (
-      <div
-        style={style}
-        data-node-id={node.id}
-        data-node-type={node.type}
-        data-node-name={merged?.name}
-        onClick={handleClick}
-        onMouseEnter={handleHover}
-        className={link ? 'cursor-pointer' : undefined}
-      >
-        {merged?.text}
-        <PresetStyle
-          nodeId={node.id}
-          presetIds={merged?.presetIds}
-          presetId={merged?.presetId}
-          hoverEffects={merged?.hoverEffects}
-          hoverTransitionMs={merged?.hoverTransitionMs}
-        />
-      </div>
-    );
-  }
-  return (
-    <div
-      style={style}
-      data-node-id={node.id}
-      data-node-type={node.type}
-      data-node-name={merged?.name}
-      onClick={handleClick}
-      onMouseEnter={handleHover}
-      className={link ? 'cursor-pointer' : undefined}
-    >
-      {node.children?.map((c) => (
-        <NodeRenderer
-          key={c.id}
-          node={c}
-          onLink={onLink}
-          ctx={ctx}
-          runtimeProps={runtimeProps}
-        />
-      ))}
-      <PresetStyle
+      <NodeWrapper
         nodeId={node.id}
+        nodeType={node.type}
+        nodeName={merged?.name}
         presetIds={merged?.presetIds}
         presetId={merged?.presetId}
         hoverEffects={merged?.hoverEffects}
         hoverTransitionMs={merged?.hoverTransitionMs}
-      />
-    </div>
+      >
+        <div
+          style={style}
+          onClick={handleClick}
+          onMouseEnter={handleHover}
+          className={link ? 'cursor-pointer' : undefined}
+        >
+          <div className="w-full h-full bg-gray-300" />
+        </div>
+      </NodeWrapper>
+    );
+  }
+  if (node.type === 'Text') {
+    return (
+      <NodeWrapper
+        nodeId={node.id}
+        nodeType={node.type}
+        nodeName={merged?.name}
+        presetIds={merged?.presetIds}
+        presetId={merged?.presetId}
+        hoverEffects={merged?.hoverEffects}
+        hoverTransitionMs={merged?.hoverTransitionMs}
+      >
+        <div
+          style={style}
+          onClick={handleClick}
+          onMouseEnter={handleHover}
+          className={link ? 'cursor-pointer' : undefined}
+        >
+          {merged?.text}
+        </div>
+      </NodeWrapper>
+    );
+  }
+  return (
+    <NodeWrapper
+      nodeId={node.id}
+      nodeType={node.type}
+      nodeName={merged?.name}
+      presetIds={merged?.presetIds}
+      presetId={merged?.presetId}
+      hoverEffects={merged?.hoverEffects}
+      hoverTransitionMs={merged?.hoverTransitionMs}
+    >
+      <div
+        style={style}
+        onClick={handleClick}
+        onMouseEnter={handleHover}
+        className={link ? 'cursor-pointer' : undefined}
+      >
+        {node.children?.map((c) => (
+          <NodeRenderer
+            key={c.id}
+            node={c}
+            onLink={onLink}
+            ctx={ctx}
+            runtimeProps={runtimeProps}
+          />
+        ))}
+      </div>
+    </NodeWrapper>
   );
 }
 
