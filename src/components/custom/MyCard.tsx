@@ -4,6 +4,8 @@ interface MyCardProps {
   title: string
   highlighted: boolean
   tone: 'info' | 'warn'
+  className?: string
+  children?: React.ReactNode
 }
 
 const MyCard: React.FC<MyCardProps> = ({ title, highlighted, tone, children, className }) => {

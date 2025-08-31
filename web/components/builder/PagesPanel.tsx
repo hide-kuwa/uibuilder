@@ -2,7 +2,7 @@
 import React from 'react'
 import { usePageStore } from '@/store/pageStore'
 
-export function PagesPanel() {
+export function PagesPanel({ showHeader = true }: { showHeader?: boolean }) {
   const pages = usePageStore((s) => s.pages)
   const current = usePageStore((s) => s.currentPageId)
   const selectPage = usePageStore((s) => s.selectPage)
@@ -10,15 +10,17 @@ export function PagesPanel() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold">Pages</h2>
-        <button
-          className="px-1 text-xs border border-zinc-700 rounded"
-          onClick={() => addPage()}
-        >
-          +
-        </button>
-      </div>
+      {showHeader && (
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold">Pages</h2>
+          <button
+            className="px-1 text-xs border border-zinc-700 rounded"
+            onClick={() => addPage()}
+          >
+            +
+          </button>
+        </div>
+      )}
       <ul className="space-y-1">
         {pages.map((p) => (
           <li key={p.id}>

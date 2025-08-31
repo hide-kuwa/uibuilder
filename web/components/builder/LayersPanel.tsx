@@ -133,6 +133,8 @@ export default function LayersPanel() {
   const group = useBuilderStore((s) => s.group)
   const ungroup = useBuilderStore((s) => s.ungroup)
 
+  const [collapsed, setCollapsed] = React.useState(false)
+
   const canGroup = React.useMemo(() => {
     if (selectedIds.length < 2) return false
     const first = elements.find((e) => e.id === selectedIds[0])
@@ -173,7 +175,7 @@ export default function LayersPanel() {
     >
       <div className="px-2 py-2 border-b border-zinc-800 flex items-center gap-2">
         <div className="font-medium text-sm">Layers</div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex gap-2 items-center">
           <button
             className="px-2 py-1 bg-zinc-800 rounded disabled:opacity-50"
             disabled={!canGroup}
@@ -188,17 +190,26 @@ export default function LayersPanel() {
           >
             Ungroup
           </button>
+          <button
+            className="px-1 text-xs border border-zinc-700 rounded"
+            onClick={() => setCollapsed((v) => !v)}
+            title="Toggle collapse"
+          >
+            {collapsed ? '+' : '−'}
+          </button>
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
-        <DndContext onDragEnd={onDragEnd}>
-          <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
-            {rootIds.map((id) => (
-              <Row key={id} id={id} />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </div>
+      {!collapsed && (
+        <div className="flex-1 overflow-auto">
+          <DndContext onDragEnd={onDragEnd}>
+            <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+              {rootIds.map((id) => (
+                <Row key={id} id={id} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
     </aside>
   )
 }
