@@ -63,13 +63,13 @@ const ContainerMeta: BuilderNodeMeta = {
 }
 
 export const registry = {
-  button:   { Comp: Button,   meta: ButtonMeta },
-  container:{ Comp: Container,meta: ContainerMeta },
-  text:     { Comp: Text,     meta: TextMeta },
-  header: { Comp: Header, meta: HeaderMeta },
-  footer: { Comp: Footer, meta: FooterMeta },
-  sidebar: { Comp: Sidebar, meta: SidebarMeta },
-  hud: { Comp: Hud, meta: HudMeta },
+  button:   { cmp: Button,   meta: ButtonMeta },
+  container:{ cmp: Container,meta: ContainerMeta },
+  text:     { cmp: Text,     meta: TextMeta },
+  header:   { cmp: Header,   meta: HeaderMeta },
+  footer:   { cmp: Footer,   meta: FooterMeta },
+  sidebar:  { cmp: Sidebar,  meta: SidebarMeta },
+  hud:      { cmp: Hud,      meta: HudMeta },
 } as const
 
 export type Registry = typeof registry
