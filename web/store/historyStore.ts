@@ -1,75 +1,98 @@
+'use client'
 import { create } from 'zustand'
-import { Patch, applyPatches } from 'immer'
+import { useBuilderStore } from '@/store/builderStore'
+import { useDesignTokens } from '@/store/designTokensStore'
 
-interface Entry {
-  patches: Patch[]
-  inverse: Patch[]
+export type Snapshot = {
+  elements: any[]
+  meta?: any
+  designTokens?: any
 }
 
-interface HistoryState {
-  stack: Entry[]
-  index: number
-  limit: number
-  draft: Entry | null
-  push: (patches: Patch[], inverse: Patch[]) => void
-  start: () => void
-  commit: () => void
-  undo: <T>(state: T) => T
-  redo: <T>(state: T) => T
+type State = {
+  past: Snapshot[]
+  present: Snapshot | null
+  future: Snapshot[]
+  capacity: number
+  busy: boolean
+}
+type Actions = {
+  initFromCurrent: () => void
+  push: (snap: Snapshot) => void
+  undo: () => void
+  redo: () => void
   clear: () => void
+  setCapacity: (n: number) => void
+  apply: (snap: Snapshot) => void
+  getCounts: () => { past: number; future: number }
+  getPresent: () => Snapshot | null
 }
 
-export const useHistoryStore = create<HistoryState>((set, get) => ({
-  stack: [],
-  index: -1,
-  limit: 100,
-  draft: null,
-  push(patches, inverse) {
-    const draft = get().draft
-    if (draft) {
-      draft.patches.push(...patches)
-      draft.inverse = [...inverse, ...draft.inverse]
-      set({ draft })
-      return
-    }
-    let stack = get().stack.slice(0, get().index + 1)
-    stack.push({ patches, inverse })
-    if (stack.length > get().limit) {
-      stack = stack.slice(stack.length - get().limit)
-    }
-    set({ stack, index: stack.length - 1 })
+export const useHistoryStore = create<State & Actions>((set, get) => ({
+  past: [],
+  present: null,
+  future: [],
+  capacity: 50,
+  busy: false,
+  initFromCurrent: () => {
+    const s = snapshotFromStores()
+    set({ past: [], present: s, future: [] })
   },
-  start() {
-    set({ draft: { patches: [], inverse: [] } })
+  push: (snap) => {
+    const { present, past, capacity } = get()
+    if (!present) { set({ present: snap }); return }
+    const np = [...past, present]
+    const trimmed = np.length > capacity ? np.slice(np.length - capacity) : np
+    set({ past: trimmed, present: snap, future: [] })
   },
-  commit() {
-    const draft = get().draft
-    if (draft && draft.patches.length) {
-      let stack = get().stack.slice(0, get().index + 1)
-      stack.push(draft)
-      if (stack.length > get().limit) {
-        stack = stack.slice(stack.length - get().limit)
-      }
-      set({ stack, index: stack.length - 1, draft: null })
-    } else {
-      set({ draft: null })
-    }
+  undo: () => {
+    const { past, present, future } = get()
+    if (past.length === 0 || !present) return
+    const prev = past[past.length - 1]
+    const rest = past.slice(0, -1)
+    set({ past: rest, present: prev, future: [present, ...future], busy: true })
+    applyToStores(prev)
+    set({ busy: false })
   },
-  undo(state) {
-    const { index, stack } = get()
-    if (index < 0) return state
-    const entry = stack[index]
-    set({ index: index - 1 })
-    return applyPatches(state, entry.inverse)
+  redo: () => {
+    const { future, present, past } = get()
+    if (future.length === 0 || !present) return
+    const next = future[0]
+    const rest = future.slice(1)
+    set({ past: [...past, present], present: next, future: rest, busy: true })
+    applyToStores(next)
+    set({ busy: false })
   },
-  redo(state) {
-    const { index, stack } = get()
-    if (index + 1 >= stack.length) return state
-    const entry = stack[index + 1]
-    set({ index: index + 1 })
-    return applyPatches(state, entry.patches)
+  clear: () => set({ past: [], present: get().present, future: [] }),
+  setCapacity: (n) => set({ capacity: Math.max(1, Math.min(500, n)) }),
+  apply: (snap) => {
+    set({ busy: true })
+    applyToStores(snap)
+    set({ busy: false })
   },
-  clear() {
-    set({ stack: [], index: -1, draft: null })
-  },
+  getCounts: () => ({ past: get().past.length, future: get().future.length }),
+  getPresent: () => get().present,
 }))
+
+function snapshotFromStores(): Snapshot {
+  const s = useBuilderStore.getState()
+  const meta = (s as any).meta || { id: 'local', name: 'Local Project' }
+  const tokens = useDesignTokens.getState().getAll?.() ?? useDesignTokens.getState().tokens
+  return { elements: s.elements, meta, designTokens: tokens }
+}
+
+function applyToStores(snap: Snapshot) {
+  useBuilderStore.setState({ elements: snap.elements, meta: snap.meta || {} })
+  if (snap.designTokens) {
+    useDesignTokens.getState().replaceAll?.(snap.designTokens)
+  }
+}
+
+export function makeSnapshot(): Snapshot {
+  return {
+    elements: useBuilderStore.getState().elements,
+    meta: (useBuilderStore.getState() as any).meta || { id: 'local', name: 'Local Project' },
+    designTokens: useDesignTokens.getState().getAll?.() ?? useDesignTokens.getState().tokens
+  }
+}
+

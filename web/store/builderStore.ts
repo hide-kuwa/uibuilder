@@ -1,6 +1,6 @@
 'use client'
 import { create } from 'zustand'
-import { produce, produceWithPatches } from 'immer'
+import { produce } from 'immer'
 import type { DocgenMetaItem } from '@/lib/builder/docgen'
 import { parseValue } from '@/lib/builder/docgen'
 import { registry, type RegistryKey } from '@/lib/registry.ts'
@@ -145,11 +145,7 @@ function defaultsFor(key: string) {
 
 export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) => {
   const apply = (recipe: (draft: BuilderState) => void) => {
-    set((state) => {
-      const [next, patches, inverse] = produceWithPatches(state, recipe)
-      useHistoryStore.getState().push(patches, inverse)
-      return next
-    })
+    set((state) => produce(state, recipe))
   }
 
   return {
@@ -665,34 +661,24 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
   },
 
   undo() {
-    set((state) => useHistoryStore.getState().undo(state))
+    useHistoryStore.getState().undo()
   },
 
   redo() {
-    set((state) => useHistoryStore.getState().redo(state))
+    useHistoryStore.getState().redo()
   },
 
   beginBatch() {
-    const history = useHistoryStore.getState()
-    set((s) => {
-      const depth = s.historyBatchDepth + 1
-      if (depth === 1) history.start()
-      return { historyBatchDepth: depth }
-    })
+    set((s) => ({ historyBatchDepth: s.historyBatchDepth + 1 }))
   },
 
   endBatch() {
-    const history = useHistoryStore.getState()
-    set((s) => {
-      const depth = Math.max(0, s.historyBatchDepth - 1)
-      if (s.historyBatchDepth > 0 && depth === 0) history.commit()
-      return { historyBatchDepth: depth }
-    })
+    set((s) => ({ historyBatchDepth: Math.max(0, s.historyBatchDepth - 1) }))
   },
 
-  updateMany(patches, recordHistory = true) {
-    set((state) => {
-      const [next, patchList, inverse] = produceWithPatches(state, (draft: BuilderState) => {
+  updateMany(patches, _recordHistory = true) {
+    set((state) =>
+      produce(state, (draft: BuilderState) => {
         patches.forEach((p) => {
           const el = draft.elements.find((e) => e.id === p.id)
           if (!el) return
@@ -703,11 +689,7 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
           if (p.props) el.props = { ...(el.props || {}), ...(p.props || {}) }
         })
       })
-      if (recordHistory || state.historyBatchDepth > 0) {
-        useHistoryStore.getState().push(patchList, inverse)
-      }
-      return next
-    })
+    )
   },
 
   setElements(els) {
