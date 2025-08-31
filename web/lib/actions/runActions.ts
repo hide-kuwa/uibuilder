@@ -2,6 +2,7 @@
 import { Action, ActionContext } from '@/types/actions'
 import { useRouter } from 'next/navigation'
 import React from 'react'
+import { usePreviewNavStore } from '@/store/previewNavStore'
 
 export function useActionRunner() {
   const router = useRouter()
@@ -15,7 +16,12 @@ export function useActionRunner() {
         if (t === '_blank') window.open(a.url, '_blank', 'noopener,noreferrer')
         else location.assign(a.url)
       } else if (a.type === 'navigate') {
-        router.push(a.path)
+        if (a.path.startsWith('#page:')) {
+          const pid = a.path.slice('#page:'.length)
+          usePreviewNavStore.getState().goTo(pid)
+        } else {
+          router.push(a.path)
+        }
       }
     }
   }, [router])
