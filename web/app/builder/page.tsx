@@ -1,4 +1,5 @@
 'use client'
+import '../registry.entry';
 import React, { useEffect } from 'react'
 import BuilderPage from './BuilderPage'
 import { useBuilderStore } from '@/store/builderStore'
