@@ -12,7 +12,7 @@ import { SidebarView } from '@/components/app/SidebarView'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
-import { useHudStore } from '@/store/hudStore'
+import { useUIStore } from '@/store/uiStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
 import { screenToWorld } from '@/lib/coord'
@@ -528,7 +528,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   }
 
   const [dims, setDims] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 })
-  const showRulers = useHudStore((s) => s.showRulers)
+  const showRulers = useUIStore((s) => s.showRulers)
 
   React.useLayoutEffect(() => {
     const el = canvasRef.current
@@ -547,8 +547,23 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     }
   }, [canvasRef, setPercentBase])
 
+  const handleDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (e.dataTransfer.types.includes('text/x-component-id')) e.preventDefault()
+  }
+
+  const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    const compId = e.dataTransfer.getData('text/x-component-id')
+    if (!compId) return
+    e.preventDefault()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const sx = e.clientX - rect.left
+    const sy = e.clientY - rect.top
+    const pt = screenToWorld(sx, sy)
+    addFromPalette(compId as any, { x: Math.max(0, Math.floor(pt.x)), y: Math.max(0, Math.floor(pt.y)) })
+  }
+
   return (
-    <div className="h-full w-full flex items-center justify-center bg-black">
+    <div className="h-full w-full flex items-center justify-center bg-black" onDragOver={handleDragOver} onDrop={handleDrop}>
       <div
         ref={(n) => {
           setNodeRef(n)

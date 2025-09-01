@@ -51,11 +51,23 @@ function NewRegistryGroup() {
         <div key={g} className="mb-2">
           <div className="text-xs uppercase text-muted mb-1">{g}</div>
           <div className="grid gap-2">
-            {ids.map((id) => (
-              <button key={id} className="btn btn-sm" onClick={() => createInstanceFromRegistry(id)}>
-                {registry[id].meta.displayName}
-              </button>
-            ))}
+            {ids.map((id) => {
+              const dragId = id === 'maps/japan' ? 'ui.japanmap' : id
+              return (
+                <button
+                  key={id}
+                  className="btn btn-sm"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/x-component-id', dragId)
+                    e.dataTransfer.effectAllowed = 'copy'
+                  }}
+                  onClick={() => createInstanceFromRegistry(id)}
+                >
+                  {registry[id].meta.displayName}
+                </button>
+              )
+            })}
           </div>
         </div>
       ))}

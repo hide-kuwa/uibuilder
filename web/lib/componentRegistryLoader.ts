@@ -4,4 +4,3 @@ import '@/components/domain/basics/register'
 import '@/components/domain/maps/register'
 
 export default componentRegistry
-

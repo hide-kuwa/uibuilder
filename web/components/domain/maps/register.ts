@@ -7,6 +7,7 @@ const def: ComponentDef = {
     id: 'maps/japan',
     displayName: 'Japan Map',
     group: 'Maps',
+    preferredSize: { width: 480, height: 360 },
     props: [
       { id: 'values',      label: 'Values(JSON)', control: 'json',   default: {} },
       { id: 'showLabels',  label: 'Labels',       control: 'switch', default: true },
@@ -20,4 +21,3 @@ const def: ComponentDef = {
 }
 
 register(def)
-

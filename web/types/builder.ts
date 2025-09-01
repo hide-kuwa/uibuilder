@@ -20,6 +20,7 @@ export type ComponentMeta = {
   icon?: string
   props: PropMeta[]
   allowChildren?: boolean
+  preferredSize?: { width: number; height: number }
 }
 
 export type RendererProps = {

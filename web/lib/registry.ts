@@ -11,6 +11,7 @@ import UiText from '@/components/defs/ui/Text'
 import UiCard from '@/components/defs/ui/Card'
 import UiPanel from '@/components/defs/ui/Panel'
 import UiHUD from '@/components/defs/ui/HUD'
+import UiJapanMap from '@/components/defs/ui/JapanMap'
 
 export const REGISTRY: Record<string, ComponentDef> = {
   'ui.header': UiHeader,
@@ -20,6 +21,7 @@ export const REGISTRY: Record<string, ComponentDef> = {
   'ui.card': UiCard,
   'ui.panel': UiPanel,
   'ui.hud': UiHUD,
+  'ui.japanmap': UiJapanMap,
 }
 
 export const registry = REGISTRY

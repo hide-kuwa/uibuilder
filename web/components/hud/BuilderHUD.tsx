@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { useHudStore, type DeviceKind } from '@/store/hudStore'
+import { useUIStore, type DeviceKind } from '@/store/uiStore'
 
 function IconBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
   const { active, className, ...rest } = props
@@ -33,7 +33,7 @@ export function BuilderHUD() {
     toggleRulers,
     snapToPixel,
     toggleSnap,
-  } = useHudStore()
+  } = useUIStore()
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -49,7 +49,7 @@ export function BuilderHUD() {
         resetZoom()
       } else if (!meta && (e.key === 'g' || e.key === 'G')) {
         toggleGrid()
-      } else if (!meta && (e.key === 'r' || e.key === 'R')) {
+      } else if (!meta && e.shiftKey && (e.key === 'r' || e.key === 'R')) {
         toggleRulers()
       } else if (!meta && (e.key === 'o' || e.key === 'O')) {
         toggleOutline()
