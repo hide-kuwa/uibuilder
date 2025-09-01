@@ -12,6 +12,7 @@ import { SidebarView } from '@/components/app/SidebarView'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { Rulers } from './Rulers'
 import { useUnitStore } from '@/store/unitStore'
+import { useHudStore } from '@/store/hudStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
 import { screenToWorld } from '@/lib/coord'
@@ -526,11 +527,18 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     }
   }
 
+  const [dims, setDims] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  const showRulers = useHudStore((s) => s.showRulers)
+
   React.useLayoutEffect(() => {
     const el = canvasRef.current
     if (!el) return
-    const update = () =>
-      setPercentBase({ width: el.clientWidth, height: el.clientHeight })
+    const update = () => {
+      const w = el.clientWidth
+      const h = el.clientHeight
+      setPercentBase({ width: w, height: h })
+      setDims({ w, h })
+    }
     update()
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(update)
@@ -578,15 +586,17 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         </div>
         {selectedIds.length >= 2 && <SelectionBBox />}
         <CanvasOverlay marquee={marquee ?? undefined} />
-        <Rulers
-          width={1200}
-          height={720}
-          canvasRef={canvasRef}
-          screenToWorld={(p, axis) => {
-            const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
-            return axis === 'x' ? pt.x : pt.y
-          }}
-        />
+        {showRulers && (
+          <Rulers
+            width={dims.w || 0}
+            height={dims.h || 0}
+            canvasRef={canvasRef}
+            screenToWorld={(p, axis) => {
+              const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
+              return axis === 'x' ? pt.x : pt.y
+            }}
+          />
+        )}
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-300 bg-black/50 px-2 py-1 rounded border border-zinc-800 flex gap-2 items-center">
           <span>{Math.round(zoom * 100)}%</span>
           <button
