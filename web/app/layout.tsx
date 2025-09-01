@@ -1,31 +1,22 @@
 import './globals.css'
-import React, { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { cookies } from 'next/headers'
-import { HUDProvider } from '../components/hud/hudStore'
-import PerfHUD from '@/components/dev/PerfHUD'
-import EventLog from '@/components/dev/EventLog'
-import { ThemeProvider } from '../lib/theme/ThemeProvider'
-import DataProvider from '@/providers/DataProvider'
+import Providers from './providers'
+import SiteHeader from '@/components/layout/SiteHeader'
+import SiteFooter from '@/components/layout/SiteFooter'
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  const theme = cookies().get('ui-theme')?.value ?? 'light'
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies()
+  const uiTheme = cookieStore.get('ui-theme')?.value ?? 'light'
 
   return (
-    <html lang="en" data-theme={theme} suppressHydrationWarning>
+    <html lang="ja" data-theme={uiTheme} suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <DataProvider>
-            <HUDProvider>
-              {children}
-              {process.env.NODE_ENV !== 'production' && (
-                <>
-                  <PerfHUD />
-                  <EventLog />
-                </>
-              )}
-            </HUDProvider>
-          </DataProvider>
-        </ThemeProvider>
+        <Providers initialTheme={uiTheme}>
+          <SiteHeader />
+          <main className="min-h-[calc(100vh-6rem)]">{children}</main>
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
   )

@@ -29,8 +29,8 @@ function setCookie(name: string, value: string) {
   document.cookie = `${name}=${value}; path=/; max-age=31536000`
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+export function ThemeProvider({ children, initialTheme }: { children: React.ReactNode; initialTheme: string }) {
+  const [theme, setThemeState] = useState<Theme>(initialTheme === 'dark' ? 'dark' : 'light')
   const system: Theme =
     typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'

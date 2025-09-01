@@ -19,6 +19,10 @@ import ModalHost from '@/components/hud/ModalHost'
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   useAlignShortcuts()
   useEffect(() => { mountHistorySync() }, [])
+  useEffect(() => {
+    document.body.classList.add('no-site-chrome')
+    return () => document.body.classList.remove('no-site-chrome')
+  }, [])
   return (
     <div data-actions-enabled="true" suppressHydrationWarning>
       <div className="w-full h-10 px-3 border-b flex items-center gap-3">
