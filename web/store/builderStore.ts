@@ -112,6 +112,7 @@ type BuilderActions = {
   beginBatch: () => void
   endBatch: () => void
   updateMany: (patches: ElmPatch[], recordHistory?: boolean) => void
+  ensureSingleChild: (parentId: string, componentKey: string) => void
 }
 
 function snapToGrid(n: number) {
@@ -240,6 +241,41 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
       } else {
         updateParent(e)
       }
+    })
+  },
+
+  ensureSingleChild(parentId, componentKey) {
+    apply((draft: BuilderState) => {
+      const parent = draft.elements.find((e) => e.id === parentId)
+      if (!parent) return
+      // remove existing first child if any
+      const oldChildId = parent.children && parent.children.length > 0 ? parent.children[0] : null
+      if (oldChildId) {
+        const idx = draft.elements.findIndex((e) => e.id === oldChildId)
+        if (idx >= 0) draft.elements.splice(idx, 1)
+      }
+      // derive defaults
+      const defaults = defaultsFor(componentKey as string)
+      const sz = defaultSize(componentKey as any)
+      const childId = `elm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`
+      draft.elements.push({
+        id: childId,
+        type: componentKey as any,
+        x: (parent.x ?? 0) + 8,
+        y: (parent.y ?? 0) + 8,
+        w: sz.w,
+        h: sz.h,
+        visible: true,
+        locked: false,
+        parentId,
+        name: (componentKey as string).split('.').pop() || 'Child',
+        children: [],
+        propValues: defaults,
+        props: { ...defaults },
+      } as any)
+      parent.children = [childId]
+      // store chosen component id on parent if desirable for UI
+      ;(parent as any).props = { ...(parent as any).props, slotComponentId: componentKey }
     })
   },
 

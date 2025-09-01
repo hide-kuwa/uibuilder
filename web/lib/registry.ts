@@ -35,3 +35,10 @@ export function listDefs(): Array<{ key: string; label: string }> {
     label: def?.meta?.displayName || key,
   }))
 }
+
+// Options helper for component picker (existing registry)
+export function listComponentOptions(filter?: (d: ComponentDef) => boolean): Array<{ label: string; value: string }>{
+  return Object.values(REGISTRY)
+    .filter((d) => (filter ? filter(d) : true))
+    .map((d) => ({ label: d?.meta?.displayName || d.key, value: d.key }))
+}

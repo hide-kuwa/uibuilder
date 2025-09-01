@@ -6,6 +6,7 @@ import { HeaderInspector } from './header/HeaderInspector'
 import { FooterInspector } from './footer/FooterInspector'
 import { SidebarInspector } from '@/components/app/SidebarInspector'
 import { useInteractionRegistry } from '@/store/interactionRegistry'
+import { listComponentOptions } from '@/lib/registry'
 
 export function Inspector() {
   const selId = useBuilderStore((s) => s.selectedId)
@@ -108,6 +109,28 @@ export function Inspector() {
               />
             </label>
           </div>
+          {elm.type === 'ui.card' && (
+            <div className="mt-2">
+              <div className="text-sm font-medium">Content</div>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="text-zinc-400">Component</span>
+                <select
+                  className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800"
+                  value={elm.props?.slotComponentId ?? ''}
+                  onChange={(e) => {
+                    const id = e.target.value
+                    updateProps(elm.id, { slotComponentId: id })
+                    if (id) useBuilderStore.getState().ensureSingleChild(elm.id, id)
+                  }}
+                >
+                  <option value="">(None)</option>
+                  {listComponentOptions().map((o: any) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
         </>
       )}
       {elm.type === 'code' && codeMeta && (
