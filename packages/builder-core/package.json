@@ -1,0 +1,20 @@
+{
+  "name": "@repo/builder-core",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@repo/types": "workspace:*"
+  },
+  "exports": {
+    "./registry": {
+      "types": "./src/registry.d.ts",
+      "default": "./src/registry.ts"
+    },
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  }
+}
+

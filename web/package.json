@@ -6,9 +6,13 @@
                     "build":  "next build",
                     "start":  "next start -p 3000"
                 },
-    "dependencies":  {
+  "dependencies":  {
                          "@tanstack/react-query":  "^5.85.5",
                          "@tanstack/react-query-devtools":  "^5.85.5",
+                         "@repo/types": "workspace:*",
+                         "@repo/builder-core": "workspace:*",
+                         "@repo/comp-basics": "workspace:*",
+                         "@repo/comp-maps-jp": "workspace:*",
                          "dexie":  "^4.2.0",
                          "framer-motion":  "^12.23.12",
                          "immer":  "^10.0.0",

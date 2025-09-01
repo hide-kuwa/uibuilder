@@ -3,6 +3,7 @@ import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { listDefs } from '@/lib/registry'
 import '@/lib/componentRegistryLoader'
+import '@/app/registry.entry'
 import { componentRegistry as registry } from '@/lib/componentRegistry'
 import { useBuilderStore } from '@/store/builderStore'
 

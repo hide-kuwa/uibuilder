@@ -1,0 +1,18 @@
+{
+  "name": "@repo/comp-maps-jp",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@repo/types": "workspace:*",
+    "@repo/builder-core": "workspace:*",
+    "react": "*"
+  },
+  "exports": {
+    "./register": {
+      "types": "./src/register.d.ts",
+      "default": "./src/register.ts"
+    }
+  }
+}
+
