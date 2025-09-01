@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect } from 'react'
+import '../registry.entry'
 import '@/store/builderStoreHandle'
 import { SaveIndicator } from '@/components/builder/SaveIndicator'
 import { AlignToolbar } from '@/components/builder/AlignToolbar'
