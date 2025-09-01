@@ -34,7 +34,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }, [])
   return (
     <div data-actions-enabled="true" suppressHydrationWarning className="page-builder">
-      <div className="w-full h-10 px-3 border-b flex items-center gap-3 builder-topbar topbar">
+      <div className="w-full h-10 px-3 border-b flex items-center gap-3 builder-topbar topbar sticky top-0 z-40">
         <div className="text-sm font-semibold mr-auto">Builder</div>
         <UndoRedoButtons />
         <LoadFromGitHubMenu />

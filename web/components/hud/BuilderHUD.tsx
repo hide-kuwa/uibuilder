@@ -67,13 +67,13 @@ export function BuilderHUD() {
 
   return (
     <>
-      <div className="pointer-events-auto fixed left-1/2 top-2 -translate-x-1/2 z-50 flex items-center gap-1">
+      <div className="pointer-events-auto fixed left-1/2 top-12 -translate-x-1/2 z-50 flex items-center gap-1">
         <IconBtn onClick={zoomOut}>−</IconBtn>
         <span className="px-2 text-xs text-zinc-300 tabular-nums">{Math.round(zoom * 100)}%</span>
         <IconBtn onClick={zoomIn}>＋</IconBtn>
         <IconBtn onClick={resetZoom}>100%</IconBtn>
       </div>
-      <div className="pointer-events-auto fixed right-2 top-2 z-50 flex items-center gap-1">
+      <div className="pointer-events-auto fixed right-2 top-12 z-50 flex items-center gap-1">
         <IconBtn active={showGrid} onClick={toggleGrid} title="Grid (G)">Grid</IconBtn>
         <IconBtn active={showRulers} onClick={toggleRulers} title="Rulers (R)">Rul</IconBtn>
         <IconBtn active={showOutline} onClick={toggleOutline} title="Outline (O)">Out</IconBtn>
