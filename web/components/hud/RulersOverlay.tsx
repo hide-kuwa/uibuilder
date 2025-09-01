@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { useHudStore } from '@/store/hudStore'
+import { useUIStore } from '@/store/uiStore'
 
 type Props = {
   /** カンバスを包む要素の ref（サイズ & マウス位置の基準に使う） */
@@ -30,7 +31,7 @@ function chooseStep(pxPerUnit: number) {
 }
 
 export function RulersOverlay({ containerRef, offset, thickness = 24 }: Props) {
-  const show = useHudStore((s) => s.showRulers)
+  const show = useUIStore((s) => s.showRulers)
   const zoom = useHudStore((s) => s.zoom)
   const snap = useHudStore((s) => s.snapToPixel)
   const [size, setSize] = React.useState({ w: 0, h: 0 })
