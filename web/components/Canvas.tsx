@@ -15,6 +15,7 @@ import { OutlineOverlay } from './overlays/OutlineOverlay'
 import { GridToolbar } from '@/components/GridToolbar'
 import { CanvasRoot } from '@/components/CanvasRoot'
 import { NodeRenderer } from '@/components/NodeRenderer'
+import { useUIStore } from '@/store/uiStore'
 
 export default function Canvas() {
   const { tree } = useEditorState()
@@ -42,6 +43,7 @@ function CanvasInner({
   canvasRef: React.RefObject<HTMLDivElement>
 }) {
   const { vp } = useViewport()
+  const showRulers = useUIStore((s) => s.showRulers)
   return (
     <CanvasRoot>
       <Viewport>
@@ -59,7 +61,7 @@ function CanvasInner({
         zoom={vp.zoom}
         worldToScreenOffset={(wx, wy) => ({ sx: wx * vp.zoom + vp.x, sy: wy * vp.zoom + vp.y })}
       />
-      <Rulers width={2000} height={2000} canvasRef={canvasRef} />
+      {showRulers && <Rulers width={2000} height={2000} canvasRef={canvasRef} />}
       <HUDContainer />
       <SmartGuidesOverlay guides={guides} />
       <GuidesOverlay width={2000} height={2000} canvasRef={canvasRef} />

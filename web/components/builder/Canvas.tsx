@@ -11,6 +11,7 @@ import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { Rulers } from './Rulers'
+import { useUIStore } from '@/store/uiStore'
 import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
@@ -378,6 +379,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
   const setPercentBase = useUnitStore((s) => s.setPercentBase)
+  const showRulers = useUIStore((s) => s.showRulers)
   const [marquee, setMarquee] = React.useState<
     { x: number; y: number; w: number; h: number } | null
   >(null)
@@ -578,15 +580,17 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         </div>
         {selectedIds.length >= 2 && <SelectionBBox />}
         <CanvasOverlay marquee={marquee ?? undefined} />
-        <Rulers
-          width={1200}
-          height={720}
-          canvasRef={canvasRef}
-          screenToWorld={(p, axis) => {
-            const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
-            return axis === 'x' ? pt.x : pt.y
-          }}
-        />
+        {showRulers && (
+          <Rulers
+            width={1200}
+            height={720}
+            canvasRef={canvasRef}
+            screenToWorld={(p, axis) => {
+              const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
+              return axis === 'x' ? pt.x : pt.y
+            }}
+          />
+        )}
         <div className="absolute left-2 bottom-2 text-[11px] text-zinc-300 bg-black/50 px-2 py-1 rounded border border-zinc-800 flex gap-2 items-center">
           <span>{Math.round(zoom * 100)}%</span>
           <button
