@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useId } from 'react'
 import { buildInteractiveClass } from '@/lib/interactiveCSS'
 import { bindWhen, type RuntimeCtx } from '@/lib/interactiveActions'
 import type { PresetDraft } from '@/types/presets-ui'
@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation'
 export default function InteractiveWrapper({ draft, children }:{ draft: PresetDraft; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const id = useId()
 
   // 1) Triggers → ユニーククラス作成
   const cls = useMemo(() => {
-    const id = Math.random().toString(36).slice(2, 8)
     const t = draft.triggers
     // draft.effects は汎用配列なので kind を寄せて取り出す（最小）
     const pack = (kind: string) => (draft.effects as any[]).find(e => e.kind === kind)?.value
@@ -80,7 +80,7 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
         : undefined,
     }
     return buildInteractiveClass(id, base as any)
-  }, [draft])
+  }, [draft, id])
 
   // 2) When → Action バインド
   useEffect(()=>{
