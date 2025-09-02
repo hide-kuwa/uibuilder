@@ -71,10 +71,26 @@ export const preset_itineraryTimelineCard: PresetDef = {
   },
 }
 
+export const preset_travelPrefPaintCard: PresetDef = {
+  id: 'preset.travel.prefpaint.card',
+  displayName: '都道府県ぬりえ（カード）',
+  tags: ['travel', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '地図コレ・ぬりえ', className: 'w-[560px] h-[420px]' } as any,
+    children: [
+      { id: newId('n'), type: 'PrefShareBar', props: {} as any },
+      { id: newId('n'), type: 'PrefGridMap', props: {} as any },
+    ],
+  },
+}
+
 export const PRESETS: PresetDef[] = [
   preset_japanMapCard_basic,
   preset_tripHeaderCard,
   preset_itineraryTimelineCard,
+  preset_travelPrefPaintCard,
 ]
 
 export const getPresetById = (id: string) => PRESETS.find((p) => p.id === id)
