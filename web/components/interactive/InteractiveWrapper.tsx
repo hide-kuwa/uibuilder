@@ -4,6 +4,7 @@ import { buildInteractiveClass } from '@/lib/interactiveCSS'
 import { bindWhen, type RuntimeCtx } from '@/lib/interactiveActions'
 import type { PresetDraft } from '@/types/presets-ui'
 import { useRouter } from 'next/navigation'
+import { runMotionEffects } from '@/lib/runMotion'
 
 export default function InteractiveWrapper({ draft, children }:{ draft: PresetDraft; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -95,5 +96,25 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
     return () => cleaners.forEach(c=>c())
   }, [draft])
 
-  return <div ref={ref} className={cls}>{children}</div>
+  // mount
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    queueMicrotask(() => runMotionEffects((draft as any)?.effects?.motion, 'mount', el))
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      className={cls}
+      onClick={(e) => {
+        runMotionEffects((draft as any)?.effects?.motion, 'click', e.currentTarget as HTMLElement)
+      }}
+      onDoubleClick={(e) => {
+        runMotionEffects((draft as any)?.effects?.motion, 'doubleClick', e.currentTarget as HTMLElement)
+      }}
+    >
+      {children}
+    </div>
+  )
 }
