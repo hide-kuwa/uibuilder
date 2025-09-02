@@ -41,24 +41,40 @@ export const preset_japanMapCard_basic: PresetDef = {
   },
 }
 
-export const preset_travelTimeline: PresetDef = {
-  id: 'preset.travel.timeline',
-  displayName: '旅程タイムライン（カード）',
+export const preset_tripHeaderCard: PresetDef = {
+  id: 'preset.travel.header.card',
+  displayName: 'Trip Header（カード）',
   tags: ['travel', 'card'],
-  tree: { id: newId('n'), type: 'Card', props: { title: '旅程' } as any, children: [] },
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '旅の概要', className: 'w-[520px] h-[160px]' } as any,
+    children: [
+      {
+        id: newId('n'),
+        type: 'TripHeader',
+        props: { title: '北海道の旅', period: '2025/09/01–09/05', members: '4名', coverUrl: '' } as any,
+      },
+    ],
+  },
 }
 
-export const preset_accountingJournal: PresetDef = {
-  id: 'preset.accounting.journal',
-  displayName: '仕訳一覧（カード）',
-  tags: ['accounting', 'card'],
-  tree: { id: newId('n'), type: 'Card', props: { title: '仕訳' } as any, children: [] },
+export const preset_itineraryTimelineCard: PresetDef = {
+  id: 'preset.travel.timeline.card',
+  displayName: 'Itinerary Timeline（カード）',
+  tags: ['travel', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '旅程', className: 'w-[560px] h-[360px]' } as any,
+    children: [{ id: newId('n'), type: 'ItineraryTimeline', props: {} as any }],
+  },
 }
 
 export const PRESETS: PresetDef[] = [
   preset_japanMapCard_basic,
-  preset_travelTimeline,
-  preset_accountingJournal,
+  preset_tripHeaderCard,
+  preset_itineraryTimelineCard,
 ]
 
 export const getPresetById = (id: string) => PRESETS.find((p) => p.id === id)

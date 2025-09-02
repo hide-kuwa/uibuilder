@@ -7,6 +7,7 @@ import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 import type { ActionMap } from '@/types/actions'
 import type { ElementInteractions } from '@/lib/interaction/types'
+import type { ComponentNode } from '@/types/editor'
 
 export type ElmType = string
 
@@ -65,6 +66,7 @@ type BuilderState = {
 
 type BuilderActions = {
   placePreset: (presetId: string, pos?: { x: number; y: number }) => void
+  addSubtree: (node: ComponentNode, pos?: { x: number; y: number }) => void
   addFromPalette: (type: string, at?: { x: number; y: number }, meta?: any) => void
   move: (id: string, to: { x: number; y: number }, snapGrid?: boolean) => void
   resize: (id: string, to: { w: number; h: number }, snapGrid?: boolean) => void
@@ -140,6 +142,47 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     const preset = getPresetById(presetId)
     if (!preset) return
     const root = cloneSubtree(preset.tree)
+
+    const flatten = (node: any, parentId: string | null, acc: Elm[]): Elm => {
+      const id = node.id
+      const x = parentId ? 0 : Math.round(pos?.x ?? 40)
+      const y = parentId ? 0 : Math.round(pos?.y ?? 40)
+      const def = getDef(node.type)
+      const w = def?.meta?.defaultW ?? 160
+      const h = def?.meta?.defaultH ?? 40
+      const elm: Elm = {
+        id,
+        type: node.type,
+        x,
+        y,
+        w,
+        h,
+        visible: true,
+        locked: false,
+        parentId,
+        children: [],
+        props: node.props,
+      }
+      acc.push(elm)
+      node.children?.forEach((ch: any) => {
+        const child = flatten(ch, id, acc)
+        elm.children?.push(child.id)
+      })
+      return elm
+    }
+
+    const list: Elm[] = []
+    const rootElm = flatten(root, null, list)
+    set((s) => ({
+      elements: [...s.elements, ...list],
+      tree: [...s.tree, rootElm],
+      selectedId: rootElm.id,
+      selectedIds: [rootElm.id],
+    }))
+  },
+
+  addSubtree(node, pos) {
+    const root = cloneSubtree(node)
 
     const flatten = (node: any, parentId: string | null, acc: Elm[]): Elm => {
       const id = node.id

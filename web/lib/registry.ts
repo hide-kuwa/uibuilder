@@ -1,5 +1,7 @@
 import type { ComponentMeta } from '@/types/builder';
 import Card from '@/components/Card';
+import TripHeader from '@/components/travel/TripHeader';
+import ItineraryTimeline from '@/components/travel/ItineraryTimeline';
 import JapanMap from '@/components/domain/JapanMap';
 
 export type RegistryItem = {
@@ -64,6 +66,30 @@ register({
     defaultH: 160,
   },
   Render: Card,
+});
+
+register({
+  meta: {
+    id: 'TripHeader',
+    displayName: 'TripHeader',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 80,
+  },
+  Render: TripHeader,
+});
+
+register({
+  meta: {
+    id: 'ItineraryTimeline',
+    displayName: 'ItineraryTimeline',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: ItineraryTimeline,
 });
 
 register({
