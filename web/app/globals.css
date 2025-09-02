@@ -1,48 +1,18 @@
-@import '../styles/globals.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-.no-site-chrome header,
-.no-site-chrome footer { display: none; }
-
-.hide-header header { display: none; }
-.hide-footer footer { display: none; }
-
-@layer components {
-  /* /dev/actions 内のフォーム要素を見やすく固定 */
-  .dev-actions :where(input[type="text"],
-                      input[type="number"],
-                      input[type="url"],
-                      textarea,
-                      select) {
-    @apply border rounded px-2 py-1 text-xs outline-none;
-    background: hsl(var(--color-bg-muted));
-    color: hsl(var(--color-fg-default));
-    border-color: hsl(var(--color-border-default));
-  }
-  .dev-actions :where(input, textarea, select)::placeholder {
-    color: hsl(var(--color-fg-default) / 0.6);
-  }
-  .dev-actions :where(input, textarea, select):focus {
-    @apply ring-1;
-    --tw-ring-color: hsl(var(--color-accent-default));
-  }
-}
-
 /* ---- TamaDigi panel form styles (scoped) ---- */
 @layer components {
-  /* 右パネルなど、暗いフォームにしたいコンテナにこのクラスを付ける */
   .td-form-scope {
-    --td-input-bg: rgba(24, 24, 27, 0.9);     /* zinc-900弱 */
+    --td-input-bg: rgba(24, 24, 27, 0.9);
     --td-input-border: rgba(255, 255, 255, .08);
-    --td-input-border-focus: rgba(99, 102, 241, .35); /* indigo-500弱 */
-    --td-input-text: rgb(243, 244, 246);      /* gray-100 */
-    --td-input-placeholder: rgb(148, 163, 184); /* slate-400 */
+    --td-input-border-focus: rgba(99, 102, 241, .35);
+    --td-input-text: rgb(243, 244, 246);
+    --td-input-placeholder: rgb(148, 163, 184);
     --td-input-disabled: rgba(24, 24, 27, 0.6);
   }
 
-  /* ネイティブの入力系を一括ターゲット（チェックボックス等は除外） */
   .td-form-scope :where(
     input[type="text"],
     input[type="number"],
@@ -58,9 +28,9 @@
     background-color: var(--td-input-bg) !important;
     color: var(--td-input-text);
     border: 1px solid var(--td-input-border);
-    border-radius: 0.5rem;       /* rounded-md */
-    padding: 0.5rem 0.625rem;    /* px-2.5 py-2 */
-    line-height: 1.25rem;        /* 20px */
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    line-height: 1.25rem;
     outline: none;
     box-shadow: 0 0 0 0 rgba(0,0,0,0);
     transition: border-color .15s ease, box-shadow .15s ease, background-color .2s ease;
@@ -71,9 +41,7 @@
     opacity: 1;
   }
 
-  .td-form-scope :where(select) {
-    padding-right: 2rem; /* 矢印分の余白 */
-  }
+  .td-form-scope :where(select) { padding-right: 2rem; }
 
   .td-form-scope :where(
     input[type="text"],
@@ -120,3 +88,4 @@
     opacity: .7;
   }
 }
+
