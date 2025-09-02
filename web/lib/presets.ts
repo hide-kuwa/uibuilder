@@ -1,6 +1,6 @@
 import type { ComponentNode } from '@/types/editor'
 import { newId } from './ids'
-import { preset_travel_map_share_save_card_grid, maybeJapanMapPreset, preset_travel_map_enum_card, preset_travel_map_enum_svg_card, preset_travel_landing_svg, type PresetDef } from './presets.travel'
+import { preset_travel_map_share_save_card_grid, maybeJapanMapPreset, preset_travel_map_enum_card, preset_travel_map_enum_svg_card, preset_travel_landing_svg, preset_theme_ocean, preset_theme_sakura, type PresetDef } from './presets.travel'
 export type { DomainTag, PresetTag, PresetDef } from './presets.travel'
 
 export const cloneSubtree = (node: ComponentNode): ComponentNode => {
@@ -131,6 +131,8 @@ export const PRESETS: PresetDef[] = [
   preset_travel_map_enum_card,
   preset_travel_map_enum_svg_card,
   preset_travel_landing_svg,
+  preset_theme_ocean,
+  preset_theme_sakura,
   // JapanMap（SVG版）があるなら追加
   ...(() => {
     try {

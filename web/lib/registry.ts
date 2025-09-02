@@ -17,6 +17,7 @@ import JapanMapEnumSVG from '@/components/travel/JapanMapEnumSVG';
 import BackgroundGradient from '@/components/design/BackgroundGradient';
 import Section from '@/components/design/Section';
 import Hero from '@/components/typography/Hero';
+import { MapThemeProvider } from '@/contexts/MapThemeContext';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -310,6 +311,18 @@ register({
   Render: CostSplit,
 });
 
+register({
+  meta: {
+    id: 'MapThemeProvider',
+    displayName: 'MapThemeProvider',
+    props: [],
+    allowChildren: true,
+    defaultW: 100,
+    defaultH: 100,
+  },
+  Render: MapThemeProvider,
+});
+
 export const REGISTRY = {
   Card: { component: Card, displayName: 'Card' },
   PrefShareBar: { component: PrefShareBar, displayName: 'PrefShareBar' },
@@ -327,5 +340,6 @@ export const REGISTRY = {
   PlaceGallery: { component: PlaceGallery, displayName: 'PlaceGallery' },
   POIMap: { component: POIMap, displayName: 'POIMap' },
   CostSplit: { component: CostSplit, displayName: 'CostSplit' },
+  MapThemeProvider: { component: MapThemeProvider, displayName: 'MapThemeProvider' },
   ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
 } as const;

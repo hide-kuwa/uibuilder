@@ -1,17 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/server'
 import { PREFS } from '@/lib/japanPrefs'
+import { getMapPalette } from '@/lib/mapPalette'
 
 // Edgeで動かす
 export const runtime = 'edge'
-
-// 列挙：0=なし,1=行きたい,2=行った,3=住んだ
-const COLORS = {
-  0: '#F7F7F7',
-  1: '#f59e0b', // want
-  2: '#3b82f6', // visited
-  3: '#ef4444', // lived
-} as const
 
 const decodeEnum = (b64: string): number[] => {
   try {
@@ -31,7 +24,10 @@ const decodeEnum = (b64: string): number[] => {
   }
 }
 
-export async function GET(_: Request, { params }: { params: { pe: string } }) {
+export async function GET(req: Request, { params }: { params: { pe: string } }) {
+  const t = new URL(req.url).searchParams.get('t') ?? 'default'
+  const pal = getMapPalette(t)
+  const COLORS = { 0: pal.none, 1: pal.want, 2: pal.visited, 3: pal.lived } as const
   const vals = decodeEnum(params.pe)
 
   return new ImageResponse(
@@ -43,7 +39,7 @@ export async function GET(_: Request, { params }: { params: { pe: string } }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(180deg,#ffffff,#f4f6f8)',
+          background: `linear-gradient(180deg,${pal.bgFrom},${pal.bgTo})`,
           padding: 48,
           fontFamily: 'sans-serif',
         }}
@@ -75,7 +71,7 @@ export async function GET(_: Request, { params }: { params: { pe: string } }) {
               style={{
                 height: 70,
                 borderRadius: 10,
-                border: '2px solid #e5e7eb',
+                border: `2px solid ${pal.stroke}`,
                 background: COLORS[vals[i] as 0 | 1 | 2 | 3],
                 display: 'flex',
                 alignItems: 'center',
