@@ -1,25 +1,30 @@
 'use client'
 import React from 'react'
+import LoginButton from '@/components/auth/LoginButton'
 import PrefShareBar from '@/components/travel/PrefShareBar'
 import PrefGridMap from '@/components/travel/PrefGridMap'
-import LoginButton from '@/components/travel/LoginButton'
+import DownloadPNG from '@/components/util/DownloadPNG'
 
 export default function TravelDemoPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
-      <h1 className="text-xl font-bold">地図コレ・ぬりえ（デモ）</h1>
-      <div className="rounded-2xl border shadow-sm p-4 space-y-3 bg-background">
-        <div className="flex justify-end"><LoginButton /></div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">地図コレ・ぬりえ（デモ）</h1>
+        <LoginButton />
+      </div>
+
+      <div id="mapCard" className="rounded-2xl border shadow-sm p-4 space-y-3 bg-background">
         <PrefShareBar />
         <PrefGridMap />
+        <div className="flex items-center gap-2">
+          <DownloadPNG targetId="mapCard" fileName="my-map.png" />
+          {/* スマホでそのまま共有したいなら share を true */}
+          {/* <DownloadPNG targetId="mapCard" fileName="my-map.png" share /> */}
+        </div>
       </div>
+
       <p className="text-sm text-muted-foreground">
-        47都道府県をクリックで塗り／外し。<br />
-        「保存してリンクをコピー」でURL（/u/uid/m/id）を共有すると、開いた先で自動復元されます。
-      </p>
-      <p className="text-sm">
-        <a className="underline" href="/discover">Discover</a> /
-        <a className="underline ml-2" href="/u/me">自分のプロフィール（開発中）</a>
+        カード右下の「PNGで保存」で、今の塗りを画像にできます。
       </p>
     </div>
   )
