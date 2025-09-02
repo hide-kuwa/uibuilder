@@ -1,0 +1,41 @@
+{
+  "A": {
+    "web/store/prefPaintStore.ts": false,
+    "web/stores/prefPaintStore.ts": false,
+    "web/lib/japanPrefs.ts": false,
+    "web/components/travel/PrefGridMap.tsx": false,
+    "web/components/travel/PrefShareBar.tsx": false,
+    "web/components/domain/maps/JapanMap.tsx": true
+  },
+  "B": {
+    "web/lib/firebase.ts": false,
+    "web/services/travel.ts": false,
+    "web/.env.local.example": false,
+    ".env.local.example": false
+  },
+  "C": {
+    "firestore.rules": false,
+    "storage.rules": false,
+    "firebase.json": false
+  },
+  "D": {
+    "web/app/u/[uid]/m/[mapId]/page.tsx": false,
+    "web/app/dev/actions/page.tsx": true
+  },
+  "E": {
+    "web/lib/presets.ts": false,
+    "web/components/PresetsFilterBar.tsx": false,
+    "web/store/presetsFilterStore.ts": false,
+    "web/store/workspaceStore.ts": false
+  },
+  "F": {
+    "deps": {
+      "next": "present",
+      "react": "present",
+      "tailwindcss": "present",
+      "@tanstack/react-query": "present",
+      "firebase": "absent",
+      "zustand": "absent (may be provided via workspaces)"
+    }
+  }
+}
