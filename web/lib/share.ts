@@ -1,3 +1,5 @@
+import type { ComponentNode } from '@/types/editor'
+
 export type SerializableProject = {
   schemaVersion: number
   createdAt: number
@@ -46,5 +48,20 @@ export function serializeProject(state: any): SerializableProject {
     createdAt: Date.now(),
     elements: state?.elements ?? [],
     meta: state?.meta ?? {},
+  }
+}
+
+export const encodeNodeToUrlParam = (node: ComponentNode) => {
+  const json = JSON.stringify(node)
+  const b64 = btoa(unescape(encodeURIComponent(json)))
+  return `s=${b64}`
+}
+
+export const decodeNodeFromUrlParam = (param: string): ComponentNode | null => {
+  try {
+    const json = decodeURIComponent(escape(atob(param)))
+    return JSON.parse(json)
+  } catch {
+    return null
   }
 }
