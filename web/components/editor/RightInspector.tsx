@@ -81,7 +81,7 @@ export default function RightInspector() {
   const unitLabel = unit === 'percent' ? '%' : unit;
 
   return (
-    <div className="bg-gray-800 p-2 space-y-2 overflow-y-auto">
+    <div className="td-form-scope bg-gray-800 p-2 space-y-2 overflow-y-auto">
       {(['x', 'y', 'w', 'h', 'rotation'] as const).map((k) => {
         const base = k === 'x' || k === 'w' ? percentBase.width : percentBase.height
         const value =

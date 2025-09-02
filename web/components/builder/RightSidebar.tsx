@@ -20,7 +20,7 @@ export function RightSidebar() {
   if (!node) return <div className="p-2 text-sm text-gray-500">No selection</div>
   const meta = (node.meta || {}) as any
   return (
-    <div className="flex flex-col gap-4">
+    <div className="td-form-scope flex flex-col gap-4">
       <VariantPanelCompat componentKey={String(node.componentId || node.type)} value={meta.variant ?? null} onChange={(v)=>setMeta(node.id, { ...meta, variant: v })} />
       <AutoPropertyPanel componentKey={String(node.componentId || node.type)} propValues={node.propValues} onChange={(k,v)=>updateProp(node.id, k, v)} />
       <OverridePanelCompat value={meta.overrides} onChange={(v)=>setMeta(node.id, { ...meta, overrides: v })} />
