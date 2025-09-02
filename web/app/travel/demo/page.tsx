@@ -17,6 +17,10 @@ export default function TravelDemoPage() {
         47都道府県をクリックで塗り／外し。<br />
         「保存してリンクをコピー」でURL（/u/uid/m/id）を共有すると、開いた先で自動復元されます。
       </p>
+      <p className="text-sm">
+        <a className="underline" href="/discover">Discover</a> /
+        <a className="underline ml-2" href="/u/me">自分のプロフィール（開発中）</a>
+      </p>
     </div>
   )
 }

@@ -1,12 +1,15 @@
 import { auth, db, storage, googleProvider } from '@/lib/firebase'
+// @ts-ignore firebase types
 import {
   signInWithPopup,
   onAuthStateChanged,
   signOut,
 } from 'firebase/auth'
+// @ts-ignore firebase types
 import {
   addDoc,
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -15,7 +18,10 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
+  limit,
 } from 'firebase/firestore'
+// @ts-ignore firebase types
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export type User = { uid: string }
@@ -33,26 +39,34 @@ export async function signOutNow(): Promise<void> {
   await signOut(auth)
 }
 
-export async function createMap(b64: string): Promise<{ id: string }> {
-  const user = auth.currentUser
-  if (!user) throw new Error('no user')
-  const refDoc = await addDoc(collection(db, 'users', user.uid, 'maps'), {
-    b64,
-    visibility: 'public',
+export async function createMap(
+  uid: string,
+  data: { title?: string; paintB64: string; visibility?: Visibility },
+): Promise<string> {
+  const id = crypto.randomUUID()
+  await setDoc(doc(collection(db, 'users', uid, 'maps'), id), {
+    title: data.title ?? 'My Map',
+    paintB64: data.paintB64,
+    visibility: data.visibility ?? 'public',
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   })
-  return { id: refDoc.id }
+  return id
 }
 
 export async function getMap(
   uid: string,
   mapId: string,
-): Promise<{ b64: string; visibility: Visibility } | null> {
+): Promise<{ paintB64: string; visibility: Visibility; title?: string } | null> {
   const refDoc = doc(db, 'users', uid, 'maps', mapId)
   const snap = await getDoc(refDoc)
   if (!snap.exists()) return null
   const data = snap.data() as any
-  return { b64: data.b64, visibility: data.visibility as Visibility }
+  return {
+    paintB64: data.paintB64 ?? data.b64,
+    visibility: (data.visibility ?? (data.public ? 'public' : 'private')) as Visibility,
+    title: data.title,
+  }
 }
 
 export async function setVisibility(
@@ -90,6 +104,47 @@ export async function listPendingFollowers(
   )
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ uid: d.id, ...(d.data() as any) }))
+}
+
+export type MapDoc = {
+  title: string
+  paintB64: string
+  visibility: Visibility
+  createdAt?: any
+  updatedAt?: any
+  _id?: string
+  _owner?: string
+}
+
+export async function listPublicMaps(max = 30): Promise<MapDoc[]> {
+  const qy = query(
+    collectionGroup(db, 'maps'),
+    where('visibility', '==', 'public'),
+    orderBy('updatedAt', 'desc'),
+    limit(max),
+  )
+  const snap = await getDocs(qy)
+  return snap.docs.map(d => {
+    const [, uid, , mapId] = d.ref.path.split('/')
+    return { ...(d.data() as any), _id: mapId, _owner: uid } as MapDoc
+  })
+}
+
+export async function listUserMaps(uid: string, max = 50): Promise<MapDoc[]> {
+  const qy = query(
+    collection(db, 'users', uid, 'maps'),
+    orderBy('updatedAt', 'desc'),
+    limit(max),
+  )
+  const snap = await getDocs(qy)
+  return snap.docs.map(d => ({ ...(d.data() as any), _id: d.id, _owner: uid }) as MapDoc)
+}
+
+export async function getUserProfile(
+  uid: string,
+): Promise<{ displayName?: string; photoURL?: string } | null> {
+  const s = await getDoc(doc(db, 'users', uid))
+  return s.exists() ? (s.data() as { displayName?: string; photoURL?: string }) : null
 }
 
 export async function uploadMapPhoto(

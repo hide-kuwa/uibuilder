@@ -24,7 +24,7 @@ export default function MapPage({
     getMap(params.uid, params.mapId)
       .then(doc => {
         if (doc) {
-          importB64(doc.b64)
+          importB64(doc.paintB64)
           setVisibility(doc.visibility)
           setAllowed(true)
         }
