@@ -27,7 +27,7 @@ export type NavigateAction = { type: 'navigate'; path: string }
 export type ActionAnime = {
   type: 'anime'
   preset: AnimePresetKey
-  options?: Partial<import('animejs').AnimeParams>
+  options?: Partial<import('animejs').AnimationParams>
   target?: NodeTarget
 }
 

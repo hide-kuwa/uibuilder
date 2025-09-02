@@ -1,5 +1,5 @@
 'use client'
-import anime, { AnimeParams } from 'animejs'
+import { animate, utils, type AnimationParams } from 'animejs'
 import type { Action } from '@/types/actions'
 import { animePresets } from '@/lib/anime-presets'
 
@@ -21,13 +21,13 @@ export function runAction(action: Action, ctx?: { currentEl?: HTMLElement | null
     if (typeof window === 'undefined') return
     const el = resolveTarget(action, ctx?.currentEl)
     if (!el) return
-    const base: AnimeParams = {
+    const base: AnimationParams = {
       duration: 300,
       easing: 'easeInOutQuad',
       autoplay: true,
     }
     const preset = animePresets[action.preset]?.(el) ?? {}
-    anime.remove(el) // 前のアニメをクリア
-    anime({ targets: el, ...base, ...preset, ...(action.options || {}) })
+    utils.remove(el) // 前のアニメをクリア
+    animate(el, { ...base, ...preset, ...(action.options || {}) })
   }
 }
