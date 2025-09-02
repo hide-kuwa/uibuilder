@@ -1,11 +1,25 @@
-export type BuilderNodeMeta = {
-  displayName: string
-  icon?: string
-  defaultSize?: { w: number; h: number }
-  resizable?: boolean
-  snap?: 'grid' | 'guides' | 'none'
-  allowChildren?: boolean
-  slots?: string[]
-  propertySchema?: import('./schema').UISchema
-  events?: string[]
-}
+export type PropMeta = {
+  id: string;
+  label: string;
+  control: string;
+  default?: any;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: Array<{ label: string; value: string }>;
+};
+
+export type ComponentMeta = {
+  id: string;
+  displayName: string;
+  group?: string;
+  icon?: string;
+  props: PropMeta[];
+  allowChildren?: boolean;
+  preferredSize?: { width: number; height: number };
+};
+
+export type RendererProps = {
+  nodeId: string;
+  values: any;
+};
