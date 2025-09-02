@@ -1,4 +1,6 @@
 import type { ComponentMeta } from '@/types/builder';
+import Card from '@/components/Card';
+import JapanMap from '@/components/domain/JapanMap';
 
 export type RegistryItem = {
   meta: ComponentMeta;
@@ -50,4 +52,28 @@ DEFAULT_COMPONENTS.forEach((c) => {
     },
     Render: () => null,
   });
+});
+
+register({
+  meta: {
+    id: 'Card',
+    displayName: 'Card',
+    props: [],
+    allowChildren: true,
+    defaultW: 240,
+    defaultH: 160,
+  },
+  Render: Card,
+});
+
+register({
+  meta: {
+    id: 'JapanMap',
+    displayName: 'JapanMap',
+    props: [],
+    allowChildren: false,
+    defaultW: 520,
+    defaultH: 360,
+  },
+  Render: JapanMap,
 });
