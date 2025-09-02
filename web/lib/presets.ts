@@ -1,16 +1,7 @@
 import type { ComponentNode } from '@/types/editor'
 import { newId } from './ids'
-
-export type DomainTag = 'common' | 'travel' | 'accounting'
-export type PresetTag = DomainTag | 'card' | 'map' | 'chart' | 'analytics'
-
-export type PresetDef = {
-  id: string
-  displayName: string
-  icon?: string
-  tags: PresetTag[] // tags are mandatory
-  tree: ComponentNode
-}
+import { preset_travel_map_share_save_card_grid, maybeJapanMapPreset, type PresetDef } from './presets.travel'
+export type { DomainTag, PresetTag, PresetDef } from './presets.travel'
 
 export const cloneSubtree = (node: ComponentNode): ComponentNode => {
   return {
@@ -91,6 +82,17 @@ export const PRESETS: PresetDef[] = [
   preset_tripHeaderCard,
   preset_itineraryTimelineCard,
   preset_travelPrefPaintCard,
+  preset_travel_map_share_save_card_grid,
+  // JapanMap（SVG版）があるなら追加
+  ...(() => {
+    try {
+      require('@/components/domain/maps/JapanMap')
+      const p = maybeJapanMapPreset(true)
+      return p ? [p] : []
+    } catch {
+      return []
+    }
+  })(),
 ]
 
 export const getPresetById = (id: string) => PRESETS.find((p) => p.id === id)
