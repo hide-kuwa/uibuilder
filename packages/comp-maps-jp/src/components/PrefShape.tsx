@@ -13,7 +13,15 @@ export function PrefShape({
       fill={fill}
       stroke={stroke}
       strokeWidth={strokeWidth}
+      data-code={code}
+      tabIndex={0}
       onClick={() => onClick?.(code)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.(code);
+        }
+      }}
       onMouseEnter={() => onEnter?.(code)}
       onMouseLeave={() => onLeave?.()}
       className="transition-colors duration-100"

@@ -15,13 +15,13 @@ type PresetsFilterState = {
 export const usePresetsFilter = create(
   persist<PresetsFilterState>(
     (set) => ({
-      activeDomains: { travel: false, accounting: false },
+      activeDomains: { travel: true, accounting: false },
       alwaysShowCommon: true,
       toggleDomain: (d) =>
         set((s) => ({ activeDomains: { ...s.activeDomains, [d]: !s.activeDomains[d] } })),
       setOnly: (d) =>
         set(() => ({ activeDomains: { travel: false, accounting: false, [d]: true } as Record<Domain, boolean> })),
-      reset: () => set(() => ({ activeDomains: { travel: false, accounting: false } })),
+      reset: () => set(() => ({ activeDomains: { travel: true, accounting: false } })),
     }),
     { name: 'presets-filter-v1' },
   ),
