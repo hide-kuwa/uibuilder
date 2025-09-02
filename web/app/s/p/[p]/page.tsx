@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 export const runtime = 'edge'
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: { p: string } }): Promise<Metadata> {
   const p = params.p

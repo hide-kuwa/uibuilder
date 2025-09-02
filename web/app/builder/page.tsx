@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import '../registry.entry';
 import React, { useEffect } from 'react'
 import BuilderPage from './BuilderPage'

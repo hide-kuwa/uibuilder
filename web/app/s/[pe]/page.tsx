@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const runtime = 'edge'
-export const dynamic = 'force-static' // キャッシュしてOK（パラメータベース）
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params, searchParams }: { params: { pe: string }; searchParams: { t?: string } }): Promise<Metadata> {
   const pe = params.pe

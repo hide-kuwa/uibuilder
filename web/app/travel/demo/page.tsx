@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import React from 'react'
 import LoginButton from '@/components/auth/LoginButton'
 import PrefShareBar from '@/components/travel/PrefShareBar'
