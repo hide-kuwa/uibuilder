@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import '../registry.entry';
 import React, { useEffect } from 'react'
 import BuilderPage from './BuilderPage'
+import ClientOnly from '@/components/ClientOnly'
 import Sidebar from '@/components/layout/Sidebar'
 import { useBuilderStore } from '@/store/builderStore'
 import { loadProjectFromQuery, makeProject, saveProject } from '@/lib/project/io'
@@ -54,11 +55,13 @@ export default function BuilderPageWrapper() {
   }, [])
 
   return (
-    <div className="flex h-[calc(100vh-40px)]">
-      <Sidebar />
-      <div className="flex-1">
-        <BuilderPage />
+    <ClientOnly fallback={null}>
+      <div className="flex h-[calc(100vh-40px)]">
+        <Sidebar />
+        <div className="flex-1">
+          <BuilderPage />
+        </div>
       </div>
-    </div>
+    </ClientOnly>
   )
 }

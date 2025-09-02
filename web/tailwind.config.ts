@@ -1,4 +1,6 @@
+// web/tailwind.config.ts
 import type { Config } from 'tailwindcss'
+import forms from '@tailwindcss/forms'
 
 export default {
   content: [
@@ -8,6 +10,5 @@ export default {
   ],
   darkMode: 'class',
   theme: { extend: {} },
-  plugins: [require('@tailwindcss/forms')],
+  plugins: [forms],
 } satisfies Config
-
