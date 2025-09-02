@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function mapDoc(uid, mapId) { return get(/databases/(default)/documents/users/$(uid)/maps/$(mapId)); }
+    function isApprovedFollower(uid) {
+      return request.auth != null &&
+        exists(/databases/(default)/documents/users/$(uid)/followers/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/users/$(uid)/followers/$(request.auth.uid)).data.status == "approved";
+    }
+    function canReadMap(uid, mapId) {
+      return mapDoc(uid, mapId).data.visibility == "public"
+        || (mapDoc(uid, mapId).data.visibility == "followers" && isApprovedFollower(uid))
+        || isOwner(uid);
+    }
+    match /maps/{uid}/{mapId}/{fileId} {
+      allow read: if canReadMap(uid, mapId);
+      allow write: if isOwner(uid);
+    }
+  }
+}

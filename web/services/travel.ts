@@ -1,62 +1,58 @@
-/**
- * Mock travel service implementations using `localStorage`.
- * Replace with real Firebase logic once the travel app becomes available.
- */
+import { auth, db, storage, googleProvider } from '@/lib/firebase'
+import {
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth'
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  query,
+  where,
+} from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
-type User = { uid: string }
-type Visibility = 'public' | 'followers' | 'private'
-
-let currentUser: User | null = null
-const listeners = new Set<(u: User | null) => void>()
-
-// load persisted user on module init in browser
-if (typeof window !== 'undefined') {
-  const raw = localStorage.getItem('demo-user')
-  if (raw) currentUser = JSON.parse(raw)
-}
-
-const notify = () => listeners.forEach(cb => cb(currentUser))
+export type User = { uid: string }
+export type Visibility = 'public' | 'followers' | 'private'
 
 export async function signInWithGoogle(): Promise<void> {
-  currentUser = { uid: 'demo' }
-  if (typeof window !== 'undefined')
-    localStorage.setItem('demo-user', JSON.stringify(currentUser))
-  notify()
+  await signInWithPopup(auth, googleProvider)
 }
 
 export function onUser(cb: (user: User | null) => void): () => void {
-  listeners.add(cb)
-  cb(currentUser)
-  return () => listeners.delete(cb)
+  return onAuthStateChanged(auth, cb)
 }
 
 export async function signOutNow(): Promise<void> {
-  currentUser = null
-  if (typeof window !== 'undefined') localStorage.removeItem('demo-user')
-  notify()
+  await signOut(auth)
 }
 
 export async function createMap(b64: string): Promise<{ id: string }> {
-  if (!currentUser) throw new Error('no user')
-  const id = Math.random().toString(36).slice(2, 10)
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(`map:${currentUser.uid}:${id}`, b64)
-    localStorage.setItem(`visibility:${currentUser.uid}:${id}`, 'public')
-  }
-  return { id }
+  const user = auth.currentUser
+  if (!user) throw new Error('no user')
+  const refDoc = await addDoc(collection(db, 'users', user.uid, 'maps'), {
+    b64,
+    visibility: 'public',
+    createdAt: serverTimestamp(),
+  })
+  return { id: refDoc.id }
 }
 
-export async function getMap(uid: string, mapId: string): Promise<string | null> {
-  if (typeof window === 'undefined') return null
-  const vis =
-    (localStorage.getItem(`visibility:${uid}:${mapId}`) as Visibility | null) ||
-    'public'
-  if (vis === 'private' && currentUser?.uid !== uid) return null
-  if (vis === 'followers' && currentUser?.uid !== uid) {
-    const key = `follow:${uid}:${currentUser?.uid}`
-    if (!localStorage.getItem(key)) return null
-  }
-  return localStorage.getItem(`map:${uid}:${mapId}`)
+export async function getMap(
+  uid: string,
+  mapId: string,
+): Promise<{ b64: string; visibility: Visibility } | null> {
+  const refDoc = doc(db, 'users', uid, 'maps', mapId)
+  const snap = await getDoc(refDoc)
+  if (!snap.exists()) return null
+  const data = snap.data() as any
+  return { b64: data.b64, visibility: data.visibility as Visibility }
 }
 
 export async function setVisibility(
@@ -64,76 +60,52 @@ export async function setVisibility(
   mapId: string,
   v: Visibility,
 ): Promise<void> {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(`visibility:${uid}:${mapId}`, v)
+  const refDoc = doc(db, 'users', uid, 'maps', mapId)
+  await updateDoc(refDoc, { visibility: v })
+}
+
+export async function requestFollow(ownerUid: string): Promise<void> {
+  const me = auth.currentUser
+  if (!me) throw new Error('no user')
+  const refDoc = doc(db, 'users', ownerUid, 'followers', me.uid)
+  await setDoc(refDoc, {
+    status: 'requested',
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function approveFollower(followerUid: string): Promise<void> {
+  const me = auth.currentUser
+  if (!me) throw new Error('no user')
+  const refDoc = doc(db, 'users', me.uid, 'followers', followerUid)
+  await updateDoc(refDoc, { status: 'approved' })
+}
+
+export async function listPendingFollowers(
+  meUid: string,
+): Promise<Array<{ uid: string; createdAt: any }>> {
+  const q = query(
+    collection(db, 'users', meUid, 'followers'),
+    where('status', '==', 'requested'),
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ uid: d.id, ...(d.data() as any) }))
 }
 
 export async function uploadMapPhoto(
   uid: string,
   mapId: string,
   file: File,
+  caption?: string,
 ): Promise<string> {
-  if (typeof window === 'undefined') return ''
-  const url = URL.createObjectURL(file)
-  const key = `photos:${uid}:${mapId}`
-  const arr = JSON.parse(localStorage.getItem(key) || '[]') as string[]
-  arr.push(url)
-  localStorage.setItem(key, JSON.stringify(arr))
+  const fileId = Math.random().toString(36).slice(2)
+  const storageRef = ref(storage, `maps/${uid}/${mapId}/${fileId}`)
+  await uploadBytes(storageRef, file)
+  const url = await getDownloadURL(storageRef)
+  await addDoc(collection(db, 'users', uid, 'maps', mapId, 'photos'), {
+    url,
+    caption: caption ?? '',
+    createdAt: serverTimestamp(),
+  })
   return url
 }
-
-export async function getMapPhotos(
-  uid: string,
-  mapId: string,
-): Promise<string[]> {
-  if (typeof window === 'undefined') return []
-  const key = `photos:${uid}:${mapId}`
-  return JSON.parse(localStorage.getItem(key) || '[]') as string[]
-}
-
-export async function requestFollow(ownerUid: string): Promise<void> {
-  if (!currentUser || currentUser.uid === ownerUid) return
-  if (typeof window === 'undefined') return
-  localStorage.setItem(`request:${ownerUid}:${currentUser.uid}`, '1')
-}
-
-export async function getFollowRequests(ownerUid: string): Promise<string[]> {
-  if (typeof window === 'undefined') return []
-  return Object.keys(localStorage)
-    .filter(k => k.startsWith(`request:${ownerUid}:`))
-    .map(k => k.split(':')[2])
-}
-
-export async function approveFollower(
-  ownerUid: string,
-  followerUid: string,
-): Promise<void> {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(`request:${ownerUid}:${followerUid}`)
-  localStorage.setItem(`follow:${ownerUid}:${followerUid}`, '1')
-}
-
-export function isFollower(ownerUid: string, followerUid: string): boolean {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(`follow:${ownerUid}:${followerUid}`) === '1'
-}
-
-export function hasPendingFollow(
-  ownerUid: string,
-  followerUid: string,
-): boolean {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(`request:${ownerUid}:${followerUid}`) === '1'
-}
-
-export async function getVisibility(
-  uid: string,
-  mapId: string,
-): Promise<Visibility> {
-  if (typeof window === 'undefined') return 'public'
-  return (
-    (localStorage.getItem(`visibility:${uid}:${mapId}`) as Visibility | null) ||
-    'public'
-  )
-}
-
