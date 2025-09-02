@@ -20,6 +20,7 @@ import Hero from '@/components/typography/Hero';
 import { MapThemeProvider } from '@/contexts/MapThemeContext';
 import AnimeOnMount from '@/components/anim/AnimeOnMount';
 import AnimeOnView from '@/components/anim/AnimeOnView';
+import InteractiveWrapper from '@/components/interactive/InteractiveWrapper';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -345,5 +346,6 @@ export const REGISTRY = {
   MapThemeProvider: { component: MapThemeProvider, displayName: 'MapThemeProvider' },
   AnimeOnMount: { component: AnimeOnMount, displayName: 'AnimeOnMount' },
   AnimeOnView: { component: AnimeOnView, displayName: 'AnimeOnView' },
+  InteractiveWrapper: { component: InteractiveWrapper, displayName: 'InteractiveWrapper' },
   ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
 } as const;

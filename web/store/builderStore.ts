@@ -136,9 +136,11 @@ type BuilderActions = {
   beginBatch: () => void;
   endBatch: () => void;
   updateMany: (patches: ElmPatch[], recordHistory?: boolean) => void;
-  wrapSelectedWith: (type: 'AnimeOnMount' | 'AnimeOnView', props?: Record<string, any>) => void;
-  unwrapSelectedIf: (type?: 'AnimeOnMount' | 'AnimeOnView') => void;
+  wrapSelectedWith: (type: 'AnimeOnMount' | 'AnimeOnView' | 'InteractiveWrapper', props?: Record<string, any>) => void;
+  unwrapSelectedIf: (type?: 'AnimeOnMount' | 'AnimeOnView' | 'InteractiveWrapper') => void;
   replayAnimationOnSelected: () => void;
+  applyInteractiveToSelection: (draft: any, mode: 'replace' | 'append' | 'remove') => void;
+  applyInteractiveToAll: (draft: any, mode: 'replace' | 'append' | 'remove') => void;
 };
 
 function snapToGrid(n: number) {
@@ -909,7 +911,8 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
             if (
               !(
                 wrapper.type === "AnimeOnMount" ||
-                wrapper.type === "AnimeOnView"
+                wrapper.type === "AnimeOnView" ||
+                wrapper.type === "InteractiveWrapper"
               )
             )
               return;
@@ -974,6 +977,25 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
           const tree = state.tree.map((r) => map.get(r.id) || r);
           return { elements, tree };
         });
+      },
+
+      applyInteractiveToSelection(draft, mode) {
+        if (mode === 'remove') {
+          get().unwrapSelectedIf('InteractiveWrapper');
+        } else if (mode === 'replace') {
+          get().unwrapSelectedIf('InteractiveWrapper');
+          get().wrapSelectedWith('InteractiveWrapper', { draft });
+        } else {
+          get().wrapSelectedWith('InteractiveWrapper', { draft });
+        }
+      },
+
+      applyInteractiveToAll(draft, mode) {
+        const prev = get().selectedIds;
+        const allIds = get().elements.map((e) => e.id);
+        set({ selectedIds: allIds, selectedId: allIds[allIds.length - 1] ?? null });
+        get().applyInteractiveToSelection(draft, mode);
+        set({ selectedIds: prev, selectedId: prev[prev.length - 1] ?? null });
       },
 
       setElements(els) {
