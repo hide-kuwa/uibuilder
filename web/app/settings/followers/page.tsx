@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import React, { useEffect, useState } from 'react'
 import { PendingFollowers } from '@/components/travel/FollowControls'
 import { onUser } from '@/services/travel'

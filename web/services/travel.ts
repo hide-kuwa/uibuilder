@@ -1,4 +1,6 @@
-import { auth, db, storage, googleProvider } from '@/lib/firebase'
+"use client"
+
+import { auth, db, storage, googleProvider } from '@/lib/firebase.client'
 // @ts-ignore firebase types
 import {
   signInWithPopup,

@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { requestFollow, approveFollower, onUser } from '@/services/travel'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firebase.client'
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 
 export function FollowButton({ ownerUid }: { ownerUid: string }) {

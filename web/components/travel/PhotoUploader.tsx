@@ -1,7 +1,7 @@
 'use client'
 import React, { useRef, useState, useEffect } from 'react'
 import { uploadMapPhoto } from '@/services/travel'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firebase.client'
 import { collection, onSnapshot } from 'firebase/firestore'
 
 export default function PhotoUploader({
