@@ -66,7 +66,8 @@ export default function DevActionsPage(){
                 <button
                   type="button"
                   tabIndex={0}
-                  className="h-32 w-full rounded-lg border flex items-center justify-center text-sm bg-background text-foreground cursor-pointer select-none"
+                  className="h-32 w-full rounded-lg border flex items-center justify-center
+                             text-sm bg-transparent text-foreground cursor-pointer select-none"
                   title="Hover me"
                 >
                   Hover me

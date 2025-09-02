@@ -38,9 +38,13 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
   // 2) When → Action バインド
   useEffect(()=>{
     const el = ref.current; if(!el) return
-    const cleaners = draft.actions.map(a => bindWhen(el, a, {
-      el, data:{}, emit:(ev,p)=>window.dispatchEvent(new CustomEvent(ev,{detail:p})), navigate:(u)=>router.push(u)
-    } as RuntimeCtx))
+    const cleaners = draft.actions.map(a => bindWhen(
+      el,
+      a,
+      { el, data:{}, emit:(ev,p)=>window.dispatchEvent(new CustomEvent(ev,{detail:p})), navigate:(u)=>router.push(u) } as RuntimeCtx,
+      // 後方互換：もし a.when が空なら draft.when を使う
+      (draft as any).when
+    ))
     return () => cleaners.forEach(c=>c())
   }, [draft])
 
