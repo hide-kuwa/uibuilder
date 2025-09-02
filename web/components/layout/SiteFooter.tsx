@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 
 function openPopup(u: string) {
   window.open(u, '_blank', 'noopener,noreferrer,width=560,height=600')
@@ -22,11 +23,18 @@ async function systemShare() {
 }
 
 export default function SiteFooter() {
+  const [year, setYear] = useState<string | null>(null)
+  useEffect(() => {
+    setYear(String(new Date().getFullYear()))
+  }, [])
+
   return (
     <footer className="w-full border-t"
             style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}>
       <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-3 px-4 py-3">
-        <small className="text-[color:var(--muted)]">© {new Date().getFullYear()} UI Builder</small>
+        <small className="text-[color:var(--muted)]" suppressHydrationWarning>
+          © {year ?? ''} UI Builder
+        </small>
         <div className="flex items-center gap-2">
           <button className="btn btn-sm" onClick={systemShare} title="端末の共有メニュー">共有</button>
           <button className="btn btn-sm" onClick={() => shareTo('x')} aria-label="Xで共有">X</button>
