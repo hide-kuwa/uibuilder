@@ -16,7 +16,7 @@ export default function ActionsCard(){
     <CardFieldset title="Actions (run on events)">
       <div className="space-y-2">
         {actions.map((a,i)=>(
-          <div key={i} className="rounded border p-2">
+          <div key={i} className="border rounded p-2">
             <div className="flex items-center gap-2">
               <select className="border rounded px-2 py-1 text-xs"
                 value={a.type} onChange={e=>update(i,{ type:e.target.value as any })}>
@@ -44,7 +44,7 @@ export default function ActionsCard(){
                 value={a.debounceMs ?? ''} onChange={e=>update(i,{ debounceMs:e.target.value? +e.target.value : null })}/>
             </div>
 
-            {/* Run when（枠内末尾） */}
+            {/* ★ Run when：Actionsの“枠内”の末尾に固定 */}
             <div className="mt-2 pt-2 border-t">
               <div className="text-xs font-medium opacity-80 mb-1">Run when</div>
               <div className="flex flex-wrap gap-2">
