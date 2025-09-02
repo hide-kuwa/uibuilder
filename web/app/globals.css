@@ -8,3 +8,24 @@
 
 .hide-header header { display: none; }
 .hide-footer footer { display: none; }
+
+@layer components {
+  /* /dev/actions 内のフォーム要素を見やすく固定 */
+  .dev-actions :where(input[type="text"],
+                      input[type="number"],
+                      input[type="url"],
+                      textarea,
+                      select) {
+    @apply border rounded px-2 py-1 text-xs outline-none;
+    background: hsl(var(--color-bg-muted));
+    color: hsl(var(--color-fg-default));
+    border-color: hsl(var(--color-border-default));
+  }
+  .dev-actions :where(input, textarea, select)::placeholder {
+    color: hsl(var(--color-fg-default) / 0.6);
+  }
+  .dev-actions :where(input, textarea, select):focus {
+    @apply ring-1;
+    --tw-ring-color: hsl(var(--color-accent-default));
+  }
+}
