@@ -10,27 +10,74 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
   const router = useRouter()
 
   // 1) Triggers → ユニーククラス作成
-  const cls = useMemo(()=>{
-    const id = Math.random().toString(36).slice(2,8)
+  const cls = useMemo(() => {
+    const id = Math.random().toString(36).slice(2, 8)
     const t = draft.triggers
-    const to = (eff?: any) => {
-      if (!eff) return undefined
-      const o:any = {}
-      if (eff.scale?.scale) o.scale = eff.scale.scale
-      if (eff.bgColor?.color) o.bg = eff.bgColor.color
-      if (eff.shadow?.level) o.shadow = eff.shadow.level
-      if (eff.opacity?.opacity != null) o.opacity = eff.opacity.opacity
-      return o
-    }
     // draft.effects は汎用配列なので kind を寄せて取り出す（最小）
-    const pack = (kind:string) => draft.effects.find(e=>e.kind===kind)?.value
+    const pack = (kind: string) => (draft.effects as any[]).find(e => e.kind === kind)?.value
     const base = {
-      transitionMs: t.transitionMs, easing: t.easing,
-      hover: t.hover ? { scale: pack('scale')?.scale, bg: pack('bgColor')?.color, shadow: pack('shadow')?.level, opacity: pack('opacity')?.opacity } : undefined,
-      active: t.active ? { scale: pack('scale')?.scale, bg: pack('bgColor')?.color, shadow: pack('shadow')?.level, opacity: pack('opacity')?.opacity } : undefined,
-      focus: t.focus ? { scale: pack('scale')?.scale, bg: pack('bgColor')?.color, shadow: pack('shadow')?.level, opacity: pack('opacity')?.opacity } : undefined,
-      focusWithin: t.focusWithin ? { scale: pack('scale')?.scale, bg: pack('bgColor')?.color, shadow: pack('shadow')?.level, opacity: pack('opacity')?.opacity } : undefined,
-      groupHover: t.groupHover ? { scale: pack('scale')?.scale, bg: pack('bgColor')?.color, shadow: pack('shadow')?.level, opacity: pack('opacity')?.opacity } : undefined,
+      transitionMs: t.transitionMs,
+      easing: t.easing,
+      hover: t.hover
+        ? {
+            scale: pack('scale')?.scale,
+            rotateDeg: pack('rotate')?.deg,
+            tx: pack('translate')?.x,
+            ty: pack('translate')?.y,
+            bg: pack('bgColor')?.color,
+            shadow: pack('shadow')?.level,
+            opacity: pack('opacity')?.opacity,
+            cursor: pack('cursor')?.cursor,
+          }
+        : undefined,
+      active: t.active
+        ? {
+            scale: pack('scale')?.scale,
+            rotateDeg: pack('rotate')?.deg,
+            tx: pack('translate')?.x,
+            ty: pack('translate')?.y,
+            bg: pack('bgColor')?.color,
+            shadow: pack('shadow')?.level,
+            opacity: pack('opacity')?.opacity,
+            cursor: pack('cursor')?.cursor,
+          }
+        : undefined,
+      focus: t.focus
+        ? {
+            scale: pack('scale')?.scale,
+            rotateDeg: pack('rotate')?.deg,
+            tx: pack('translate')?.x,
+            ty: pack('translate')?.y,
+            bg: pack('bgColor')?.color,
+            shadow: pack('shadow')?.level,
+            opacity: pack('opacity')?.opacity,
+            cursor: pack('cursor')?.cursor,
+          }
+        : undefined,
+      focusWithin: t.focusWithin
+        ? {
+            scale: pack('scale')?.scale,
+            rotateDeg: pack('rotate')?.deg,
+            tx: pack('translate')?.x,
+            ty: pack('translate')?.y,
+            bg: pack('bgColor')?.color,
+            shadow: pack('shadow')?.level,
+            opacity: pack('opacity')?.opacity,
+            cursor: pack('cursor')?.cursor,
+          }
+        : undefined,
+      groupHover: t.groupHover
+        ? {
+            scale: pack('scale')?.scale,
+            rotateDeg: pack('rotate')?.deg,
+            tx: pack('translate')?.x,
+            ty: pack('translate')?.y,
+            bg: pack('bgColor')?.color,
+            shadow: pack('shadow')?.level,
+            opacity: pack('opacity')?.opacity,
+            cursor: pack('cursor')?.cursor,
+          }
+        : undefined,
     }
     return buildInteractiveClass(id, base as any)
   }, [draft])
