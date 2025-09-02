@@ -1,5 +1,5 @@
 'use client'
-import anime, { type AnimeParams } from 'animejs'
+import { animate, utils, type AnimationParams } from 'animejs'
 import { animePresets } from '@/lib/anime-presets'
 import type { MotionEffect, MotionEvent, NodeTarget } from '@/types/motion'
 
@@ -21,14 +21,14 @@ export function runMotionEffects(
     const el = resolveTarget(eff.target, fallbackEl)
     if (!el) continue
 
-    const base: AnimeParams = {
+    const base: AnimationParams = {
       duration: 300,
       easing: 'easeInOutQuad',
       autoplay: true,
     }
     const preset = animePresets[eff.preset]?.(el) ?? {}
     const opts = eff.options ?? {}
-    anime.remove(el)
-    anime({ targets: el, ...base, ...preset, ...opts })
+    utils.remove(el)
+    animate(el, { ...base, ...preset, ...opts })
   }
 }
