@@ -205,7 +205,7 @@ importers:
         specifier: ^24.3.0
         version: 24.3.0
       autoprefixer:
-        specifier: ^10.4.20
+        specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)
       eslint:
         specifier: ^9.34.0
@@ -214,10 +214,10 @@ importers:
         specifier: ^3.3.3
         version: 3.3.3
       postcss:
-        specifier: ^8.4.47
+        specifier: ^8.5.6
         version: 8.5.6
       tailwindcss:
-        specifier: ^3.4.10
+        specifier: ^3.4.17
         version: 3.4.17(ts-node@10.9.2(@types/node@24.3.0)(typescript@5.9.2))
       tsx:
         specifier: ^4.20.5
