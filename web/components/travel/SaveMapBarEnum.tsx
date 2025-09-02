@@ -17,10 +17,13 @@ export default function SaveMapBarEnum() {
       paintB64: exportEnumB64(), // ← 既存フィールドにそのまま保存（互換読み込みは後述）
       visibility: 'public',
     })
-    const url = `${location.origin}/u/${uid}/m/${id}`
-    setLink(url)
-    await navigator.clipboard?.writeText(url)
-    alert('保存してリンクをコピーしました')
+    const pe = exportEnumB64()
+    const share = `${location.origin}/s/${pe}`                    // ← 共有は /s/[pe]
+    const doc = `${location.origin}/u/${uid}/m/${id}`            // ← 詳細ページも保持
+    setLink(share)
+    await navigator.clipboard?.writeText(share)
+    void doc
+    alert('保存して共有リンクをコピーしました')
   }
 
   return (

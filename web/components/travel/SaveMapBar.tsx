@@ -10,7 +10,10 @@ export default function SaveMapBar() {
   const save = () => {
     const b64 = exportB64()
     localStorage.setItem('prefPaintB64', b64)
-    setMsg('保存したよ')
+    const p = b64
+    const share = `${location.origin}/s/p/${p}`
+    navigator.clipboard?.writeText(share)
+    setMsg('保存してリンクコピー')
     setTimeout(() => setMsg(null), 1000)
   }
 
