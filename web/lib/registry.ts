@@ -2,9 +2,20 @@ import type { ComponentMeta } from '@/types/builder';
 import Card from '@/components/Card';
 import TripHeader from '@/components/travel/TripHeader';
 import ItineraryTimeline from '@/components/travel/ItineraryTimeline';
-import JapanMap from '@/components/domain/JapanMap';
 import PrefShareBar from '@/components/travel/PrefShareBar';
 import PrefGridMap from '@/components/travel/PrefGridMap';
+import SaveMapBar from '@/components/travel/SaveMapBar';
+import DownloadPNG from '@/components/util/DownloadPNG';
+
+// JapanMap is optional (SVG variant lives in components/domain/maps)
+let JapanMap: any = null;
+try {
+  JapanMap = require('@/components/domain/maps/JapanMap').default;
+} catch {
+  try {
+    JapanMap = require('@/components/domain/JapanMap').default;
+  } catch {}
+}
 
 export type RegistryItem = {
   meta: ComponentMeta;
@@ -94,17 +105,19 @@ register({
   Render: ItineraryTimeline,
 });
 
-register({
-  meta: {
-    id: 'JapanMap',
-    displayName: 'JapanMap',
-    props: [],
-    allowChildren: false,
-    defaultW: 520,
-    defaultH: 360,
-  },
-  Render: JapanMap,
-});
+if (JapanMap) {
+  register({
+    meta: {
+      id: 'JapanMap',
+      displayName: 'JapanMap',
+      props: [],
+      allowChildren: false,
+      defaultW: 520,
+      defaultH: 360,
+    },
+    Render: JapanMap,
+  });
+}
 
 register({
   meta: {
@@ -129,3 +142,36 @@ register({
   },
   Render: PrefGridMap,
 });
+
+register({
+  meta: {
+    id: 'SaveMapBar',
+    displayName: 'SaveMapBar',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 40,
+  },
+  Render: SaveMapBar,
+});
+
+register({
+  meta: {
+    id: 'DownloadPNG',
+    displayName: 'DownloadPNG',
+    props: [],
+    allowChildren: false,
+    defaultW: 160,
+    defaultH: 40,
+  },
+  Render: DownloadPNG,
+});
+
+export const REGISTRY = {
+  Card: { component: Card, displayName: 'Card' },
+  PrefShareBar: { component: PrefShareBar, displayName: 'PrefShareBar' },
+  PrefGridMap: { component: PrefGridMap, displayName: 'PrefGridMap' },
+  SaveMapBar: { component: SaveMapBar, displayName: 'SaveMapBar' },
+  DownloadPNG: { component: DownloadPNG, displayName: 'DownloadPNG' },
+  ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
+} as const;
