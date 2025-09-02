@@ -17,6 +17,8 @@ export type ComponentMeta = {
   props: PropMeta[];
   allowChildren?: boolean;
   preferredSize?: { width: number; height: number };
+  defaultW?: number;
+  defaultH?: number;
 };
 
 export type RendererProps = {
