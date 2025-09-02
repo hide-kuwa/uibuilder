@@ -13,7 +13,7 @@ export default function PrefShareBar() {
     url.searchParams.set('p', b64)
     navigator.clipboard?.writeText(url.toString())
     setCopied(true)
-    setTimeout(() => setCopied(false), 1200)
+    setTimeout(() => setCopied(false), 1000)
   }
 
   useEffect(() => {
