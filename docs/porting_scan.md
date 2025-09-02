@@ -8,4 +8,5 @@
 - `app/travel/demo/page.tsx` present as demo page; no `/app/u/[uid]/m/[mapId]` route detected.
 - `.env.local` located at `web/.env.local`; no other env files.
 - `tsconfig.json` defines path aliases (`@core/*`, `@domain-components`, `@data`, `@/*`); none unresolved.
-- 47-prefecture map store found in `components/domain/maps/mapStore.ts` (hover state only).
+- `useMapUIStore` hover state in `components/domain/maps/mapStore.ts`.
+- Persistent 47-prefecture paint store with bit-pack/unpack in `web/store/prefPaintStore.ts`.
