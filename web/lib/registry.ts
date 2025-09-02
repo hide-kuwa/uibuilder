@@ -1,46 +1,31 @@
-export type ComponentDef = {
-  key: string
-  meta?: { displayName?: string; defaultW?: number; defaultH?: number; propertySchema?: any[] }
-  render?: any
+import type { ComponentDef } from '@/types/builder'
+import { componentRegistry, register as registerNew } from './componentRegistry'
+import paletteLabels from '@/config/paletteLabels'
+
+export type RegistryItem = ComponentDef
+
+export const registry: Record<string, ComponentDef> = componentRegistry
+
+export function register(item: RegistryItem) {
+  registerNew(item)
 }
 
-import UiHeader from '@/components/defs/ui/Header'
-import UiFooter from '@/components/defs/ui/Footer'
-import UiSidebar from '@/components/defs/ui/Sidebar'
-import UiText from '@/components/defs/ui/Text'
-import UiCard from '@/components/defs/ui/Card'
-import UiPanel from '@/components/defs/ui/Panel'
-import UiHUD from '@/components/defs/ui/HUD'
-import UiJapanMap from '@/components/defs/ui/JapanMap'
-
-export const REGISTRY: Record<string, ComponentDef> = {
-  'ui.header': UiHeader,
-  'ui.footer': UiFooter,
-  'ui.sidebar': UiSidebar,
-  'ui.text': UiText,
-  'ui.card': UiCard,
-  'ui.panel': UiPanel,
-  'ui.hud': UiHUD,
-  'ui.japanmap': UiJapanMap,
-}
-
-export const registry = REGISTRY
-export type RegistryKey = keyof typeof REGISTRY
-
-export function getDef(key: string): ComponentDef | undefined {
-  return REGISTRY[key]
+export function getDef(key: string): RegistryItem | undefined {
+  return registry[key]
 }
 
 export function listDefs(): Array<{ key: string; label: string }> {
-  return Object.entries(REGISTRY).map(([key, def]) => ({
-    key,
-    label: def?.meta?.displayName || key,
+  // Legacy support for palette expecting key/label, with label overrides
+  return Object.values(registry).map((d) => ({
+    key: d.meta.id,
+    label: paletteLabels[d.meta.id] ?? d.meta.displayName,
   }))
 }
 
-// Options helper for component picker (existing registry)
-export function listComponentOptions(filter?: (d: ComponentDef) => boolean): Array<{ label: string; value: string }>{
-  return Object.values(REGISTRY)
-    .filter((d) => (filter ? filter(d) : true))
-    .map((d) => ({ label: d?.meta?.displayName || d.key, value: d.key }))
+export function listComponentOptions() {
+  return Object.values(registry).map((r) => ({
+    key: r.meta.id,
+    label: r.meta.displayName,
+    group: r.meta.group,
+  }))
 }

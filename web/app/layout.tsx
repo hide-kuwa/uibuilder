@@ -2,6 +2,8 @@ import './globals.css'
 import type { ReactNode } from 'react'
 import { cookies } from 'next/headers'
 import Providers from './providers'
+import SiteHeader from '@/components/layout/SiteHeader'
+import SiteFooter from '@/components/layout/SiteFooter'
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()
@@ -10,9 +12,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="ja" data-theme={uiTheme} suppressHydrationWarning>
       <body>
-        <Providers initialTheme={uiTheme}>{children}</Providers>
+        <Providers initialTheme={uiTheme}>
+          <SiteHeader />
+          <main className="min-h-[calc(100vh-6rem)]">{children}</main>
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
   )
 }
-

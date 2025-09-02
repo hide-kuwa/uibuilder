@@ -34,4 +34,3 @@ export type ComponentDef = {
 }
 
 export type ComponentRegistry = Record<string, ComponentDef>
-

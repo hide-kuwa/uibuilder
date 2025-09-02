@@ -11,8 +11,8 @@ import { FooterView } from './footer/FooterView'
 import { SidebarView } from '@/components/app/SidebarView'
 import { NodeWrapper } from '@/components/shared/NodeWrapper'
 import { Rulers } from './Rulers'
-import { useUnitStore } from '@/store/unitStore'
 import { useUIStore } from '@/store/uiStore'
+import { useUnitStore } from '@/store/unitStore'
 import { intersects } from '@/lib/geom'
 import { useViewStore } from '@/store/viewStore'
 import { screenToWorld } from '@/lib/coord'
@@ -379,6 +379,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
   const setPercentBase = useUnitStore((s) => s.setPercentBase)
+  const showRulers = useUIStore((s) => s.showRulers)
   const [marquee, setMarquee] = React.useState<
     { x: number; y: number; w: number; h: number } | null
   >(null)
@@ -528,7 +529,6 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   }
 
   const [dims, setDims] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 })
-  const showRulers = useUIStore((s) => s.showRulers)
 
   React.useLayoutEffect(() => {
     const el = canvasRef.current
@@ -603,8 +603,8 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         <CanvasOverlay marquee={marquee ?? undefined} />
         {showRulers && (
           <Rulers
-            width={dims.w || 0}
-            height={dims.h || 0}
+            width={dims.w || 1200}
+            height={dims.h || 720}
             canvasRef={canvasRef}
             screenToWorld={(p, axis) => {
               const pt = screenToWorld(axis === 'x' ? p : 0, axis === 'y' ? p : 0)
@@ -641,4 +641,3 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
     </div>
   )
 }
-

@@ -3,16 +3,11 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
+  "sideEffects": false,
+  "exports": { ".": "./src/register.ts" },
   "dependencies": {
     "@repo/types": "workspace:*",
     "@repo/builder-core": "workspace:*",
     "react": "*"
-  },
-  "exports": {
-    "./register": {
-      "types": "./src/register.d.ts",
-      "default": "./src/register.ts"
-    }
   }
 }
-

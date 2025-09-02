@@ -20,16 +20,16 @@ import ModalHost from '@/components/hud/ModalHost'
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   useAlignShortcuts()
   useEffect(() => { mountHistorySync() }, [])
-  // Apply a global builder theme on /builder route only
+  // Apply a global builder theme and hide site chrome on /builder
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
     html.classList.add('builder-theme')
-    body.classList.add('builder-theme')
+    body.classList.add('builder-theme', 'no-site-chrome')
     body.dataset.theme = 'compact'
     return () => {
       html.classList.remove('builder-theme')
-      body.classList.remove('builder-theme')
+      body.classList.remove('builder-theme', 'no-site-chrome')
       try { delete (body.dataset as any).theme } catch {}
     }
   }, [])

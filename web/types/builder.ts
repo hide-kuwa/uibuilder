@@ -6,7 +6,7 @@ export type PropMeta<T = unknown> = {
   id: string
   label: string
   control: PropControl
-  default: T
+  default?: T
   options?: { label: string; value: any }[]
   min?: number
   max?: number
@@ -25,7 +25,7 @@ export type ComponentMeta = {
 
 export type RendererProps = {
   nodeId: string
-  values: Record<string, any>
+  values: any
   children?: ReactNode
 }
 

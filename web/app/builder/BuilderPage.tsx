@@ -23,6 +23,7 @@ import ActionGate from '@/components/interaction/ActionGate'
 import ActionDevConsole from '@/components/interaction/ActionDevConsole'
 import { useActionDebugStore } from '@/store/actionDebugStore'
 import PresetApplyBus from '@/components/interaction/PresetApplyBus'
+import { useUIStore } from '@/store/uiStore'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -34,6 +35,7 @@ export default function BuilderPage() {
   const setGuides = useBuilderStore((s) => s.setGuides)
   const clearGuides = useBuilderStore((s) => s.clearGuides)
   const setElements = useBuilderStore((s) => s.setElements)
+  const toggleRulers = useUIStore((s) => s.toggleRulers)
 
   const debug = true
   const intercept = useActionDebugStore((s) => s.intercept)
@@ -163,6 +165,17 @@ export default function BuilderPage() {
   React.useEffect(() => {
     setTree(elements)
   }, [elements, setTree])
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault()
+        toggleRulers()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleRulers])
 
   return (
     <ActionGate enabled debug={debug} intercept={intercept}>

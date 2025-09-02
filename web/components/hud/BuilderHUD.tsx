@@ -3,7 +3,7 @@ import React from 'react'
 import { useUIStore, type DeviceKind } from '@/store/uiStore'
 
 function IconBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
-  const { active, className, ...rest } = props
+  const { active, className, children, ...rest } = props
   return (
     <button
       {...rest}
@@ -13,7 +13,9 @@ function IconBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { active
         'text-zinc-200',
         className ?? '',
       ].join(' ')}
-    />
+    >
+      {children}
+    </button>
   )
 }
 
@@ -29,10 +31,10 @@ export function BuilderHUD() {
     toggleGrid,
     showOutline,
     toggleOutline,
-    showRulers,
-    toggleRulers,
     snapToPixel,
     toggleSnap,
+    showRulers,
+    toggleRulers,
   } = useUIStore()
 
   React.useEffect(() => {
@@ -68,9 +70,9 @@ export function BuilderHUD() {
   return (
     <>
       <div className="pointer-events-auto fixed left-1/2 top-12 -translate-x-1/2 z-50 flex items-center gap-1">
-        <IconBtn onClick={zoomOut}>−</IconBtn>
+        <IconBtn onClick={zoomOut} title="Zoom Out">-</IconBtn>
         <span className="px-2 text-xs text-zinc-300 tabular-nums">{Math.round(zoom * 100)}%</span>
-        <IconBtn onClick={zoomIn}>＋</IconBtn>
+        <IconBtn onClick={zoomIn} title="Zoom In">+</IconBtn>
         <IconBtn onClick={resetZoom}>100%</IconBtn>
       </div>
       <div className="pointer-events-auto fixed right-2 top-12 z-50 flex items-center gap-1">
@@ -87,3 +89,4 @@ export function BuilderHUD() {
     </>
   )
 }
+

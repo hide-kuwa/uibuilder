@@ -222,3 +222,7 @@ body.builder-theme {
 .builder-theme *::-webkit-scrollbar { width: 10px; height: 10px; }
 .builder-theme *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
 .builder-theme *::-webkit-scrollbar-track { background: var(--panel); }
+
+/* Hide site chrome on builder pages */
+.no-site-chrome header,
+.no-site-chrome footer { display: none; }

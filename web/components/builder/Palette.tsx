@@ -5,6 +5,7 @@ import { listDefs } from '@/lib/registry'
 import '@/lib/componentRegistryLoader'
 import '@/app/registry.entry'
 import { componentRegistry as registry } from '@/lib/componentRegistry'
+import paletteLabels from '@/config/paletteLabels'
 import { useBuilderStore } from '@/store/builderStore'
 
 function Item({ comp }: { comp: { key: string; label: string } }) {
@@ -53,6 +54,7 @@ function NewRegistryGroup() {
           <div className="grid gap-2">
             {ids.map((id) => {
               const dragId = id === 'maps/japan' ? 'ui.japanmap' : id
+              const label = paletteLabels[id] ?? registry[id].meta.displayName
               return (
                 <button
                   key={id}
@@ -64,7 +66,7 @@ function NewRegistryGroup() {
                   }}
                   onClick={() => createInstanceFromRegistry(id)}
                 >
-                  {registry[id].meta.displayName}
+                  {label}
                 </button>
               )
             })}
