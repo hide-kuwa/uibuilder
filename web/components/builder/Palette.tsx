@@ -1,27 +1,51 @@
 'use client'
 import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { listDefs } from '@/lib/registry'
-function Item({ comp }: { comp: { key: string; label: string } }) {
+import { registry, type RegistryItem } from '@/lib/registry'
+import { usePresetStore } from '@/store/presetStore'
+
+function useVisibleDefs() {
+  const rules = usePresetStore(s => s.active().palette)
+  const defs = Object.values(registry)
+
+  return defs.filter(d => {
+    const id = d.meta.id
+    const group = d.meta.group ?? ''
+    const inInclude = rules.include?.length ? rules.include.includes(id) : false
+    const groupAllowed = !rules.groups?.length || rules.groups.includes(group)
+    const notExcluded = !rules.exclude?.includes(id)
+    return inInclude || (groupAllowed && notExcluded)
+  })
+}
+
+function Item({ comp }: { comp: RegistryItem }) {
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: 'palette:' + comp.key,
-    data: { from: 'palette', type: 'instance', meta: { componentId: comp.key } },
+    id: 'palette:' + comp.meta.id,
+    data: { from: 'palette', type: 'instance', meta: { componentId: comp.meta.id } },
   })
   return (
-    <button ref={setNodeRef} {...attributes} {...listeners} className="w-full text-left px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800" title={comp.key}>
-      {comp.label}
+    <button
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className="w-full text-left px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800"
+      title={comp.meta.id}
+    >
+      {comp.meta.displayName}
     </button>
   )
 }
+
 export function Palette() {
-  const defs = listDefs()
+  const defs = useVisibleDefs()
   return (
     <div className="space-y-2">
       <div className="text-xs opacity-70">Elements</div>
       <div className="grid grid-cols-1 gap-2">
-        {defs.map((d) => <Item key={d.key} comp={d} />)}
+        {defs.map((d) => <Item key={d.meta.id} comp={d} />)}
       </div>
     </div>
   )
 }
+
 export default Palette
