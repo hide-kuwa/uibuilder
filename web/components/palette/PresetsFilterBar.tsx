@@ -1,6 +1,7 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { usePresetsFilter } from '@/store/presetsFilterStore'
+import { useWorkspace } from '@/store/workspaceStore'
 
 function Chip({ active, onClick, children, title }: { active?: boolean; onClick?: () => void; children: React.ReactNode; title?: string }) {
   return (
@@ -21,6 +22,13 @@ function Chip({ active, onClick, children, title }: { active?: boolean; onClick?
 
 export default function PresetsFilterBar() {
   const { activeDomains, toggleDomain, setOnly, reset, alwaysShowCommon } = usePresetsFilter()
+  const { workspace } = useWorkspace()
+
+  useEffect(() => {
+    const noFilter = !activeDomains.travel && !activeDomains.accounting
+    if (noFilter && workspace === 'travel') setOnly('travel')
+    if (noFilter && workspace === 'accounting') setOnly('accounting')
+  }, [workspace])
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] text-muted-foreground">表示</span>
