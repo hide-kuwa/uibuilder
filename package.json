@@ -12,7 +12,11 @@
     "meta": "ts-node scripts/generate-meta.ts",
     "gen:meta": "ts-node scripts/extract-props.ts",
     "e2e": "playwright test -c e2e/playwright.config.ts",
-    "e2e:ci": "E2E_BUILD=1 playwright test -c e2e/playwright.config.ts"
+    "e2e:ci": "E2E_BUILD=1 playwright test -c e2e/playwright.config.ts",
+    "codemod:href": "jscodeshift -t codemods/fix-next-dynamic-href.ts web",
+    "routes:gen": "ts-node --project tsconfig.json scripts/gen_route_helpers.ts",
+    "routes:check": "ts-node --project tsconfig.json scripts/check_dynamic_hrefs.ts",
+    "prebuild": "pnpm routes:gen && pnpm routes:check"
   },
   "bin": {
     "json2tsx": "./scripts/json2tsx.js"
@@ -42,6 +46,7 @@
     "@types/react": "^18.2.47",
     "@playwright/test": "^1.47.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "jscodeshift": "^0.15.2"
   }
 }

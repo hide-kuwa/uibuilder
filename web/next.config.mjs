@@ -5,7 +5,7 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 export default {
-  experimental: { externalDir: true },
+  experimental: { externalDir: true, typedRoutes: true },
   transpilePackages: ['@repo/types','@repo/comp-maps-jp'],
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
