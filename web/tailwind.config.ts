@@ -1,17 +1,13 @@
 import type { Config } from 'tailwindcss'
 
-const config: Config = {
+export default {
   content: [
-    './app/**/*.{ts,tsx,js,jsx,mdx}',
-    './components/**/*.{ts,tsx,js,jsx,mdx}',
-    './lib/**/*.{ts,tsx,js,jsx,mdx}',
-    './store/**/*.{ts,tsx,js,jsx,mdx}',
+    './app/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
   ],
-  theme: {
-    extend: {
-      // 必要に応じてカスタム（例：CSS変数と連動）
-    },
-  },
-  plugins: [],
-}
-export default config
+  darkMode: 'class',
+  theme: { extend: {} },
+  plugins: [require('@tailwindcss/forms')],
+} satisfies Config
+
