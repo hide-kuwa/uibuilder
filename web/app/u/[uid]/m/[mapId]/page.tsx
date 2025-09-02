@@ -6,6 +6,7 @@ import VisibilityToggle from '@/components/travel/VisibilityToggle'
 import PhotoUploader from '@/components/travel/PhotoUploader'
 import { usePrefPaint } from '@/store/prefPaintStore'
 import { getMap, onUser } from '@/services/travel'
+import DownloadPNG from '@/components/util/DownloadPNG'
 
 export default function MapPage({
   params,
@@ -40,7 +41,7 @@ export default function MapPage({
       <h1 className="text-xl font-bold">塗り地図</h1>
       {!allowed && !isOwner && <FollowButton ownerUid={params.uid} />}
       {allowed ? (
-        <div className="space-y-2">
+        <div id="mapCard" className="rounded-2xl border shadow-sm p-4 space-y-3 bg-background">
           {isOwner && (
             <VisibilityToggle
               uid={params.uid}
@@ -50,6 +51,9 @@ export default function MapPage({
           )}
           <PrefGridMap />
           {isOwner && <PhotoUploader uid={params.uid} mapId={params.mapId} />}
+          <div className="flex items-center gap-2">
+            <DownloadPNG targetId="mapCard" fileName={`${params.uid}-${params.mapId}.png`} />
+          </div>
         </div>
       ) : (
         loaded && <p className="text-sm">閲覧できません</p>
