@@ -1,27 +1,25 @@
 'use client'
-import React, { useEffect, useState } from 'react'
-import { getVisibility, setVisibility } from '@/services/travel'
+import React from 'react'
+import { setVisibility } from '@/services/travel'
 
-type Props = { uid: string; mapId: string }
-
-export default function VisibilityToggle({ uid, mapId }: Props) {
-  const [vis, setVis] = useState<'public' | 'followers' | 'private'>('public')
-
-  useEffect(() => {
-    getVisibility(uid, mapId).then(v => setVis(v))
-  }, [uid, mapId])
-
-  const change = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value as 'public' | 'followers' | 'private'
-    setVis(v)
-    setVisibility(uid, mapId, v)
-  }
-
+export default function VisibilityToggle({
+  uid,
+  mapId,
+  value,
+}: {
+  uid: string
+  mapId: string
+  value: 'public' | 'followers' | 'private'
+}) {
   return (
-    <select value={vis} onChange={change} className="border rounded p-1 text-xs">
-      <option value="public">public</option>
-      <option value="followers">followers</option>
-      <option value="private">private</option>
+    <select
+      className="border rounded px-2 py-1"
+      defaultValue={value}
+      onChange={e => setVisibility(uid, mapId, e.target.value as any)}
+    >
+      <option value="public">公開</option>
+      <option value="followers">フォロワーのみ</option>
+      <option value="private">非公開</option>
     </select>
   )
 }
