@@ -18,6 +18,8 @@ import BackgroundGradient from '@/components/design/BackgroundGradient';
 import Section from '@/components/design/Section';
 import Hero from '@/components/typography/Hero';
 import { MapThemeProvider } from '@/contexts/MapThemeContext';
+import AnimeOnMount from '@/components/anim/AnimeOnMount';
+import AnimeOnView from '@/components/anim/AnimeOnView';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -341,5 +343,7 @@ export const REGISTRY = {
   POIMap: { component: POIMap, displayName: 'POIMap' },
   CostSplit: { component: CostSplit, displayName: 'CostSplit' },
   MapThemeProvider: { component: MapThemeProvider, displayName: 'MapThemeProvider' },
+  AnimeOnMount: { component: AnimeOnMount, displayName: 'AnimeOnMount' },
+  AnimeOnView: { component: AnimeOnView, displayName: 'AnimeOnView' },
   ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
 } as const;
