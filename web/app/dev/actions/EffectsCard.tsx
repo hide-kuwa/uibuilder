@@ -3,12 +3,26 @@ import { usePresetDraft } from '@/store/presetDraftStore'
 import { CardFieldset } from './_ui/Field'
 import React, { useState } from 'react'
 
-const DEFAULT_SWATCHES = ['#004cff','#0ea5e9','#22c55e','#f59e0b','#ef4444',
-                          '#a855f7','#ec4899','#111827','#334155','#e5e7eb']
+const DEFAULT_SWATCHES = [
+  '#004cff',
+  '#38bdf8',
+  '#22c55e',
+  '#f59e0b',
+  '#ef4444',
+  '#a855f7',
+  '#ec4899',
+  '#111827',
+  '#334155',
+  '#e5e7eb',
+]
 
 const recentKey = 'actions-recent-colors'
 const loadRecents = (): string[] => {
-  try { return JSON.parse(localStorage.getItem(recentKey) || '[]') } catch { return [] }
+  try {
+    return JSON.parse(localStorage.getItem(recentKey) || '[]')
+  } catch {
+    return []
+  }
 }
 const pushRecent = (hex: string) => {
   try {
@@ -64,9 +78,9 @@ export default function EffectsCard(){
                   <label className="inline-flex items-center gap-1">
                     bg
                     <input
-                      className="border rounded px-2 py-1 w-28 ml-1"
+                      className="border rounded px-2 py-1 w-28 ml-1 bg-muted text-foreground"
                       type="text"
-                      value={e.value?.color ?? '#4440ff'}
+                      value={e.value?.color ?? '#004cff'}
                       onChange={(ev)=>update(i,{ value:{ ...e.value, color:ev.target.value }})}
                       onBlur={(ev)=>pushRecent(ev.target.value)}
                     />
@@ -74,20 +88,15 @@ export default function EffectsCard(){
                   <input
                     type="color"
                     className="h-7 w-10 cursor-pointer"
-                    value={(e.value?.color ?? '#4440ff')}
-                    onChange={(ev)=>{ update(i,{ value:{ ...e.value, color:ev.target.value }}); pushRecent(ev.target.value) }}
+                    value={e.value?.color ?? '#004cff'}
+                    onChange={(ev)=>{ update(i,{ value:{ ...e.value, color:ev.target.value }}); pushRecent(ev.target.value); }}
                   />
                 </div>
-
                 <div className="flex flex-wrap items-center gap-1">
-                  {[...loadRecents(), ...DEFAULT_SWATCHES].slice(0, 12).map(hex=>(
-                    <button
-                      key={hex}
-                      type="button"
-                      className="h-6 w-6 rounded border"
-                      style={{ background: hex }}
-                      title={hex}
-                      onClick={()=>{ update(i,{ value:{ ...e.value, color:hex }}); pushRecent(hex) }}
+                  {[...new Set([...loadRecents(), ...DEFAULT_SWATCHES])].slice(0,12).map(hex=>(
+                    <button key={hex} type="button"
+                      className="h-6 w-6 rounded border" style={{ background: hex }} title={hex}
+                      onClick={()=>{ update(i,{ value:{ ...e.value, color:hex }}); pushRecent(hex); }}
                     />
                   ))}
                 </div>
@@ -155,7 +164,7 @@ export default function EffectsCard(){
 function defaultValue(kind:Kind){
   switch(kind){
     case 'scale': return { scale:1 }
-    case 'bgColor': return { color:'#4440ff' }
+    case 'bgColor': return { color:'#004cff' }
     case 'shadow': return { level:'xl' }
     case 'opacity': return { opacity:0.9 }
     case 'cursor': return { cursor:'pointer' }

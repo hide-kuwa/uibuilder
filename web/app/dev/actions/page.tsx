@@ -15,7 +15,7 @@ export default function DevActionsPage(){
   const applyAll = useBuilderStore(s=>s.applyInteractiveToAll)
 
   return (
-    <div className="p-3">
+    <div className="dev-actions p-3">
       <div className="grid grid-cols-[220px,1fr,320px] gap-4">
         {/* 左：プリセット一覧（元の密度） */}
         <aside className="space-y-2">
