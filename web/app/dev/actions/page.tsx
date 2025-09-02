@@ -6,6 +6,7 @@ import ActionsCard from './ActionsCard'
 import { PRESETS } from '@/lib/presets'
 import { useBuilderStore } from '@/store/builderStore'
 import { usePresetDraft } from '@/store/presetDraftStore'
+import InteractiveWrapper from '@/components/interactive/InteractiveWrapper'
 
 export default function DevActionsPage(){
   const placePreset = useBuilderStore(s=>s.placePreset)
@@ -19,14 +20,14 @@ export default function DevActionsPage(){
         {/* 左：プリセット一覧（元の密度） */}
         <aside className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold">Presets</div>
+            <div className="text-xs font-semibold text-foreground">Presets</div>
           </div>
           <div className="space-y-1">
             {PRESETS.map(p=>(
               <button key={p.id} onClick={()=>placePreset(p.id)}
                 className="w-full text-left px-2 py-1 rounded border hover:bg-accent text-xs">
                 <div className="font-medium truncate">{p.displayName}</div>
-                <div className="opacity-60 truncate">{(p as any).tags?.join(', ')}</div>
+                <div className="text-foreground/70 truncate">{(p as any).tags?.join(', ')}</div>
               </button>
             ))}
           </div>
@@ -58,9 +59,23 @@ export default function DevActionsPage(){
 
         {/* 右：プレビュー */}
         <aside>
-          <div className="text-xs font-semibold mb-2">Preview（必要なら .group を付けて Group Hover も確認）</div>
-          <div className="rounded-xl border p-6 bg-muted/10">
-            <div className="h-32 rounded-lg border flex items-center justify-center text-sm">Hover me</div>
+          <div className="text-xs font-semibold mb-2 text-foreground">Preview</div>
+          <div className="rounded-xl border p-4 bg-card">
+            <div className="group">{/* groupHover 用 */}
+              <InteractiveWrapper draft={draft}>
+                <button
+                  type="button"
+                  tabIndex={0}
+                  className="h-32 w-full rounded-lg border flex items-center justify-center text-sm bg-background text-foreground cursor-pointer select-none"
+                  title="Hover me"
+                >
+                  Hover me
+                </button>
+              </InteractiveWrapper>
+            </div>
+            <p className="mt-2 text-[11px] text-foreground/70">
+              （Group Hover を試すときは外側の .group にマウスを乗せてください）
+            </p>
           </div>
         </aside>
       </div>
