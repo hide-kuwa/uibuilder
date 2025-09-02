@@ -1,6 +1,7 @@
 import type { AnimeParams } from 'animejs'
+import type { AnimePresetKey } from '@/types/motion'
 
-export const animePresets: Record<string, (el: Element)=>AnimeParams> = {
+export const animePresets: Record<AnimePresetKey, (el: Element)=>AnimeParams> = {
   fadeIn: () => ({ opacity: [0, 1] }),
   fadeOut: () => ({ opacity: [1, 0] }),
 
