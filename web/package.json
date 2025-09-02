@@ -24,6 +24,7 @@
     "framer-motion": "^12.23.12",
     "html-to-image": "^1.11.13",
     "immer": "^10.0.0",
+    "json-logic-js": "^2.0.5",
     "nanoid": "^5.0.2",
     "next": "14.2.5",
     "octokit": "^5.0.3",
