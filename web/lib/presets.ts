@@ -77,11 +77,56 @@ export const preset_travelPrefPaintCard: PresetDef = {
   },
 }
 
+export const preset_placeGalleryCard: PresetDef = {
+  id: 'preset.travel.gallery.card',
+  displayName: 'Place Gallery（カード）',
+  tags: ['travel', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: 'スポット写真', className: 'w-[560px] h-[360px]' } as any,
+    children: [
+      { id: newId('n'), type: 'PlaceGallery', props: { images: [] } as any },
+    ],
+  },
+}
+
+export const preset_poiMapCard: PresetDef = {
+  id: 'preset.travel.poi.card',
+  displayName: 'POI Map（カード）',
+  tags: ['travel', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: 'スポット地図', className: 'w-[560px] h-[360px]' } as any,
+    children: [
+      { id: newId('n'), type: 'POIMap', props: { markers: [] } as any },
+    ],
+  },
+}
+
+export const preset_costSplitCard: PresetDef = {
+  id: 'preset.travel.costsplit.card',
+  displayName: 'Cost Split（カード）',
+  tags: ['travel', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '費用分担', className: 'w-[420px] h-[240px]' } as any,
+    children: [
+      { id: newId('n'), type: 'CostSplit', props: { items: [] } as any },
+    ],
+  },
+}
+
 export const PRESETS: PresetDef[] = [
   preset_japanMapCard_basic,
   preset_tripHeaderCard,
   preset_itineraryTimelineCard,
   preset_travelPrefPaintCard,
+  preset_placeGalleryCard,
+  preset_poiMapCard,
+  preset_costSplitCard,
   preset_travel_map_share_save_card_grid,
   preset_travel_map_enum_card,
   // JapanMap（SVG版）があるなら追加

@@ -10,6 +10,9 @@ import PrefEnumLegend from '@/components/travel/PrefEnumLegend';
 import PrefEnumGridMap from '@/components/travel/PrefEnumGridMap';
 import PrefEnumShareBar from '@/components/travel/PrefEnumShareBar';
 import SaveMapBarEnum from '@/components/travel/SaveMapBarEnum';
+import PlaceGallery from '@/components/travel/PlaceGallery';
+import POIMap from '@/components/travel/POIMap';
+import CostSplit from '@/components/travel/CostSplit';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -219,6 +222,42 @@ register({
   Render: SaveMapBarEnum,
 });
 
+register({
+  meta: {
+    id: 'PlaceGallery',
+    displayName: 'PlaceGallery',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: PlaceGallery,
+});
+
+register({
+  meta: {
+    id: 'POIMap',
+    displayName: 'POIMap',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: POIMap,
+});
+
+register({
+  meta: {
+    id: 'CostSplit',
+    displayName: 'CostSplit',
+    props: [],
+    allowChildren: false,
+    defaultW: 420,
+    defaultH: 240,
+  },
+  Render: CostSplit,
+});
+
 export const REGISTRY = {
   Card: { component: Card, displayName: 'Card' },
   PrefShareBar: { component: PrefShareBar, displayName: 'PrefShareBar' },
@@ -229,5 +268,8 @@ export const REGISTRY = {
   PrefEnumGridMap: { component: PrefEnumGridMap, displayName: 'PrefEnumGridMap' },
   PrefEnumShareBar: { component: PrefEnumShareBar, displayName: 'PrefEnumShareBar' },
   SaveMapBarEnum: { component: SaveMapBarEnum, displayName: 'SaveMapBarEnum' },
+  PlaceGallery: { component: PlaceGallery, displayName: 'PlaceGallery' },
+  POIMap: { component: POIMap, displayName: 'POIMap' },
+  CostSplit: { component: CostSplit, displayName: 'CostSplit' },
   ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
 } as const;
