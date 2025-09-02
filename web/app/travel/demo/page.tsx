@@ -26,6 +26,11 @@ export default function TravelDemoPage() {
       <p className="text-sm text-muted-foreground">
         カード右下の「PNGで保存」で、今の塗りを画像にできます。
       </p>
+
+      <p className="text-sm">
+        <a className="underline" href="/discover">Discover</a> /
+        <a className="underline ml-2" href="/feed">フォロー中の新着</a>
+      </p>
     </div>
   )
 }
