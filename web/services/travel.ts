@@ -140,6 +140,53 @@ export async function listUserMaps(uid: string, max = 50): Promise<MapDoc[]> {
   return snap.docs.map(d => ({ ...(d.data() as any), _id: d.id, _owner: uid }) as MapDoc)
 }
 
+export async function listApprovedOwnersFor(meUid: string): Promise<string[]> {
+  const qy = query(
+    collectionGroup(db, 'followers'),
+    where('__name__', '==', meUid),
+    where('status', '==', 'approved'),
+  )
+  const snap = await getDocs(qy)
+  const owners = new Set<string>()
+  snap.forEach(d => {
+    const parts = d.ref.path.split('/')
+    if (parts.length >= 4) owners.add(parts[1])
+  })
+  return [...owners]
+}
+
+export async function listOwnerMapsForFeed(
+  ownerUid: string,
+  maxPerOwner = 10,
+): Promise<MapDoc[]> {
+  const qy = query(
+    collection(db, 'users', ownerUid, 'maps'),
+    where('visibility', 'in', ['public', 'followers']),
+    orderBy('updatedAt', 'desc'),
+    limit(maxPerOwner),
+  )
+  const snap = await getDocs(qy)
+  return snap.docs.map(d => ({ ...(d.data() as any), _id: d.id, _owner: ownerUid }))
+}
+
+export async function listFollowingFeed(
+  meUid: string,
+  maxPerOwner = 5,
+): Promise<MapDoc[]> {
+  const owners = await listApprovedOwnersFor(meUid)
+  if (!owners.length) return []
+  const chunks = await Promise.all(
+    owners.map(uid => listOwnerMapsForFeed(uid, maxPerOwner)),
+  )
+  const all = chunks.flat()
+  all.sort((a, b) => {
+    const ta = a.updatedAt?.toMillis?.() ?? 0
+    const tb = b.updatedAt?.toMillis?.() ?? 0
+    return tb - ta
+  })
+  return all
+}
+
 export async function getUserProfile(
   uid: string,
 ): Promise<{ displayName?: string; photoURL?: string } | null> {
