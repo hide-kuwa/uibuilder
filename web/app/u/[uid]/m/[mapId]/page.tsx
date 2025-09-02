@@ -1,10 +1,11 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import PrefGridMap from '@/components/travel/PrefGridMap'
+import PrefEnumGridMap from '@/components/travel/PrefEnumGridMap'
 import { FollowButton } from '@/components/travel/FollowControls'
 import VisibilityToggle from '@/components/travel/VisibilityToggle'
 import PhotoUploader from '@/components/travel/PhotoUploader'
 import { usePrefPaint } from '@/store/prefPaintStore'
+import { usePrefPaintEnum } from '@/store/prefPaintEnumStore'
 import { getMap, onUser } from '@/services/travel'
 import DownloadPNG from '@/components/util/DownloadPNG'
 
@@ -13,7 +14,8 @@ export default function MapPage({
 }: {
   params: { uid: string; mapId: string }
 }) {
-  const importB64 = usePrefPaint(s => s.importB64)
+  const importBool = usePrefPaint(s => s.importB64)
+  const importEnum = usePrefPaintEnum(s => s.importEnumB64)
   const [allowed, setAllowed] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -25,14 +27,27 @@ export default function MapPage({
     getMap(params.uid, params.mapId)
       .then(doc => {
         if (doc) {
-          importB64(doc.paintB64)
-          setVisibility(doc.visibility)
-          setAllowed(true)
+          if (doc.paintB64) {
+            importEnum(doc.paintB64)
+            setTimeout(() => {
+              const st = usePrefPaintEnum.getState().painted
+              const has = Object.values(st).some(v => v && v > 0)
+              if (!has) importBool(doc.paintB64)
+              setAllowed(true)
+              setVisibility(doc.visibility)
+              setLoaded(true)
+            }, 0)
+          } else {
+            setVisibility(doc.visibility)
+            setAllowed(true)
+            setLoaded(true)
+          }
+        } else {
+          setLoaded(true)
         }
-        setLoaded(true)
       })
       .catch(() => setLoaded(true))
-  }, [params.uid, params.mapId, importB64])
+  }, [params.uid, params.mapId, importBool, importEnum])
 
   const isOwner = user?.uid === params.uid
 
@@ -49,7 +64,7 @@ export default function MapPage({
               value={visibility}
             />
           )}
-          <PrefGridMap />
+          <PrefEnumGridMap />
           {isOwner && <PhotoUploader uid={params.uid} mapId={params.mapId} />}
           <div className="flex items-center gap-2">
             <DownloadPNG targetId="mapCard" fileName={`${params.uid}-${params.mapId}.png`} />
