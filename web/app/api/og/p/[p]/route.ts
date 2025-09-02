@@ -17,10 +17,12 @@ const decodeBool = (b64: string): number[] => {
   }
 }
 
-export async function GET(_: Request, { params }: { params: { p: string } }) {
+export async function GET(req: Request, { params }: { params: { p: string } }) {
   const vals = decodeBool(params.p)
+  const t = new URL(req.url).searchParams.get('t')
   // 再利用：列挙APIに合わせた描画
   const url = new URL('/api/og/' + btoa(String.fromCharCode(...pack2bit(vals))), 'http://x')
+  if (t) url.searchParams.set('t', t)
   return fetch(url) // 2bitへ変換して転送
 }
 

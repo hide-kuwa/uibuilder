@@ -3,45 +3,46 @@ import React from 'react'
 import { JapanMap } from '@repo/comp-maps-jp/JapanMap'
 import type { PrefCode } from '@repo/comp-maps-jp/types'
 import { usePrefPaintEnum } from '@/store/prefPaintEnumStore'
+import { getMapPalette } from '@/lib/mapPalette'
 
 export type Enum = 0 | 1 | 2 | 3
-export type Palette = { none: string; want: string; visited: string; lived: string; stroke?: string }
 export type Props = {
   clickable?: boolean
-  palette?: Partial<Palette>
+  paletteId?: string
+  palette?: Partial<{ none: string; want: string; visited: string; lived: string; stroke: string }>
   showLabels?: boolean
   className?: string
 }
 
-const DEFAULT_PALETTE: Required<Palette> = {
-  none: 'hsl(0 0% 98%)',
-  want: 'hsl(38 92% 55%)',
-  visited: 'hsl(217 91% 60%)',
-  lived: 'hsl(0 84% 60%)',
-  stroke: '#0b1020',
-}
-
 export default function JapanMapEnumSVG({
   clickable = true,
+  paletteId,
   palette,
   showLabels = false,
   className,
 }: Props) {
   const painted = usePrefPaintEnum((s) => s.painted)
   const cycle = usePrefPaintEnum((s) => s.cycle)
-  const pal = { ...DEFAULT_PALETTE, ...palette }
+  const pal = getMapPalette(paletteId)
+  const colors = {
+    none: palette?.none ?? pal.none,
+    want: palette?.want ?? pal.want,
+    visited: palette?.visited ?? pal.visited,
+    lived: palette?.lived ?? pal.lived,
+    stroke: palette?.stroke ?? pal.stroke,
+  }
 
   const getFill = (code: PrefCode) => {
     const v = painted[code] ?? 0
     switch (v) {
       case 1:
-        return pal.want
+        return colors.want
       case 2:
-        return pal.visited
+        return colors.visited
       case 3:
-        return pal.lived
+        return colors.lived
       default:
-        return pal.none
+        return colors.none
     }
   }
 
@@ -54,7 +55,7 @@ export default function JapanMapEnumSVG({
     <JapanMap
       values={{}}
       showLabels={showLabels}
-      palette={{ visited: pal.visited, lived: pal.lived, passed: pal.want, none: pal.none, stroke: pal.stroke }}
+      palette={{ visited: colors.visited, lived: colors.lived, passed: colors.want, none: colors.none, stroke: colors.stroke }}
       strokeWidth={1}
       labelKind={showLabels ? 'pref' : 'none'}
       getFill={getFill}

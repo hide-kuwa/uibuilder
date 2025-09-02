@@ -129,3 +129,17 @@ export const preset_travel_landing_svg: PresetDef = {
     ],
   },
 }
+
+export const preset_theme_ocean: PresetDef = {
+  id: 'preset.theme.ocean',
+  displayName: 'Theme (Ocean)',
+  tags: ['common'],
+  tree: { id: newId('n'), type: 'MapThemeProvider', props: { id: 'ocean' }, children: [] },
+}
+
+export const preset_theme_sakura: PresetDef = {
+  id: 'preset.theme.sakura',
+  displayName: 'Theme (Sakura)',
+  tags: ['common'],
+  tree: { id: newId('n'), type: 'MapThemeProvider', props: { id: 'sakura' }, children: [] },
+}
