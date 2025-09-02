@@ -2,6 +2,7 @@
 import '../registry.entry';
 import React, { useEffect } from 'react'
 import BuilderPage from './BuilderPage'
+import Sidebar from '@/components/layout/Sidebar'
 import { useBuilderStore } from '@/store/builderStore'
 import { loadProjectFromQuery, makeProject, saveProject } from '@/lib/project/io'
 import { mountLiveSync } from '@/store/liveSync'
@@ -51,5 +52,12 @@ export default function BuilderPageWrapper() {
     return () => { unsub1(); unsub2(); unsub3() }
   }, [])
 
-  return <BuilderPage />
+  return (
+    <div className="flex h-[calc(100vh-40px)]">
+      <Sidebar />
+      <div className="flex-1">
+        <BuilderPage />
+      </div>
+    </div>
+  )
 }
