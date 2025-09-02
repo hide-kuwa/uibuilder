@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import { produce } from 'immer'
 import { getDef } from '@/lib/registry'
+import { getPresetById, cloneSubtree } from '@/lib/presets'
 import { useGridStore } from '@/store/gridStore'
 import { useHistoryStore } from './historyStore'
 import type { ActionMap } from '@/types/actions'
@@ -63,6 +64,7 @@ type BuilderState = {
 }
 
 type BuilderActions = {
+  placePreset: (presetId: string, pos?: { x: number; y: number }) => void
   addFromPalette: (type: string, at?: { x: number; y: number }, meta?: any) => void
   move: (id: string, to: { x: number; y: number }, snapGrid?: boolean) => void
   resize: (id: string, to: { w: number; h: number }, snapGrid?: boolean) => void
@@ -133,6 +135,49 @@ export const useBuilderStore = create<BuilderState & BuilderActions>((set, get) 
     selectedIds: [],
     ui: { guides: [] },
     historyBatchDepth: 0,
+
+  placePreset(presetId, pos) {
+    const preset = getPresetById(presetId)
+    if (!preset) return
+    const root = cloneSubtree(preset.tree)
+
+    const flatten = (node: any, parentId: string | null, acc: Elm[]): Elm => {
+      const id = node.id
+      const x = parentId ? 0 : Math.round(pos?.x ?? 40)
+      const y = parentId ? 0 : Math.round(pos?.y ?? 40)
+      const def = getDef(node.type)
+      const w = def?.meta?.defaultW ?? 160
+      const h = def?.meta?.defaultH ?? 40
+      const elm: Elm = {
+        id,
+        type: node.type,
+        x,
+        y,
+        w,
+        h,
+        visible: true,
+        locked: false,
+        parentId,
+        children: [],
+        props: node.props,
+      }
+      acc.push(elm)
+      node.children?.forEach((ch: any) => {
+        const child = flatten(ch, id, acc)
+        elm.children?.push(child.id)
+      })
+      return elm
+    }
+
+    const list: Elm[] = []
+    const rootElm = flatten(root, null, list)
+    set((s) => ({
+      elements: [...s.elements, ...list],
+      tree: [...s.tree, rootElm],
+      selectedId: rootElm.id,
+      selectedIds: [rootElm.id],
+    }))
+  },
 
   addFromPalette(type, pos, meta) {
     const s = get()

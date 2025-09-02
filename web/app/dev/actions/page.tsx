@@ -12,6 +12,8 @@ import type {
 import { buildPresetCss } from '@/lib/interactionCss'
 import { emitApply } from '@/lib/presetChannel'
 import { useEditorStore } from '@/store/editorStore'
+import { useBuilderStore } from '@/store/builderStore'
+import { PRESETS } from '@/lib/presets'
 
 const ALL_TRIGGERS: Trigger[] = ['hover','active','focus','focusWithin','groupHover']
 const EFFECT_OPTIONS: Effect['kind'][] = ['bgColor','textColor','borderColor','shadow','scale','opacity','translate','rotate','outline','cursor']
@@ -24,11 +26,23 @@ export default function ActionDesignerPage() {
   const onNew = () => add({ name:'New Preset', triggers:['hover'], effects:[], transitionMs:120, easing:'cubic-bezier(.2,.8,.2,1)' })
   const sel = presets.find(p => p.id === selectedId)
   const selectedNodeId = useEditorStore(s => s.selectedIds[0])
+  const placePreset = useBuilderStore((s) => s.placePreset)
 
   const css = useMemo(() => sel ? buildPresetCss('preview-node', sel) : '', [sel])
 
   return (
     <div className="h-full flex bg-neutral-950 text-neutral-100">
+      <div className="absolute top-2 left-2 flex gap-2 z-50">
+        {PRESETS.map((p) => (
+          <button
+            key={p.id}
+            className="px-2 py-1 bg-neutral-800 rounded text-xs"
+            onClick={() => placePreset(p.id)}
+          >
+            Place: {p.displayName}
+          </button>
+        ))}
+      </div>
       {/* 左：一覧 */}
       <div className="w-72 border-r border-neutral-800 p-3 flex flex-col gap-2">
         <div className="flex gap-2">
