@@ -17,7 +17,7 @@ export default function PresetsSection() {
   const shouldShow = (p: PresetDef) => {
     if (alwaysShowCommon && p.tags.includes('common')) return true
     if (activeSet.size === 0) return true
-    return p.tags.some((t) => activeSet.has(t))
+    return p.tags.some((t) => activeSet.has(t as any))
   }
 
   const list = PRESETS.filter(shouldShow)

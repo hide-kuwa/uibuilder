@@ -8,7 +8,7 @@ export type PresetDef = {
   id: string
   displayName: string
   icon?: string
-  tags: PresetTag[]
+  tags: PresetTag[] // tags are mandatory
   tree: ComponentNode
 }
 
