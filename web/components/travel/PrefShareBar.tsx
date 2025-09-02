@@ -19,8 +19,11 @@ export default function PrefShareBar() {
       return
     }
     const id = await createMap(user.uid, { paintB64: b64 })
-    const url = `${location.origin}/u/${user.uid}/m/${id}`
-    await navigator.clipboard?.writeText(url)
+    const p = b64
+    const share = `${location.origin}/s/p/${p}`
+    const doc = `${location.origin}/u/${user.uid}/m/${id}`
+    await navigator.clipboard?.writeText(share)
+    void doc
     setMsg('コピーした！')
     setTimeout(() => setMsg(null), 1000)
   }
