@@ -136,6 +136,9 @@ type BuilderActions = {
   beginBatch: () => void;
   endBatch: () => void;
   updateMany: (patches: ElmPatch[], recordHistory?: boolean) => void;
+  wrapSelectedWith: (type: 'AnimeOnMount' | 'AnimeOnView', props?: Record<string, any>) => void;
+  unwrapSelectedIf: (type?: 'AnimeOnMount' | 'AnimeOnView') => void;
+  replayAnimationOnSelected: () => void;
 };
 
 function snapToGrid(n: number) {
@@ -839,6 +842,138 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
             });
           }),
         );
+      },
+
+      wrapSelectedWith(type, props = {}) {
+        const { selectedIds } = get();
+        if (!selectedIds.length) return;
+        set((state) => {
+          const ids = new Set(selectedIds);
+          const replacements = new Map<string, Elm>();
+          const newElements: Elm[] = [];
+          state.elements.forEach((el) => {
+            if (!ids.has(el.id)) {
+              newElements.push(el);
+              return;
+            }
+            const wrapperId = newId("n");
+            const child: Elm = { ...el, x: 0, y: 0, parentId: wrapperId };
+            const wrapper: Elm = {
+              id: wrapperId,
+              type,
+              x: el.x,
+              y: el.y,
+              w: el.w,
+              h: el.h,
+              visible: el.visible,
+              locked: el.locked,
+              parentId: el.parentId ?? null,
+              children: [child.id],
+              props: { ...(props || {}) },
+            };
+            replacements.set(el.id, wrapper);
+            newElements.push(wrapper, child);
+          });
+          newElements.forEach((el) => {
+            if (el.children) {
+              el.children = el.children.map((cid) => {
+                const rep = replacements.get(cid);
+                return rep ? rep.id : cid;
+              });
+            }
+          });
+          const newTree = state.tree.map((root) => {
+            const rep = replacements.get(root.id);
+            return rep ? rep : root;
+          });
+          const newSelected = selectedIds.map(
+            (id) => replacements.get(id)?.id || id,
+          );
+          return {
+            elements: newElements,
+            tree: newTree,
+            selectedIds: newSelected,
+            selectedId: newSelected[newSelected.length - 1] ?? null,
+          };
+        });
+      },
+
+      unwrapSelectedIf(type) {
+        const { selectedIds } = get();
+        if (!selectedIds.length) return;
+        set((state) => {
+          const toRemove = new Set<string>();
+          const newSelected: string[] = [];
+          state.elements.forEach((wrapper) => {
+            if (!selectedIds.includes(wrapper.id)) return;
+            if (
+              !(
+                wrapper.type === "AnimeOnMount" ||
+                wrapper.type === "AnimeOnView"
+              )
+            )
+              return;
+            if (type && wrapper.type !== type) return;
+            if (!wrapper.children?.length) return;
+            const childId = wrapper.children[0];
+            const child = state.elements.find((e) => e.id === childId);
+            if (!child) return;
+            child.parentId = wrapper.parentId ?? null;
+            child.x = (child.x ?? 0) + (wrapper.x ?? 0);
+            child.y = (child.y ?? 0) + (wrapper.y ?? 0);
+            if (wrapper.parentId) {
+              const parent = state.elements.find((e) => e.id === wrapper.parentId);
+              if (parent && parent.children) {
+                parent.children = parent.children.map((cid) =>
+                  cid === wrapper.id ? childId : cid,
+                );
+              }
+            }
+            newSelected.push(childId);
+            toRemove.add(wrapper.id);
+          });
+          const elements = state.elements.filter((e) => !toRemove.has(e.id));
+          const map = new Map(elements.map((e) => [e.id, e]));
+          const tree = state.tree.reduce<Elm[]>((acc, root) => {
+            if (toRemove.has(root.id)) {
+              const child = map.get(root.children?.[0] || "");
+              if (child) acc.push(child);
+            } else {
+              acc.push(map.get(root.id) || root);
+            }
+            return acc;
+          }, []);
+          return {
+            elements,
+            tree,
+            selectedIds: newSelected,
+            selectedId: newSelected[newSelected.length - 1] ?? null,
+          };
+        });
+      },
+
+      replayAnimationOnSelected() {
+        const { selectedIds } = get();
+        if (!selectedIds.length) return;
+        set((state) => {
+          const idSet = new Set(selectedIds);
+          const elements = state.elements.map((el) => {
+            if (
+              idSet.has(el.id) &&
+              (el.type === "AnimeOnMount" || el.type === "AnimeOnView")
+            ) {
+              const pk = Number((el.props as any)?.playKey ?? 0);
+              return {
+                ...el,
+                props: { ...(el.props || {}), playKey: pk + 1 },
+              };
+            }
+            return el;
+          });
+          const map = new Map(elements.map((e) => [e.id, e]));
+          const tree = state.tree.map((r) => map.get(r.id) || r);
+          return { elements, tree };
+        });
       },
 
       setElements(els) {
