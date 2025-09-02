@@ -1,7 +1,9 @@
 'use client'
-import { animate, utils, type AnimationParams } from 'animejs'
+import type { AnimationParams } from 'animejs'
 import { animePresets } from '@/lib/anime-presets'
 import type { MotionEffect, MotionEvent, NodeTarget } from '@/types/motion'
+
+const animeP = () => import('animejs')
 
 const resolveTarget = (target: NodeTarget | undefined, fallback: HTMLElement | null) => {
   if (!target) return fallback
@@ -16,6 +18,7 @@ export function runMotionEffects(
   fallbackEl: HTMLElement | null
 ) {
   if (!effects?.length) return
+  const modP = animeP()
   for (const eff of effects) {
     if (!eff.runWhen?.includes(when)) continue
     const el = resolveTarget(eff.target, fallbackEl)
@@ -28,7 +31,9 @@ export function runMotionEffects(
     }
     const preset = animePresets[eff.preset]?.(el) ?? {}
     const opts = eff.options ?? {}
-    utils.remove(el)
-    animate(el, { ...base, ...preset, ...opts })
+    modP.then(({ utils, animate }) => {
+      utils.remove(el)
+      animate(el, { ...base, ...preset, ...opts })
+    })
   }
 }
