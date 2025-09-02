@@ -3,6 +3,8 @@ import Card from '@/components/Card';
 import TripHeader from '@/components/travel/TripHeader';
 import ItineraryTimeline from '@/components/travel/ItineraryTimeline';
 import JapanMap from '@/components/domain/JapanMap';
+import PrefShareBar from '@/components/travel/PrefShareBar';
+import PrefGridMap from '@/components/travel/PrefGridMap';
 
 export type RegistryItem = {
   meta: ComponentMeta;
@@ -102,4 +104,28 @@ register({
     defaultH: 360,
   },
   Render: JapanMap,
+});
+
+register({
+  meta: {
+    id: 'PrefShareBar',
+    displayName: 'PrefShareBar',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 40,
+  },
+  Render: PrefShareBar,
+});
+
+register({
+  meta: {
+    id: 'PrefGridMap',
+    displayName: 'PrefGridMap',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: PrefGridMap,
 });
