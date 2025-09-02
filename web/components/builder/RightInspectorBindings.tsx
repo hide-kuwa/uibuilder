@@ -22,7 +22,7 @@ export default function RightInspectorBindings() {
   }
 
   return (
-    <div className="p-2 space-y-2 text-xs">
+    <div className="td-form-scope p-2 space-y-2 text-xs">
       <div className="flex space-x-2">
         <select
           className="bg-gray-700 text-white p-1"
