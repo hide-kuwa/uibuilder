@@ -1,9 +1,4 @@
-import { NextResponse } from "next/server";
-import path from "path";
-import { parseComponentTreeFromFile } from "../../../../scripts/parseComponentTree";
-
+import { NextResponse } from 'next/server'
 export async function GET() {
-  const filePath = path.resolve(process.cwd(), "../components/page.tsx");
-  const tree = parseComponentTreeFromFile(filePath);
-  return NextResponse.json({ tree });
+  return NextResponse.json({ tree: [] })
 }
