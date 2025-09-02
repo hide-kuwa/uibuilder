@@ -9,7 +9,7 @@ import type { PrefCode, VisitStatus, JapanMapProps } from './types';
 const CYCLE: VisitStatus[] = ['none','passed','visited','lived'];
 
 export function JapanMap(props: JapanMapProps) {
-  const { values, showLabels, palette, strokeWidth, labelKind, onChange, onHover } = props;
+  const { values, showLabels, palette, strokeWidth, labelKind, onChange, onHover, getFill, onPrefClick, className, svgProps } = props
   const [hover, setHover] = useState<PrefCode | null>(null);
   const nextOf = (v?: VisitStatus) => CYCLE[(CYCLE.indexOf(v ?? 'none') + 1) % CYCLE.length];
 
@@ -22,11 +22,15 @@ export function JapanMap(props: JapanMapProps) {
   const labels = labelKind === 'capital' ? CAPITAL_LABELS : PREF_LABELS;
 
   return (
-    <svg viewBox="0 0 480 480" className="w-full h-auto select-none">
+    <svg
+      viewBox="0 0 480 480"
+      className={["w-full h-auto select-none", className].filter(Boolean).join(' ')}
+      {...svgProps}
+    >
       <g>
         {(Object.keys(PREF_PATHS) as PrefCode[]).map((code) => {
           const d = PREF_PATHS[code];
-          const fill = colorOf(values[code], palette);
+          const fill = getFill ? getFill(code) : colorOf(values[code], palette)
           return (
             <PrefShape
               key={code}
@@ -35,7 +39,7 @@ export function JapanMap(props: JapanMapProps) {
               fill={fill}
               stroke={palette.stroke}
               strokeWidth={strokeWidth}
-              onClick={handleClick}
+              onClick={onPrefClick ?? handleClick}
               onEnter={(c) => { setHover(c); onHover?.(c); }}
               onLeave={() => { setHover(null); onHover?.(null); }}
             />

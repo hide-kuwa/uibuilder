@@ -13,6 +13,10 @@ import SaveMapBarEnum from '@/components/travel/SaveMapBarEnum';
 import PlaceGallery from '@/components/travel/PlaceGallery';
 import POIMap from '@/components/travel/POIMap';
 import CostSplit from '@/components/travel/CostSplit';
+import JapanMapEnumSVG from '@/components/travel/JapanMapEnumSVG';
+import BackgroundGradient from '@/components/design/BackgroundGradient';
+import Section from '@/components/design/Section';
+import Hero from '@/components/typography/Hero';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -200,6 +204,54 @@ register({
 
 register({
   meta: {
+    id: 'JapanMapEnumSVG',
+    displayName: 'JapanMapEnumSVG',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: JapanMapEnumSVG,
+});
+
+register({
+  meta: {
+    id: 'BackgroundGradient',
+    displayName: 'BackgroundGradient',
+    props: [],
+    allowChildren: true,
+    defaultW: 720,
+    defaultH: 480,
+  },
+  Render: BackgroundGradient,
+});
+
+register({
+  meta: {
+    id: 'Section',
+    displayName: 'Section',
+    props: [],
+    allowChildren: true,
+    defaultW: 720,
+    defaultH: 480,
+  },
+  Render: Section,
+});
+
+register({
+  meta: {
+    id: 'Hero',
+    displayName: 'Hero',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 200,
+  },
+  Render: Hero,
+});
+
+register({
+  meta: {
     id: 'PrefEnumShareBar',
     displayName: 'PrefEnumShareBar',
     props: [],
@@ -266,6 +318,10 @@ export const REGISTRY = {
   DownloadPNG: { component: DownloadPNG, displayName: 'DownloadPNG' },
   PrefEnumLegend: { component: PrefEnumLegend, displayName: 'PrefEnumLegend' },
   PrefEnumGridMap: { component: PrefEnumGridMap, displayName: 'PrefEnumGridMap' },
+  JapanMapEnumSVG: { component: JapanMapEnumSVG, displayName: 'JapanMapEnumSVG' },
+  BackgroundGradient: { component: BackgroundGradient, displayName: 'BackgroundGradient' },
+  Section: { component: Section, displayName: 'Section' },
+  Hero: { component: Hero, displayName: 'Hero' },
   PrefEnumShareBar: { component: PrefEnumShareBar, displayName: 'PrefEnumShareBar' },
   SaveMapBarEnum: { component: SaveMapBarEnum, displayName: 'SaveMapBarEnum' },
   PlaceGallery: { component: PlaceGallery, displayName: 'PlaceGallery' },

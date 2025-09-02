@@ -69,3 +69,63 @@ export const preset_travel_map_enum_card: PresetDef = {
     ],
   },
 }
+
+export const preset_travel_map_enum_svg_card: PresetDef = {
+  id: 'preset.travel.map.enum.svg.card',
+  displayName: 'JapanMap（SVG列挙）カード',
+  tags: ['travel', 'card', 'map', 'share'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '地図コレ（SVG）', className: 'w-[720px] min-h-[520px]', id: 'mapCard' },
+    children: [
+      { id: newId('n'), type: 'PrefEnumLegend', props: {} },
+      { id: newId('n'), type: 'PrefEnumShareBar', props: {} },
+      { id: newId('n'), type: 'JapanMapEnumSVG', props: {} },
+      { id: newId('n'), type: 'SaveMapBarEnum', props: {} },
+      { id: newId('n'), type: 'DownloadPNG', props: { targetId: 'mapCard', fileName: 'my-map.png' } },
+    ],
+  },
+}
+
+export const preset_travel_landing_svg: PresetDef = {
+  id: 'preset.travel.landing.svg',
+  displayName: 'Travel Landing（SVG）',
+  tags: ['travel', 'page', 'landing', 'common'],
+  tree: {
+    id: newId('n'),
+    type: 'BackgroundGradient',
+    props: { from: '#0ea5e9', to: '#22c55e', angle: 135, pattern: 'none' },
+    children: [
+      {
+        id: newId('n'),
+        type: 'Section',
+        props: { max: 'xl', pad: 'lg', align: 'center' },
+        children: [
+          {
+            id: newId('n'),
+            type: 'Hero',
+            props: {
+              title: '旅の地図',
+              subtitle: '行きたい・行った・住んだ',
+              ctaText: '地図を作る',
+              ctaHref: '/travel/demo',
+            },
+          },
+          {
+            id: newId('n'),
+            type: 'Card',
+            props: { title: '地図コレ（SVG）', className: 'w-[720px] min-h-[520px]', id: 'mapCard' },
+            children: [
+              { id: newId('n'), type: 'PrefEnumLegend', props: {} },
+              { id: newId('n'), type: 'PrefEnumShareBar', props: {} },
+              { id: newId('n'), type: 'JapanMapEnumSVG', props: {} },
+              { id: newId('n'), type: 'SaveMapBarEnum', props: {} },
+              { id: newId('n'), type: 'DownloadPNG', props: { targetId: 'mapCard', fileName: 'my-map.png' } },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+}

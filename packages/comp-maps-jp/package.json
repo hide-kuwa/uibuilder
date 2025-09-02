@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
-  "exports": { ".": "./src/register.ts" },
+  "exports": {
+    ".": "./src/register.ts",
+    "./JapanMap": "./src/JapanMap.tsx",
+    "./types": "./src/types.ts"
+  },
   "dependencies": { "@repo/types": "workspace:*" }
 }

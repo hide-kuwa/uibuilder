@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import PrefEnumGridMap from '@/components/travel/PrefEnumGridMap'
+import PrefEnumLegend from '@/components/travel/PrefEnumLegend'
+import JapanMapEnumSVG from '@/components/travel/JapanMapEnumSVG'
 import { FollowButton } from '@/components/travel/FollowControls'
 import VisibilityToggle from '@/components/travel/VisibilityToggle'
 import PhotoUploader from '@/components/travel/PhotoUploader'
@@ -64,7 +65,8 @@ export default function MapPage({
               value={visibility}
             />
           )}
-          <PrefEnumGridMap />
+          <PrefEnumLegend />
+          <JapanMapEnumSVG />
           {isOwner && <PhotoUploader uid={params.uid} mapId={params.mapId} />}
           <div className="flex items-center gap-2">
             <DownloadPNG targetId="mapCard" fileName={`${params.uid}-${params.mapId}.png`} />
