@@ -51,3 +51,21 @@ export const maybeJapanMapPreset = (hasJapanMap: boolean): PresetDef | null => {
     },
   }
 }
+
+export const preset_travel_map_enum_card: PresetDef = {
+  id: 'preset.travel.map.enum.card',
+  displayName: 'JapanMap（行きたい/行った/住んだ）',
+  tags: ['travel', 'card', 'map', 'share'],
+  tree: {
+    id: newId('n'),
+    type: 'Card',
+    props: { title: '地図コレ（列挙）', className: 'w-[720px] min-h-[500px]', id: 'mapCard' },
+    children: [
+      { id: newId('n'), type: 'PrefEnumLegend', props: {} },
+      { id: newId('n'), type: 'PrefEnumShareBar', props: {} },
+      { id: newId('n'), type: 'PrefEnumGridMap', props: {} },
+      { id: newId('n'), type: 'SaveMapBarEnum', props: {} },
+      { id: newId('n'), type: 'DownloadPNG', props: { targetId: 'mapCard', fileName: 'my-map.png' } },
+    ],
+  },
+}

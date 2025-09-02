@@ -6,6 +6,10 @@ import PrefShareBar from '@/components/travel/PrefShareBar';
 import PrefGridMap from '@/components/travel/PrefGridMap';
 import SaveMapBar from '@/components/travel/SaveMapBar';
 import DownloadPNG from '@/components/util/DownloadPNG';
+import PrefEnumLegend from '@/components/travel/PrefEnumLegend';
+import PrefEnumGridMap from '@/components/travel/PrefEnumGridMap';
+import PrefEnumShareBar from '@/components/travel/PrefEnumShareBar';
+import SaveMapBarEnum from '@/components/travel/SaveMapBarEnum';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -167,11 +171,63 @@ register({
   Render: DownloadPNG,
 });
 
+register({
+  meta: {
+    id: 'PrefEnumLegend',
+    displayName: 'PrefEnumLegend',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 40,
+  },
+  Render: PrefEnumLegend,
+});
+
+register({
+  meta: {
+    id: 'PrefEnumGridMap',
+    displayName: 'PrefEnumGridMap',
+    props: [],
+    allowChildren: false,
+    defaultW: 560,
+    defaultH: 360,
+  },
+  Render: PrefEnumGridMap,
+});
+
+register({
+  meta: {
+    id: 'PrefEnumShareBar',
+    displayName: 'PrefEnumShareBar',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 40,
+  },
+  Render: PrefEnumShareBar,
+});
+
+register({
+  meta: {
+    id: 'SaveMapBarEnum',
+    displayName: 'SaveMapBarEnum',
+    props: [],
+    allowChildren: false,
+    defaultW: 320,
+    defaultH: 40,
+  },
+  Render: SaveMapBarEnum,
+});
+
 export const REGISTRY = {
   Card: { component: Card, displayName: 'Card' },
   PrefShareBar: { component: PrefShareBar, displayName: 'PrefShareBar' },
   PrefGridMap: { component: PrefGridMap, displayName: 'PrefGridMap' },
   SaveMapBar: { component: SaveMapBar, displayName: 'SaveMapBar' },
   DownloadPNG: { component: DownloadPNG, displayName: 'DownloadPNG' },
+  PrefEnumLegend: { component: PrefEnumLegend, displayName: 'PrefEnumLegend' },
+  PrefEnumGridMap: { component: PrefEnumGridMap, displayName: 'PrefEnumGridMap' },
+  PrefEnumShareBar: { component: PrefEnumShareBar, displayName: 'PrefEnumShareBar' },
+  SaveMapBarEnum: { component: SaveMapBarEnum, displayName: 'SaveMapBarEnum' },
   ...(JapanMap ? { JapanMap: { component: JapanMap, displayName: 'JapanMap' } } : {}),
 } as const;
