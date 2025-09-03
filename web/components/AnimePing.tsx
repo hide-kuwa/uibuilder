@@ -1,5 +1,7 @@
 'use client'
-const animeP = () => import('animejs').then(m => m.default)
+import dynamic from 'next/dynamic'
+
+const animeP = () => import('animejs').then((m) => m.default)
 
 export default function AnimePing() {
   return (
@@ -16,3 +18,4 @@ export default function AnimePing() {
     </button>
   )
 }
+

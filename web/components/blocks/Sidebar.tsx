@@ -1,14 +1,6 @@
-import { PropsWithChildren } from 'react'
-import type { BuilderNodeMeta } from '@/types/builder'
+'use client'
+import * as React from 'react'
 
-export function Sidebar({ className, children }: PropsWithChildren<{ className?: string }>) {
-  return <aside className={className}>{children}</aside>
-}
-
-export const SidebarMeta: BuilderNodeMeta = {
-  displayName: 'Sidebar',
-  defaultSize: { w: 240, h: 600 },
-  resizable: true,
-  snap: 'grid',
-  allowChildren: true,
+export default function Sidebar({ children, ...props }: React.HTMLAttributes<HTMLElement>) {
+  return <aside {...props}>{children}</aside>
 }

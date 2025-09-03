@@ -1,14 +1,6 @@
-import { PropsWithChildren } from 'react'
-import type { BuilderNodeMeta } from '@/types/builder'
+'use client'
+import * as React from 'react'
 
-export function Hud({ className, children }: PropsWithChildren<{ className?: string }>) {
-  return <div className={className}>{children}</div>
-}
-
-export const HudMeta: BuilderNodeMeta = {
-  displayName: 'HUD',
-  defaultSize: { w: 280, h: 44 },
-  resizable: false,
-  snap: 'grid',
-  allowChildren: true,
+export default function Hud({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div {...props}>{children}</div>
 }
