@@ -1,6 +1,7 @@
 'use client'
 import { create } from 'zustand'
 import type { PresetDraft, ActionDef, Effect, TriggerState } from '@/types/presets-ui'
+import type { MotionEffect } from '@/types/motion'
 
 const defaultTriggers: TriggerState = {
   hover:true, active:false, focus:false, focusWithin:false, groupHover:false,
@@ -17,11 +18,13 @@ export const usePresetDraft = create<{
   addAction:(a:ActionDef)=>void
   updateAction:(idx:number, a:Partial<ActionDef>)=>void
   removeAction:(idx:number)=>void
+  setMotion:(m:MotionEffect[])=>void
 }>((set)=>({
   draft: {
     name:'New Preset',
     triggers: defaultTriggers,
     effects: [{ kind:'scale', value:{ scale:1.09 } }, { kind:'bgColor', value:{ color:'#004cff' } }, { kind:'shadow', value:{ level:'xl' } }, { kind:'opacity', value:{ opacity:0.9 } }],
+    motion: [],
     actions: [{
       type:'openUrl',
       params:{ url:'' },
@@ -39,4 +42,5 @@ export const usePresetDraft = create<{
   addAction:(a)=>set(s=>({ draft:{ ...s.draft, actions:[...s.draft.actions, a]}})),
   updateAction:(i,a)=>set(s=>{ const arr=[...s.draft.actions]; arr[i]={ ...arr[i], ...a }; return { draft:{ ...s.draft, actions:arr }}}),
   removeAction:(i)=>set(s=>{ const arr=[...s.draft.actions]; arr.splice(i,1); return { draft:{ ...s.draft, actions:arr }}}),
+  setMotion:(m)=>set(s=>({ draft:{ ...s.draft, motion:m }})),
 }))

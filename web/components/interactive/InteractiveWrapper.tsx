@@ -10,6 +10,7 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const id = useId()
+  const motion = (draft as any)?.motion ?? (draft as any)?.effects?.motion
 
   // 1) Triggers → ユニーククラス作成
   const cls = useMemo(() => {
@@ -101,7 +102,7 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
     const el = ref.current
     if (!el) return
     // ↓ 一時的に mount トリガーを止めたい場合はコメントアウト
-    // queueMicrotask(() => runMotionEffects((draft as any)?.effects?.motion, 'mount', el))
+    // queueMicrotask(() => runMotionEffects(motion, 'mount', el))
   }, [])
 
   return (
@@ -109,10 +110,10 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
       ref={ref}
       className={cls}
       onClick={(e) => {
-        runMotionEffects((draft as any)?.effects?.motion, 'click', e.currentTarget as HTMLElement)
+        runMotionEffects(motion, 'click', e.currentTarget as HTMLElement)
       }}
       onDoubleClick={(e) => {
-        runMotionEffects((draft as any)?.effects?.motion, 'doubleClick', e.currentTarget as HTMLElement)
+        runMotionEffects(motion, 'doubleClick', e.currentTarget as HTMLElement)
       }}
     >
       {children}

@@ -7,12 +7,15 @@ import { PRESETS } from '@/lib/presets'
 import { useBuilderStore } from '@/store/builderStore'
 import { usePresetDraft } from '@/store/presetDraftStore'
 import InteractiveWrapper from '@/components/interactive/InteractiveWrapper'
+import MotionEffectsPanel from '@/components/panels/MotionEffectsPanel'
 
 export default function DevActionsPage(){
   const placePreset = useBuilderStore(s=>s.placePreset)
   const draft = usePresetDraft(s=>s.draft)
   const applySel = useBuilderStore(s=>s.applyInteractiveToSelection)
   const applyAll = useBuilderStore(s=>s.applyInteractiveToAll)
+  const motion = usePresetDraft(s=>s.draft.motion)
+  const setMotion = usePresetDraft(s=>s.setMotion)
 
   return (
     <div className="dev-actions p-3">
@@ -47,14 +50,25 @@ export default function DevActionsPage(){
             <button className="px-3 py-1 border rounded" onClick={()=>applyAll(draft,'remove')}>Remove All</button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-3">
-            <TriggersCard/>
-            {/* ★ When は Actions 枠の中に表示（下のActionsCardで対応） */}
-            <ActionsCard/>
-          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <section className="md:col-start-1 md:row-start-1">
+              <TriggersCard/>
+            </section>
 
-          {/* 詳細エディタは削らない（EffectsCardの中に残す） */}
-          <EffectsCard/>
+            <section className="md:col-start-2 md:row-start-1">
+              <ActionsCard/>
+            </section>
+
+            <section className="md:col-start-1 md:row-start-2">
+              <EffectsCard/>
+            </section>
+
+            <section className="md:col-start-2 md:row-start-2">
+              <div className="rounded-md border p-3">
+                <MotionEffectsPanel value={motion} onChange={setMotion} />
+              </div>
+            </section>
+          </div>
         </main>
 
         {/* 右：プレビュー */}

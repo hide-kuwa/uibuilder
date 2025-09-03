@@ -1,3 +1,5 @@
+import type { MotionEffect } from './motion'
+
 export type JsonLogic = any // 既存実装か後日差し替え
 
 export type TriggerState = {
@@ -36,4 +38,5 @@ export type PresetDraft = {
   triggers: TriggerState
   effects: Effect[]
   actions: ActionDef[]
+  motion: MotionEffect[]
 }
