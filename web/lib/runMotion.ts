@@ -21,14 +21,13 @@ async function getAnime() {
 const disabledByQuery = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('nomotion') === '1'
 
-const resolveTarget = (target: NodeTarget | undefined, fallback: HTMLElement | null) => {
+const resolveTarget = (t: NodeTarget | undefined, fb: HTMLElement | null) => {
   try {
-    if (!target) return fallback
-    if (target.type === 'css') return document.querySelector(target.value) as HTMLElement | null
-    if (target.type === 'nodeId') return document.querySelector<HTMLElement>(`[data-node-id="${target.value}"]`)
-    return fallback
+    if (!t) return fb
+    if (t.type === 'css') return document.querySelector(t.value) as HTMLElement | null
+    return document.querySelector<HTMLElement>(`[data-node-id="${t.value}"]`)
   } catch {
-    return fallback
+    return fb
   }
 }
 
@@ -52,14 +51,31 @@ export async function runMotionEffects(
 
         const base: AnimeParams = { duration: 300, easing: 'easeInOutQuad', autoplay: true }
 
-        // ① 強度→プリセット（優先）
-        const fromStrength = buildAnimeParamsFromStrength(eff.preset as string, eff.strength)
-        // ② 旧プリセット（従来の Record ）
+        // ① 強度プリセット
+        const fromStrength = buildAnimeParamsFromStrength(eff.preset, eff.strength)
+        // ② 旧来のプリセット（el 依存のものがあれば）
         const fromLegacy = animePresets[eff.preset as any]?.(el)
-        // ③ 個別オプション（最優先）
+        // ③ ユーザー上書き
         const opts = eff.options ?? {}
 
-        const params = { ...base, ...(fromLegacy || {}), ...(fromStrength || {}), ...opts }
+        const params: AnimeParams = {
+          ...base,
+          ...(fromLegacy || {}),
+          ...(fromStrength || {}),
+          ...opts,
+        }
+
+        // --- Path対応（followPath 用） ---
+        const sel: string | undefined = (opts as any).pathSelector
+        if (sel) {
+          const path = anime.path(sel)
+          const tx = (params as any).translateX
+          const ty = (params as any).translateY
+          if (tx === 'path:x' || tx == null) (params as any).translateX = path('x')
+          if (ty === 'path:y' || ty == null) (params as any).translateY = path('y')
+          if ((opts as any).followAngle) (params as any).rotate = path('angle')
+        }
+
         anime.remove(el)
         anime({ targets: el, ...params })
       } catch (e) {
