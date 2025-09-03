@@ -100,7 +100,8 @@ export default function InteractiveWrapper({ draft, children }:{ draft: PresetDr
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    queueMicrotask(() => runMotionEffects((draft as any)?.effects?.motion, 'mount', el))
+    // ↓ 一時的に mount トリガーを止めたい場合はコメントアウト
+    // queueMicrotask(() => runMotionEffects((draft as any)?.effects?.motion, 'mount', el))
   }, [])
 
   return (
