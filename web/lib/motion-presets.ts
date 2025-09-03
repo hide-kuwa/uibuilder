@@ -114,6 +114,61 @@ export const MOTION_PRESETS: Record<string, MotionPresetDef> = {
     }),
     defaults: {},
   },
+
+  // 弧を描いて拡大しつつフェード
+  arcZoomFade: {
+    key: 'arcZoomFade',
+    name: 'Arc zoom fade',
+    build: (t) => {
+      const dx = lerp(60, 220, t) // 水平移動距離
+      const peak = lerp(24, 80, t) // 弧の高さ
+      return {
+        translateX: [
+          { value: dx * 0.5, duration: 260, easing: 'easeOutCubic' },
+          { value: dx,       duration: 260, easing: 'easeInCubic'  },
+        ],
+        translateY: [
+          { value: -peak,    duration: 260, easing: 'easeOutCubic' },
+          { value: 0,        duration: 260, easing: 'easeInCubic'  },
+        ],
+        scale: [
+          { value: 1.08, duration: 260, easing: 'easeOutQuad' },
+          { value: 1.0,  duration: 260, easing: 'easeInQuad'  },
+        ],
+        opacity: [
+          { value: [0, 1], duration: 200, easing: 'linear' },
+          { value: 1, duration: 200 },
+        ],
+      }
+    },
+    defaults: { duration: 520, easing: 'linear' },
+  },
+
+  // カード束がシャッフル（コンテナ配下の .card が対象）
+  cardShuffle: {
+    key: 'cardShuffle',
+    name: 'Card shuffle',
+    build: (t) => {
+      const dist = lerp(16, 56, t)
+      const rot = lerp(3, 10, t)
+      const delay = lerp(40, 90, t)
+      return {
+        // runMotion 側で nestedTargetsSelector を使って el.querySelectorAll('.card') をターゲットに
+        nestedTargetsSelector: '.card' as any,
+        translateX: (el: Element, i: number) => [
+          { value: (i % 2 ? dist : -dist), duration: 180 },
+          { value: 0, duration: 180 },
+        ] as any,
+        rotate: (el: Element, i: number) => [
+          { value: (i % 2 ? -rot : rot), duration: 180 },
+          { value: 0, duration: 180 },
+        ] as any,
+        delay: (_: Element, i: number) => i * delay,
+        easing: 'easeInOutQuad',
+      } as any
+    },
+    defaults: { duration: 420, easing: 'easeInOutQuad' },
+  },
   // 既存の scaleIn / rotateIn なども必要ならここに追加
 }
 
