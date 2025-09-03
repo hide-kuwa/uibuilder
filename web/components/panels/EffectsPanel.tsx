@@ -19,13 +19,12 @@ export default function EffectsPanel({
     }))
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-        <div className="mb-2 text-xs uppercase tracking-wider text-white/60">Effects (visual)</div>
-        {visualPane}
-      </div>
+    <div className="space-y-6">
+      {/* 既存：Effects (visual) */}
+      {visualPane}
 
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+      {/* 追加：Motion (anime.js) — visual の下に表示 */}
+      <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
         <MotionEffectsPanel
           value={motion}
           onChange={setMotion}
