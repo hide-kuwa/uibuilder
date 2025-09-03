@@ -1,5 +1,5 @@
 'use client'
-import type { AnimeParams } from 'animejs'
+import type { AnimationParams } from 'animejs'
 import type { MotionEffect, MotionEvent, NodeTarget } from '@/types/motion'
 import { animePresets } from '@/lib/anime-presets'
 import { buildAnimeParamsFromStrength } from '@/lib/motion-presets'
@@ -10,11 +10,11 @@ declare global {
   }
 }
 
-let _anime: any | null = null
+let _anime: typeof import('animejs') | null = null
 async function getAnime() {
   if (_anime) return _anime
   // ESMを動的に読み込んでSSRとバンドルの相性問題を回避
-  _anime = (await import('animejs/lib/anime.es.js')).default
+  _anime = await import('animejs')
   return _anime
 }
 
@@ -42,6 +42,7 @@ export async function runMotionEffects(
     if (!effects?.length) return
 
     const anime = await getAnime()
+    const { animate, svg, utils } = anime
 
     for (const eff of effects) {
       try {
@@ -49,7 +50,7 @@ export async function runMotionEffects(
         const el = resolveTarget(eff.target, fallbackEl)
         if (!el) continue
 
-        const base: AnimeParams = { duration: 300, easing: 'easeInOutQuad', autoplay: true }
+        const base: AnimationParams = { duration: 300, easing: 'easeInOutQuad', autoplay: true }
 
         // ① 強度プリセット
         const fromStrength = buildAnimeParamsFromStrength(eff.preset, eff.strength)
@@ -58,7 +59,7 @@ export async function runMotionEffects(
         // ③ ユーザー上書き
         const opts = eff.options ?? {}
 
-        const params: AnimeParams = {
+        const params: AnimationParams = {
           ...base,
           ...(fromLegacy || {}),
           ...(fromStrength || {}),
@@ -68,12 +69,15 @@ export async function runMotionEffects(
         // Path 対応（followPath 用）
         const sel: string | undefined = (params as any).pathSelector ?? (opts as any).pathSelector
         if (sel) {
-          const path = anime.path(sel)
-          const tx = (params as any).translateX
-          const ty = (params as any).translateY
-          if (tx === 'path:x' || tx == null) (params as any).translateX = path('x')
-          if (ty === 'path:y' || ty == null) (params as any).translateY = path('y')
-          if ((params as any).followAngle || (opts as any).followAngle) (params as any).rotate = path('angle')
+          const motionPath = svg.createMotionPath(sel)
+          if (motionPath) {
+            const tx = (params as any).translateX
+            const ty = (params as any).translateY
+            if (tx === 'path:x' || tx == null) (params as any).translateX = motionPath.translateX
+            if (ty === 'path:y' || ty == null) (params as any).translateY = motionPath.translateY
+            if ((params as any).followAngle || (opts as any).followAngle)
+              (params as any).rotate = motionPath.rotate
+          }
         }
 
         // ネストターゲット対応（カード束など）
@@ -86,8 +90,8 @@ export async function runMotionEffects(
           delete (params as any).nestedTargetsSelector
         }
 
-        anime.remove(targets)
-        anime({ targets, ...params })
+        utils.remove(targets)
+        animate(targets, params)
       } catch (e) {
         // 個別の効果でコケても他に影響しないように
         console.error('[runMotionEffects:item]', e)
