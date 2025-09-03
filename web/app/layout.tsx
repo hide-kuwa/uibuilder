@@ -5,6 +5,7 @@ import Providers from './providers'
 import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import ChromeController from '@/components/layout/ChromeController'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()
@@ -13,12 +14,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="ja" data-theme={uiTheme} suppressHydrationWarning>
       <body>
-        <Providers initialTheme={uiTheme}>
-          <ChromeController />
-          <SiteHeader />
-          <main className="min-h-[calc(100vh-6rem)]">{children}</main>
-          <SiteFooter />
-        </Providers>
+        <ErrorBoundary>
+          <Providers initialTheme={uiTheme}>
+            <ChromeController />
+            <SiteHeader />
+            <main className="min-h-[calc(100vh-6rem)]">{children}</main>
+            <SiteFooter />
+          </Providers>
+        </ErrorBoundary>
       </body>
     </html>
   )
