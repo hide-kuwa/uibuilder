@@ -1,37 +1,11 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-
 import TriggersCard from './TriggersCard'
 import ActionsCard from './ActionsCard'
 import EffectsCard from './EffectsCard'
 import MotionEffectsPanel from '@/components/panels/MotionEffectsPanel'
-
-const PresetsSidebar = dynamic(
-  () =>
-    import('@/components/panels/PresetsSidebar').catch(() => ({
-      default: () => (
-        <div className="rounded-2xl border bg-white p-4 text-sm text-gray-500">
-          PresetsSidebar が見つかりません。<code>components/panels/PresetsSidebar.tsx</code>
-          を用意してください。
-        </div>
-      ),
-    })),
-  { ssr: false }
-)
-
-const PreviewPane = dynamic(
-  () =>
-    import('@/components/panels/PreviewPane').catch(() => ({
-      default: () => (
-        <div className="rounded-2xl border bg-white p-4 text-sm text-gray-500">
-          PreviewPane が見つかりません。<code>components/panels/PreviewPane.tsx</code>
-          を用意してください。
-        </div>
-      ),
-    })),
-  { ssr: false }
-)
+import PresetsSidebar from '@/components/panels/PresetsSidebar'
+import PreviewPane from '@/components/panels/PreviewPane'
 
 import { builderStore, useBuilderStore } from '@/store/builderStore'
 import type { MotionEffect } from '@/types/motion'
