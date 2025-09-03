@@ -2,6 +2,7 @@
 import type { AnimeParams } from 'animejs'
 import type { MotionEffect, MotionEvent, NodeTarget } from '@/types/motion'
 import { animePresets } from '@/lib/anime-presets'
+import { buildAnimeParamsFromStrength } from '@/lib/motion-presets'
 
 declare global {
   interface Window {
@@ -13,7 +14,7 @@ let _anime: any | null = null
 async function getAnime() {
   if (_anime) return _anime
   // ESMを動的に読み込んでSSRとバンドルの相性問題を回避
-  _anime = (await import('animejs')).default
+  _anime = (await import('animejs/lib/anime.es.js')).default
   return _anime
 }
 
@@ -50,10 +51,17 @@ export async function runMotionEffects(
         if (!el) continue
 
         const base: AnimeParams = { duration: 300, easing: 'easeInOutQuad', autoplay: true }
-        const preset = animePresets[eff.preset]?.(el) ?? {}
+
+        // ① 強度→プリセット（優先）
+        const fromStrength = buildAnimeParamsFromStrength(eff.preset as string, eff.strength)
+        // ② 旧プリセット（従来の Record ）
+        const fromLegacy = animePresets[eff.preset as any]?.(el)
+        // ③ 個別オプション（最優先）
         const opts = eff.options ?? {}
+
+        const params = { ...base, ...(fromLegacy || {}), ...(fromStrength || {}), ...opts }
         anime.remove(el)
-        anime({ targets: el, ...base, ...preset, ...opts })
+        anime({ targets: el, ...params })
       } catch (e) {
         // 個別の効果でコケても他に影響しないように
         console.error('[runMotionEffects:item]', e)

@@ -83,13 +83,13 @@ export default function DevActionsPage() {
         <section className="rounded-2xl border bg-white p-4">
           <EffectsCard />
         </section>
-        {/* 右下：Animation (anime.js) */}
+        {/* 右下：Animation (preset) */}
         <section className="rounded-2xl border bg-white p-4">
-          <div className="mb-2 text-sm font-medium text-gray-700">Animation (anime.js)</div>
           <MotionEffectsPanel
             value={motion}
             onChange={setMotion}
             defaultTargetNodeId={selectedNode?.id}
+            mode="simple"
           />
         </section>
       </main>
