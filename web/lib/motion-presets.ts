@@ -1,4 +1,4 @@
-import type { AnimeParams } from 'animejs'
+import type { AnimationParams } from 'animejs'
 import type { AnimePresetKey } from '@/types/motion'
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
@@ -8,8 +8,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 export type MotionPresetDef = {
   key: AnimePresetKey | string
   name: string
-  build: (s01: number) => AnimeParams
-  defaults?: Pick<AnimeParams, 'duration' | 'easing'>
+  build: (s01: number) => AnimationParams
+  defaults?: Pick<AnimationParams, 'duration' | 'easing'>
 }
 
 export const MOTION_PRESETS: Record<string, MotionPresetDef> = {
@@ -172,7 +172,7 @@ export const MOTION_PRESETS: Record<string, MotionPresetDef> = {
   // 既存の scaleIn / rotateIn なども必要ならここに追加
 }
 
-export function buildAnimeParamsFromStrength(key: string, strength?: number): AnimeParams | undefined {
+export function buildAnimeParamsFromStrength(key: string, strength?: number): AnimationParams | undefined {
   const def = MOTION_PRESETS[key]
   if (!def) return
   const t = norm(strength ?? 50)

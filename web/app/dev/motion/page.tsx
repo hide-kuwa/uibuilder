@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MOTION_PRESETS, buildAnimeParamsFromStrength } from '@/lib/motion-presets'
-import type { AnimeParams } from 'animejs'
+import type { AnimationParams } from 'animejs'
 import { runMotionEffects } from '@/lib/runMotion'
 import type { MotionEffect } from '@/types/motion'
 
@@ -26,9 +26,9 @@ export default function MotionLabPage() {
   const previewRef = useRef<HTMLDivElement | null>(null)
   const dotRef = useRef<HTMLDivElement | null>(null)
 
-  const params: AnimeParams = useMemo(() => {
+  const params: AnimationParams = useMemo(() => {
     const base = buildAnimeParamsFromStrength(key, strength) || {}
-    const over: AnimeParams = {}
+    const over: AnimationParams = {}
     if (duration !== '') over.duration = duration
     if (easing) over.easing = easing
     // path/followAngle は runMotion 側で解釈するため、options として渡す
