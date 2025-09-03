@@ -12,8 +12,8 @@ declare global {
 let _anime: any | null = null
 async function getAnime() {
   if (_anime) return _anime
-  // ESMを直接読んでSSRを避ける（バンドルの相性問題も回避）
-  _anime = (await import('animejs/lib/anime.es.js')).default
+  // ESMを動的に読み込んでSSRとバンドルの相性問題を回避
+  _anime = (await import('animejs')).default
   return _anime
 }
 
