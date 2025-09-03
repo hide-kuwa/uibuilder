@@ -65,19 +65,29 @@ export async function runMotionEffects(
           ...opts,
         }
 
-        // --- Path対応（followPath 用） ---
-        const sel: string | undefined = (opts as any).pathSelector
+        // Path 対応（followPath 用）
+        const sel: string | undefined = (params as any).pathSelector ?? (opts as any).pathSelector
         if (sel) {
           const path = anime.path(sel)
           const tx = (params as any).translateX
           const ty = (params as any).translateY
           if (tx === 'path:x' || tx == null) (params as any).translateX = path('x')
           if (ty === 'path:y' || ty == null) (params as any).translateY = path('y')
-          if ((opts as any).followAngle) (params as any).rotate = path('angle')
+          if ((params as any).followAngle || (opts as any).followAngle) (params as any).rotate = path('angle')
         }
 
-        anime.remove(el)
-        anime({ targets: el, ...params })
+        // ネストターゲット対応（カード束など）
+        let targets: any = el
+        const nestedSel: string | undefined = (params as any).nestedTargetsSelector ?? (opts as any).nestedTargetsSelector
+        if (nestedSel) {
+          const list = el.querySelectorAll(nestedSel)
+          if (list.length) targets = list
+          // anime に不要な独自キーは削除
+          delete (params as any).nestedTargetsSelector
+        }
+
+        anime.remove(targets)
+        anime({ targets, ...params })
       } catch (e) {
         // 個別の効果でコケても他に影響しないように
         console.error('[runMotionEffects:item]', e)
