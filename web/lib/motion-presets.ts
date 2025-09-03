@@ -57,6 +57,63 @@ export const MOTION_PRESETS: Record<string, MotionPresetDef> = {
     },
     defaults: { duration: 200, easing: 'linear' },
   },
+  // 1) 弾む（その場で上下に減衰バウンス）
+  bounce: {
+    key: 'bounce',
+    name: 'Bounce',
+    build: (t) => {
+      const amp = lerp(6, 24, t) // 揺れ幅
+      return {
+        translateY: [
+          { value: -amp * 3, duration: 220, easing: 'easeOutCubic' },
+          { value: 0, duration: 180, easing: 'easeInCubic' },
+          { value: -amp * 1.5, duration: 160, easing: 'easeOutCubic' },
+          { value: 0, duration: 140, easing: 'easeInCubic' },
+          { value: -amp * 0.75, duration: 120, easing: 'easeOutCubic' },
+          { value: 0, duration: 100, easing: 'easeInCubic' },
+        ],
+      }
+    },
+    defaults: { duration: 920, easing: 'linear' },
+  },
+
+  // 2) バウンド（上から落下→床で数回バウンド）
+  groundBounce: {
+    key: 'groundBounce',
+    name: 'Ground bounce',
+    build: (t) => {
+      const drop = lerp(40, 180, t) // 落下距離（大きいほど上から）
+      const amp = lerp(10, 40, t) // 床でのバウンド振幅
+      return {
+        translateY: [
+          { value: [-drop, 0], duration: lerp(300, 600, t), easing: 'easeInQuad' }, // 落下
+          { value: -amp * 0.6, duration: 200, easing: 'easeOutQuad' }, // 1st up
+          { value: 0, duration: 160, easing: 'easeInQuad' }, // 1st down
+          { value: -amp * 0.3, duration: 140, easing: 'easeOutQuad' }, // 2nd up
+          { value: 0, duration: 120, easing: 'easeInQuad' }, // 2nd down
+          { value: -amp * 0.15, duration: 120, easing: 'easeOutQuad' }, // 3rd
+          { value: 0, duration: 100, easing: 'easeInQuad' },
+        ],
+      }
+    },
+    defaults: { duration: 1240, easing: 'linear' },
+  },
+
+  // 3) パスに沿って移動（SVG path を指定して移動）
+  //    options.pathSelector に CSS セレクタを渡してください
+  followPath: {
+    key: 'followPath',
+    name: 'Follow path',
+    build: (t) => ({
+      // runMotion 側で pathSelector があれば translateX/Y を path に置き換えます
+      translateX: 'path:x',
+      translateY: 'path:y',
+      // duration は強度でスピード変化（強いほど速い）
+      duration: Math.round(lerp(1800, 600, t)),
+      easing: 'linear',
+    }),
+    defaults: {},
+  },
   // 既存の scaleIn / rotateIn なども必要ならここに追加
 }
 
