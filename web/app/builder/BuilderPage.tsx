@@ -23,6 +23,7 @@ import ActionDevConsole from '@/components/interaction/ActionDevConsole'
 import { useActionDebugStore } from '@/store/actionDebugStore'
 import PresetApplyBus from '@/components/interaction/PresetApplyBus'
 import { useUIStore } from '@/store/uiStore'
+import SeoEditor from '../../../src/components/seo/SeoEditor'
 
 export default function BuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -194,6 +195,7 @@ export default function BuilderPage() {
           <aside className="w-72 border-l border-zinc-800 bg-zinc-950/40 p-3 flex flex-col">
             <h2 className="text-sm font-semibold mb-2">プロパティ</h2>
             <Inspector />
+            <SeoEditor />
             <button
               className="mt-auto px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700"
               onClick={onExport}

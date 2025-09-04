@@ -93,6 +93,7 @@ export default function PageEditor({ params }: { params: { id: string } }) {
       tree: state.getTree(),
       bindings: state.getBindings(),
       theme: state.getTheme(),
+      meta: state.getMeta(),
       tokens: useDesignTokens.getState().getAll(),
     };
     const record = { pageId: params.id, snapshot, updatedAt: Date.now() };
@@ -140,6 +141,7 @@ export default function PageEditor({ params }: { params: { id: string } }) {
         ps.setTree(snap.tree ?? []);
         ps.setBindings(snap.bindings ?? {});
         ps.setTheme(snap.theme ?? {});
+        ps.setMeta(snap.meta ?? { title: '', description: '', ogImage: { mode: 'auto' } });
         useDesignTokens.getState().replaceAll(snap.tokens ?? {});
         setStatus('offline');
       }

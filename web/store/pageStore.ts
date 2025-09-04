@@ -17,6 +17,14 @@ export type Page = {
     pageOverrides: {
       theme?: Partial<ThemeTokens>
     }
+    meta: {
+      title?: string
+      description?: string
+      ogImage?: {
+        mode: 'auto' | 'custom'
+        url?: string
+      }
+    }
     version: number
   }
 
@@ -40,6 +48,8 @@ interface PageActions {
   setBindings: (b: Page['bindings']) => void
   getTheme: () => Page['pageOverrides']['theme']
   setTheme: (theme: Page['pageOverrides']['theme']) => void
+  getMeta: () => Page['meta']
+  setMeta: (meta: Page['meta']) => void
   exportJSON: () => string
   importJSON: (json: string) => void
 }
@@ -52,6 +62,7 @@ interface PageActions {
       tree: [],
       bindings: {},
       pageOverrides: { theme: {} },
+      meta: { title: '', description: '', ogImage: { mode: 'auto' } },
       version: PAGE_VERSION,
     }
   }
@@ -79,6 +90,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
         tree: init?.tree ?? [],
         bindings: init?.bindings ?? {},
         pageOverrides: { theme: init?.pageOverrides?.theme ?? {} },
+        meta: init?.meta ?? { title: '', description: '', ogImage: { mode: 'auto' } },
         version: PAGE_VERSION,
       }
     set({ pages: [...pages, page], currentPageId: page.id })
@@ -108,6 +120,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
         tree: JSON.parse(JSON.stringify(src.tree)),
         bindings: JSON.parse(JSON.stringify(src.bindings)),
         pageOverrides: JSON.parse(JSON.stringify(src.pageOverrides ?? {})),
+        meta: JSON.parse(JSON.stringify(src.meta ?? { title: '', description: '', ogImage: { mode: 'auto' } })),
         version: PAGE_VERSION,
       }
     set((s) => ({ pages: [...s.pages, newPage], currentPageId: newPage.id }))
@@ -157,6 +170,19 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
         p.id === s.currentPageId
           ? { ...p, pageOverrides: { ...(p.pageOverrides ?? {}), theme } }
           : p,
+      ),
+    }))
+  },
+
+  getMeta() {
+    const p = get().pages.find((p) => p.id === get().currentPageId)
+    return p?.meta ?? { title: '', description: '', ogImage: { mode: 'auto' } }
+  },
+
+  setMeta(meta) {
+    set((s) => ({
+      pages: s.pages.map((p) =>
+        p.id === s.currentPageId ? { ...p, meta } : p,
       ),
     }))
   },
