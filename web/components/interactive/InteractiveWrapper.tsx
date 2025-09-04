@@ -4,7 +4,7 @@ import { buildMotionFromStatus, computeBgColor } from '@/lib/status-engine'
 import type { ReactNode } from 'react'
 
 export default function InteractiveWrapper({ node, children }:{ node:any; children: ReactNode }) {
-  const status = (node.status as import('@/types/status').NodeStatusState) ?? { base:'notVisited', overlays:[] }
+  const status = (node.status as import('@/types/status').NodeStatus) ?? { base:'notVisited', overlays:[] }
   const bg = computeBgColor(status)
   const statusEff = buildMotionFromStatus(node.id, status)
 

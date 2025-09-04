@@ -8,7 +8,7 @@ import PresetsSidebar from '@/components/panels/PresetsSidebar'
 import PreviewPane from '@/components/panels/PreviewPane'
 import NodeStatusPanel from '@/components/panels/NodeStatusPanel'
 import StatusConfigPanel from '@/components/panels/StatusConfigPanel'
-import type { NodeStatusState } from '@/types/status'
+import type { NodeStatus } from '@/types/status'
 
 import { builderStore, useBuilderStore } from '@/store/builderStore'
 import type { MotionEffect } from '@/types/motion'
@@ -31,8 +31,8 @@ export default function DevActionsPage() {
     })
   }
 
-  const nodeStatus: NodeStatusState = selectedNode?.status ?? { base: 'notVisited', overlays: [] }
-  const setNodeStatus = (next: NodeStatusState) =>
+  const nodeStatus: NodeStatus = selectedNode?.status ?? { base: 'notVisited', overlays: [] }
+  const setNodeStatus = (next: NodeStatus) =>
     updateSelectedNode((prev: any) => ({ ...prev, status: next }))
 
   const motion: MotionEffect[] = selectedNode?.effects?.motion ?? []
