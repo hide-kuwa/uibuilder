@@ -7,7 +7,12 @@ import { buildMotionFromStatus, computeBgColor } from '@/lib/status-engine'
 import { runMotionEffects } from '@/lib/runMotion'
 
 export default function DraggableNode({
-  id, label, initial, status, size = { w: 160, h: 96 }, onCommit,
+  id,
+  label,
+  initial,
+  status,
+  size = { w: 160, h: 96 },
+  onCommit,
 }: {
   id: string
   label: string
@@ -29,10 +34,12 @@ export default function DraggableNode({
     snapThreshold,
     setInitialPos,
   } = useCanvasStore()
+
   const pos = nodePos[id] ?? initial ?? { x: 0, y: 0 }
   const selected = selectedIds.includes(id)
   const [dragStart, setDragStart] = useState<{ x: number; y: number; base: XY } | null>(null)
 
+  // 初期位置をストアに登録（未登録なら）
   useEffect(() => {
     if (initial) setInitialPos(id, initial)
   }, [id, initial, setInitialPos])
@@ -45,6 +52,7 @@ export default function DraggableNode({
     if (multi) {
       toggleSelect(id, true)
     } else {
+      // 既に選択中なら維持、そうでなければ単体選択にする
       if (!alreadySelected) {
         setSelectedIds([id])
       }
@@ -64,7 +72,7 @@ export default function DraggableNode({
       const next = snapEnabled ? snapToGrid(raw, gridSize, snapThreshold) : raw
       setNodePos(id, next)
     } else {
-      // 複数選択 → 相対移動（スナップは最後の確定時に委ねる）
+      // 複数選択 → 相対移動
       moveNodes(selectedIds, dx, dy)
       setDragStart({ ...dragStart, x: e.clientX, y: e.clientY })
     }
@@ -72,17 +80,18 @@ export default function DraggableNode({
 
   const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!dragStart) return
-    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {}
     setDragStart(null)
 
-    // 複数移動の最終スナップ（代表だけスナップ→相対差分を全体適用）
     if (selectedIds.length > 1) {
+      // 複数移動の最終スナップ
       const rep = useCanvasStore.getState().nodePos[id] ?? pos
       const snapped = snapEnabled ? snapToGrid(rep, gridSize, snapThreshold) : rep
       const ddx = snapped.x - rep.x
       const ddy = snapped.y - rep.y
       if (ddx || ddy) useCanvasStore.getState().moveNodes(selectedIds, ddx, ddy)
-      // Commit は代表のみ呼ぶ（任意）
       onCommit?.(snapped)
     } else {
       const cur = useCanvasStore.getState().nodePos[id] ?? pos
@@ -95,19 +104,35 @@ export default function DraggableNode({
 
   return (
     <div
-      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''}`}
-      style={{ width: size.w, height: size.h, transform: `translate(${pos.x}px, ${pos.y}px)`, backgroundColor: bg, touchAction: 'none' }}
+      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${
+        selected ? 'ring-2 ring-indigo-400' : ''
+      }`}
+      style={{
+        width: size.w,
+        height: size.h,
+        transform: `translate(${pos.x}px, ${pos.y}px)`,
+        backgroundColor: bg,
+        touchAction: 'none',
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onMouseEnter={(e)=> runMotionEffects(eff.hoverEnter, 'hoverEnter', e.currentTarget as HTMLElement)}
-      onMouseLeave={(e)=> runMotionEffects(eff.hoverLeave, 'hoverLeave', e.currentTarget as HTMLElement)}
-      ref={(el)=>{ if (el) queueMicrotask(()=> el && runMotionEffects(eff.mount, 'mount', el)) }}
+      onMouseEnter={(e) =>
+        runMotionEffects(eff.hoverEnter, 'hoverEnter', e.currentTarget as HTMLElement)
+      }
+      onMouseLeave={(e) =>
+        runMotionEffects(eff.hoverLeave, 'hoverLeave', e.currentTarget as HTMLElement)
+      }
+      ref={(el) => {
+        if (el) queueMicrotask(() => el && runMotionEffects(eff.mount, 'mount', el))
+      }}
       data-node-id={id}
     >
       {label}
-      <div className="mt-1 text-[10px] text-gray-700/80">{selected ? 'multi-drag: OK / ⌘(Ctrl)+Click: toggle' : 'drag to move'}</div>
+      <div className="mt-1 text-[10px] text-gray-700/80">
+        {selected ? 'multi-drag: OK / ⌘(Ctrl)+Click: toggle' : 'drag to move'}
+      </div>
     </div>
   )
 }

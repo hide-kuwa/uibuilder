@@ -57,11 +57,13 @@ export const useCanvasStore = create<CanvasState>()(
 
       setTransform: (p) => set({ ...get(), ...p }),
       setNodePos: (id, xy) => set({ nodePos: { ...get().nodePos, [id]: xy } }),
+
       setInitialPos: (id, xy, overwrite = false) => {
         const cur = get().initialPos
         if (!overwrite && cur[id]) return
         set({ initialPos: { ...cur, [id]: xy } })
       },
+
       moveNodes: (ids, dx, dy) => {
         const next = { ...get().nodePos }
         const base = get().initialPos
@@ -71,8 +73,9 @@ export const useCanvasStore = create<CanvasState>()(
         }
         set({ nodePos: next })
       },
+
       resetView: () => set({ scale: 1, tx: 0, ty: 0 }),
     }),
-    { name: 'geokore-canvas-v4' }
+    { name: 'geokore-canvas-v4' } // バージョンキー更新
   )
 )
