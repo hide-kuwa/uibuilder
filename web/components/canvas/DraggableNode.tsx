@@ -2,65 +2,87 @@
 import { useRef, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import type { XY } from '@/stores/canvas'
+import { snapToGrid } from '@/lib/snap'
 import { buildMotionFromStatus, computeBgColor } from '@/lib/status-engine'
 import { runMotionEffects } from '@/lib/runMotion'
 
 export default function DraggableNode({
-  id, label, initial, status,
-  onCommit,
+  id, label, initial, status, size = { w: 160, h: 96 }, onCommit,
 }: {
   id: string
   label: string
   initial?: XY
   status?: any
+  size?: { w: number; h: number }
   onCommit?: (xy: XY) => void
 }) {
-  const { nodePos, setNodePos, scale } = useCanvasStore()
+  const { nodePos, setNodePos, moveNodes, scale, selectedIds, toggleSelect, snapEnabled, gridSize, snapThreshold } = useCanvasStore()
   const pos = nodePos[id] ?? initial ?? { x: 0, y: 0 }
-  const [drag, setDrag] = useState<XY | null>(null)
-  const ref = useRef<HTMLDivElement | null>(null)
+  const selected = selectedIds.includes(id)
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; base: XY } | null>(null)
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     e.currentTarget.setPointerCapture(e.pointerId)
-    setDrag({ x: e.clientX, y: e.clientY })
-  }
-  const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!drag) return
-    const dx = (e.clientX - drag.x) / scale
-    const dy = (e.clientY - drag.y) / scale
-    setNodePos(id, { x: pos.x + dx, y: pos.y + dy })
-  }
-  const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!drag) return
-    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
-    setDrag(null)
-    onCommit?.(useCanvasStore.getState().nodePos[id] ?? pos)
+    const multi = e.metaKey || e.ctrlKey
+    toggleSelect(id, multi)
+    setDragStart({ x: e.clientX, y: e.clientY, base: pos })
   }
 
-  // ステータス色とホバー演出（任意）
+  const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (!dragStart) return
+    const dx = (e.clientX - dragStart.x) / scale
+    const dy = (e.clientY - dragStart.y) / scale
+
+    // 単体ドラッグ → グリッドスナップ
+    if (selectedIds.length <= 1) {
+      const raw = { x: dragStart.base.x + dx, y: dragStart.base.y + dy }
+      const next = snapEnabled ? snapToGrid(raw, gridSize, snapThreshold) : raw
+      setNodePos(id, next)
+    } else {
+      // 複数選択 → 相対移動（スナップは最後の確定時に委ねる）
+      moveNodes(selectedIds, dx, dy)
+      setDragStart({ ...dragStart, x: e.clientX, y: e.clientY })
+    }
+  }
+
+  const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (!dragStart) return
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+    setDragStart(null)
+
+    // 複数移動の最終スナップ（代表だけスナップ→相対差分を全体適用）
+    if (selectedIds.length > 1) {
+      const rep = useCanvasStore.getState().nodePos[id] ?? pos
+      const snapped = snapEnabled ? snapToGrid(rep, gridSize, snapThreshold) : rep
+      const ddx = snapped.x - rep.x
+      const ddy = snapped.y - rep.y
+      if (ddx || ddy) useCanvasStore.getState().moveNodes(selectedIds, ddx, ddy)
+      // Commit は代表のみ呼ぶ（任意）
+      onCommit?.(snapped)
+    } else {
+      const cur = useCanvasStore.getState().nodePos[id] ?? pos
+      onCommit?.(cur)
+    }
+  }
+
   const bg = computeBgColor(status ?? { base: 'notVisited', overlays: [] })
   const eff = buildMotionFromStatus(id, status ?? { base: 'notVisited', overlays: [] })
 
-  const setRef = (el: HTMLDivElement | null) => {
-    ref.current = el
-    if (el) queueMicrotask(() => runMotionEffects(eff.mount, 'mount', el))
-  }
-
   return (
     <div
-      ref={setRef}
-      className="absolute h-24 w-40 select-none rounded-xl border p-3 text-sm shadow-sm"
-      style={{ transform: `translate(${pos.x}px, ${pos.y}px)`, backgroundColor: bg, touchAction: 'none' }}
+      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''}`}
+      style={{ width: size.w, height: size.h, transform: `translate(${pos.x}px, ${pos.y}px)`, backgroundColor: bg, touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onMouseEnter={(e)=> runMotionEffects(eff.hoverEnter, 'hoverEnter', e.currentTarget as HTMLElement)}
       onMouseLeave={(e)=> runMotionEffects(eff.hoverLeave, 'hoverLeave', e.currentTarget as HTMLElement)}
+      ref={(el)=>{ if (el) queueMicrotask(()=> el && runMotionEffects(eff.mount, 'mount', el)) }}
       data-node-id={id}
     >
       {label}
-      <div className="mt-1 text-[10px] text-gray-700/80">drag to move</div>
+      <div className="mt-1 text-[10px] text-gray-700/80">{selected ? 'multi-drag: OK / ⌘(Ctrl)+Click: toggle' : 'drag to move'}</div>
     </div>
   )
 }
