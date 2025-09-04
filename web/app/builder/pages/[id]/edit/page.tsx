@@ -1,21 +1,94 @@
 "use client";
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePageStore } from '@/store/pageStore';
 import { toast } from '@/lib/toast';
 import ThemeEditor from '@/components/theme/ThemeEditor';
 import { useDesignTokens } from '@/store/designTokensStore';
 import type { ThemeTokens } from '@/lib/builder/themes/themeTokens';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/storage/drafts';
 
 export default function PageEditor({ params }: { params: { id: string } }) {
   const router = useRouter();
   const selectPage = usePageStore((s) => s.selectPage);
   const setTheme = usePageStore((s) => s.setTheme);
   const [showThemeEditor, setShowThemeEditor] = useState(false);
+  const [status, setStatus] = useState<'saved' | 'saving' | 'offline'>('saved');
+  const saveTimer = useRef<number>();
 
   useEffect(() => {
     selectPage(params.id);
   }, [params.id, selectPage]);
+
+  const persistDraft = useCallback(async () => {
+    const state = usePageStore.getState();
+    const snapshot = {
+      tree: state.getTree(),
+      bindings: state.getBindings(),
+      theme: state.getTheme(),
+      tokens: useDesignTokens.getState().getAll(),
+    };
+    const record = { pageId: params.id, snapshot, updatedAt: Date.now() };
+    if (navigator.onLine) {
+      setStatus('saving');
+      try {
+        await fetch('/api/saveDraft', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record),
+        });
+        await clearDraft(params.id);
+        setStatus('saved');
+      } catch {
+        await saveDraft(record);
+        setStatus('offline');
+      }
+    } else {
+      await saveDraft(record);
+      setStatus('offline');
+    }
+  }, [params.id]);
+
+  useEffect(() => {
+    const schedule = () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => {
+        persistDraft();
+      }, 800);
+    };
+    const unsubPage = usePageStore.subscribe((s) => s.pages, schedule);
+    const unsubTokens = useDesignTokens.subscribe((s) => s.tokens, schedule);
+    return () => {
+      unsubPage();
+      unsubTokens();
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [persistDraft]);
+
+  useEffect(() => {
+    loadDraft(params.id).then((draft) => {
+      if (draft && window.confirm('ドラフトを復元しますか？')) {
+        const snap = draft.snapshot || {};
+        const ps = usePageStore.getState();
+        ps.setTree(snap.tree ?? []);
+        ps.setBindings(snap.bindings ?? {});
+        ps.setTheme(snap.theme ?? {});
+        useDesignTokens.getState().replaceAll(snap.tokens ?? {});
+        setStatus('offline');
+      }
+    });
+  }, [params.id]);
+
+  useEffect(() => {
+    const sync = async () => {
+      const draft = await loadDraft(params.id);
+      if (draft) {
+        await persistDraft();
+      }
+    };
+    window.addEventListener('online', sync);
+    return () => window.removeEventListener('online', sync);
+  }, [persistDraft, params.id]);
 
   const tokensToTheme = (tokens: Record<string, any>): ThemeTokens => ({
     colors: {
@@ -53,21 +126,30 @@ export default function PageEditor({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Page Editor</h1>
-        <div className="flex gap-2">
-          <button onClick={handlePublish} className="px-3 py-2 rounded-lg border">
-            Publish
-          </button>
-          <button
-            onClick={() => router.push(`/builder/pages/${params.id}/preview`)}
-            className="px-3 py-2 rounded-lg border"
-          >
-            Preview
-          </button>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Page Editor</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-zinc-500">
+              {status === 'saving'
+                ? 'Saving...'
+                : status === 'offline'
+                ? 'Offline • Draft'
+                : 'Saved •'}
+            </span>
+            <div className="flex gap-2">
+              <button onClick={handlePublish} className="px-3 py-2 rounded-lg border">
+                Publish
+              </button>
+              <button
+                onClick={() => router.push(`/builder/pages/${params.id}/preview`)}
+                className="px-3 py-2 rounded-lg border"
+              >
+                Preview
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
       <p className="text-sm text-zinc-500">Editing page: {params.id}</p>
       <div>
         <h2 className="font-medium mb-1">Theme Override</h2>
