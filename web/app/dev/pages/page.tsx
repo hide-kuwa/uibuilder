@@ -13,8 +13,7 @@ export default function DevPages() {
   ] as const;
 
   const version = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.13.0';
-  const commitHash =
-    process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? process.env.GIT_COMMIT_HASH ?? '開発中';
+  const commitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? '開発中';
 
   return (
     <div className="p-6 space-y-6">
