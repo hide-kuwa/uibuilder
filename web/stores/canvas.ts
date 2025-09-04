@@ -1,6 +1,7 @@
 'use client'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { builderStore } from '@/stores/builder'
 
 export type XY = { x: number; y: number }
 export type Size = { w: number; h: number }
@@ -11,6 +12,7 @@ type CanvasState = {
   ty: number
   nodePos: Record<string, XY>
   nodeSize: Record<string, Size>
+  initialPos: Record<string, XY>
 
   // 選択
   selectedIds: string[]
@@ -32,6 +34,7 @@ type CanvasState = {
   setTransform: (p: Partial<Pick<CanvasState, 'scale' | 'tx' | 'ty'>>) => void
   setNodePos: (id: string, xy: XY) => void
   moveNodes: (ids: string[], dx: number, dy: number) => void
+  clearInitialPos: () => void
   setNodeSize: (id: string, sz: Size) => void
   resetView: () => void
 }
@@ -42,6 +45,7 @@ export const useCanvasStore = create<CanvasState>()(
       scale: 1, tx: 0, ty: 0,
       nodePos: {},
       nodeSize: {},
+      initialPos: {},
 
       selectedIds: [],
       setSelectedIds: (ids) => set({ selectedIds: ids }),
@@ -65,12 +69,23 @@ export const useCanvasStore = create<CanvasState>()(
       setNodePos: (id, xy) => set({ nodePos: { ...get().nodePos, [id]: xy } }),
       moveNodes: (ids, dx, dy) => {
         const next = { ...get().nodePos }
+        const base = { ...get().initialPos }
+        const b = builderStore.getState() as any
         for (const id of ids) {
-          const cur = next[id] ?? { x: 0, y: 0 }
-          next[id] = { x: cur.x + dx, y: cur.y + dy }
+          if (!base[id]) {
+            const p = next[id]
+              ?? b.nodes?.[id]?.position
+              ?? (() => {
+                const el = b.elements?.find((e: any) => e.id === id)
+                return el ? { x: el.x, y: el.y } : { x: 0, y: 0 }
+              })()
+            base[id] = p
+          }
+          next[id] = { x: base[id].x + dx, y: base[id].y + dy }
         }
-        set({ nodePos: next })
+        set({ nodePos: next, initialPos: base })
       },
+      clearInitialPos: () => set({ initialPos: {} }),
       setNodeSize: (id, sz) => set({ nodeSize: { ...get().nodeSize, [id]: sz } }),
       resetView: () => set({ scale: 1, tx: 0, ty: 0 }),
     }),

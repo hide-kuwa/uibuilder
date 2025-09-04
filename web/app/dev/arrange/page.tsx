@@ -11,7 +11,7 @@ import { useRef } from 'react'
 export default function ArrangePage() {
   const nodes = useBuilderStore(s => Object.values(s.nodes ?? {}))
   const selectedIds = useCanvasStore(s => s.selectedIds)
-  const { nodePos } = useCanvasStore()
+  const { nodePos, nodeSize } = useCanvasStore()
   const setTransform = useCanvasStore(s => s.setTransform)
 
   // 矢印キーは前ステップのまま…
@@ -19,21 +19,19 @@ export default function ArrangePage() {
   // レイヤー操作
   const bringToFront = () => {
     if (!selectedIds.length) return
-    const maxZ = Math.max(0, ...nodes.map(n => n.z ?? 0))
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, z: maxZ + 1 }))
+      builderStore.getState().bringToFront(id)
     }
   }
   const sendToBack = () => {
     if (!selectedIds.length) return
-    const minZ = Math.min(0, ...nodes.map(n => n.z ?? 0))
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, z: minZ - 1 }))
+      builderStore.getState().sendToBack(id)
     }
   }
   const lockToggle = (lock: boolean) => {
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, locked: lock }))
+      builderStore.getState().setLocked(id, lock)
     }
   }
 
@@ -60,13 +58,12 @@ export default function ArrangePage() {
   }
 
   const savePositionsToBuilder = () => {
+    const store = builderStore.getState()
     for (const n of nodes) {
       const p = nodePos[n.id]
-      if (p) builderStore.getState().updateNode(n.id, (prev: any) => ({
-        ...prev,
-        position: p,
-        size: prev.size ?? { w: 160, h: 96 }, // 既存に無ければ初期値
-      }))
+      const s = nodeSize[n.id]
+      if (p) store.move(n.id, p)
+      if (s) store.resize(n.id, s)
     }
   }
 
@@ -104,7 +101,11 @@ export default function ArrangePage() {
               size={n.size ?? { w: 160, h: 96 }}
               z={n.z ?? 0}
               locked={!!n.locked}
-              onCommit={(xy, sz)=> builderStore.getState().updateNode(n.id, (prev:any)=> ({ ...prev, position: xy, size: sz ?? prev.size })) }
+              onCommit={(xy, sz)=> {
+                const st = builderStore.getState()
+                st.move(n.id, xy)
+                if (sz) st.resize(n.id, sz)
+              }}
             />
           ))}
         </ZoomPanCanvas>

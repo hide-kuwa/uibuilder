@@ -24,7 +24,7 @@ export default function DraggableNode({
   const {
     nodePos, setNodePos, moveNodes, nodeSize, setNodeSize, scale,
     selectedIds, toggleSelect, snapEnabled, gridSize, snapThreshold,
-    setGuides, clearGuides,
+    setGuides, clearGuides, clearInitialPos,
   } = useCanvasStore()
 
   // サイズをストアに同期（ガイド用）
@@ -89,6 +89,7 @@ export default function DraggableNode({
       setResizing(null)
       clearGuides()
       onCommit?.(useCanvasStore.getState().nodePos[id] ?? pos, useCanvasStore.getState().nodeSize[id] ?? curSize)
+      clearInitialPos()
       return
     }
     if (!dragStart) return
@@ -96,6 +97,7 @@ export default function DraggableNode({
     clearGuides()
     const cur = useCanvasStore.getState().nodePos[id] ?? pos
     onCommit?.(cur, useCanvasStore.getState().nodeSize[id] ?? curSize)
+    clearInitialPos()
   }
 
   // リサイズハンドル
