@@ -1,81 +1,96 @@
-import type { NodeStatus, StatusConfig, MotionPresetId } from '@/types/status'
-import type { MotionEffect } from '@/types/motion'
-import { defaultStatusConfig } from '@/types/status'
+// web/lib/status-engine.ts
+import type { NodeStatus, StatusConfig, OverlayConfig } from '@/types/status';
+import { DEFAULT_STATUS_CONFIG } from '@/types/status';
 
-// 簡易ブレンド（alpha 0.35 固定の乗算風）
-function blend(base: string, over: string): string {
-  const toRgb = (c: string) => {
-    const ctx = document.createElement('canvas').getContext('2d')!
-    ctx.fillStyle = c
-    const m = ctx.fillStyle as string
-    // ブラウザに任せて正規化 → rgb(r, g, b)
-    const nums = m.match(/\d+/g)?.map(Number) ?? [0, 0, 0]
-    return { r: nums[0], g: nums[1], b: nums[2] }
+function hexToRgb(hex: string) {
+  const h = hex.replace('#', '');
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return { r, g, b };
   }
-  const b = toRgb(base),
-    o = toRgb(over)
-  const a = 0.35
-  const r = Math.round((1 - a) * b.r + a * o.r)
-  const g = Math.round((1 - a) * b.g + a * o.g)
-  const v = Math.round((1 - a) * b.b + a * o.b)
-  return `rgb(${r}, ${g}, ${v})`
-}
-
-export function computeBgColor(status: NodeStatus, cfg?: StatusConfig): string {
-  const conf = cfg ?? defaultStatusConfig
-  let color = conf.base[status.base].color
-  const overlays = [...status.overlays]
-
-  const ordered =
-    conf.compose.order === 'priority'
-      ? overlays.sort(
-          (a, b) =>
-            (conf.overlay[b]?.priority ?? 0) - (conf.overlay[a]?.priority ?? 0),
-        )
-      : overlays
-
-  for (const ov of ordered) {
-    const rule = conf.overlay[ov]
-    if (!rule) continue
-    const mode = rule.mode ?? conf.compose.colorMode
-    if (mode === 'override') color = rule.color
-    else if (mode === 'blend') color = blend(color, rule.color)
-    else if (mode === 'glow') color = blend(color, rule.color) // 実際の発光はエフェクトで付与
-  }
-  return color
-}
-
-// 既存の runMotion と接続するための形に変換
-export function buildMotionFromStatus(
-  id: string,
-  status: NodeStatus,
-  cfg?: StatusConfig,
-) {
-  const conf = cfg ?? defaultStatusConfig
-  const baseFx = conf.base[status.base]?.effects ?? []
-  const overlayFx = status.overlays.flatMap((o) => conf.overlay[o]?.effects ?? [])
-
-  // mount: base + overlay のユニーク化
-  const mountPresets: MotionPresetId[] = [...new Set([...baseFx, ...overlayFx])].filter(
-    (x) => x !== 'none',
-  )
-  // hover: overlay のみ（none 除外）
-  const hoverPresets: MotionPresetId[] = overlayFx.filter((x) => x !== 'none')
-
-  const mount: MotionEffect[] = mountPresets.map((p, i) => ({
-    id: `${id}-status-mount-${p}-${i}`,
-    preset: p,
-    runWhen: ['mount'],
-  }))
-  const hoverEnter: MotionEffect[] = hoverPresets.map((p, i) => ({
-    id: `${id}-status-hover-${p}-${i}`,
-    preset: p,
-    runWhen: ['hoverEnter'],
-  }))
-
+  const num = parseInt(h, 16);
   return {
-    mount,
-    hoverEnter, // 「行きたい」「写真登録」などをホバーで強調したいとき
-    hoverLeave: [] as MotionEffect[],
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return '#' + [r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('');
+}
+
+function blendHex(baseHex: string, overHex: string, alpha: number) {
+  const b = hexToRgb(baseHex);
+  const o = hexToRgb(overHex);
+  const r = Math.round((1 - alpha) * b.r + alpha * o.r);
+  const g = Math.round((1 - alpha) * b.g + alpha * o.g);
+  const bl = Math.round((1 - alpha) * b.b + alpha * o.b);
+  return rgbToHex(r, g, bl);
+}
+
+export function computeBgColor(
+  status: NodeStatus,
+  cfg: StatusConfig = DEFAULT_STATUS_CONFIG,
+) {
+  let base = cfg.base[status.base].color;
+  const glows: { color: string }[] = [];
+  let filter = '';
+  const overlays = [...status.overlays];
+  const ordered =
+    cfg.compose.order === 'priority'
+      ? overlays.sort((a, b) => {
+          const pa = cfg.overlays.find((o) => o.key === a)?.priority ?? 0;
+          const pb = cfg.overlays.find((o) => o.key === b)?.priority ?? 0;
+          return pb - pa;
+        })
+      : overlays;
+
+  ordered.forEach((key) => {
+    const oc = cfg.overlays.find((o) => o.key === key);
+    if (!oc) return;
+    base = applyOverlay(base, oc, glows);
+  });
+
+  if (glows.length) {
+    // drop-shadow を積む
+    filter = glows
+      .map((g, i) => `drop-shadow(0 0 ${6 + i * 6}px ${g.color})`)
+      .join(' ');
+  }
+  return { bg: base, filter, glow: glows };
+}
+
+function applyOverlay(baseHex: string, oc: OverlayConfig, glows: { color: string }[]) {
+  switch (oc.mode) {
+    case 'override':
+      return oc.color;
+    case 'blend':
+      return blendHex(baseHex, oc.color, 0.45);
+    case 'glow':
+      glows.push({ color: oc.color });
+      // 視認性のために少しだけブレンド
+      return blendHex(baseHex, oc.color, 0.25);
+    default:
+      return baseHex;
   }
 }
+
+export function buildMotionFromStatus(status: NodeStatus, cfg: StatusConfig) {
+  const overlays = status.overlays
+    .map((k) => cfg.overlays.find((o) => o.key === k))
+    .filter(Boolean) as OverlayConfig[];
+  const hasGlow = overlays.some((o) => o.mode === 'glow');
+  if (!hasGlow) return undefined;
+  // anime.js 用：軽い鼓動
+  return {
+    scale: [1, 1.03],
+    duration: 1200,
+    direction: 'alternate' as const,
+    easing: 'easeInOutSine' as const,
+    loop: true,
+  };
+}
+

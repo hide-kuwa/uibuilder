@@ -1,53 +1,55 @@
-'use client'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
+'use client';
+import Link from 'next/link';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function DevPages() {
-  const [dark, setDark] = useState(false)
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark)
-  }, [dark])
+  const links = [
+    { href: '/builder', label: 'Builder' },
+    { href: '/dev/arrange', label: 'Arrange' },
+    { href: '/dev/actions', label: 'Actions (placeholder)' },
+    { href: '/share', label: 'Share (placeholder)' },
+    { href: '/map', label: 'Map (published)' },
+    { href: '/map?preview=1', label: 'Map (preview)' },
+  ] as const;
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-lg font-semibold">Dev Utilities</h1>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">/dev/pages</h1>
+        <ThemeToggle />
+      </div>
 
-      <section className="rounded-2xl border bg-white p-4">
-        <div className="mb-2 text-sm font-medium">Pages</div>
-        <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-          {[
-            ['/builder','Builder'],
-            ['/dev/arrange','Arrange'],
-            ['/dev/actions','Actions'],
-            ['/dev/share','Share Movie'],
-            ['/map?preview=1','Map (preview)'],
-            ['/map','Map (published)'],
-          ].map(([href, label]) => (
-            <li key={href}>
-              <Link className="inline-block rounded border px-3 py-2 text-sm hover:bg-gray-50" href={href}>{label}</Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {links.map((l) => (
+          <Link key={l.href} href={l.href} className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900">
+            <div className="font-medium">{l.label}</div>
+            <div className="text-xs text-zinc-500 break-all">{l.href}</div>
+          </Link>
+        ))}
+      </div>
 
-      <section className="rounded-2xl border bg-white p-4">
-        <div className="mb-2 text-sm font-medium">Toggles</div>
-        <label className="mr-4 inline-flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={dark} onChange={(e)=> setDark(e.target.checked)} />
-          Dark mode
-        </label>
-        {/* React Query Devtools / Zustand Devtools は導入済みならここで表示切替を入れてOK */}
-      </section>
-
-      <section className="rounded-2xl border bg-white p-4">
-        <div className="mb-1 text-sm font-medium">Mock Switch</div>
-        <p className="text-xs text-gray-600">環境に応じて API をモックへ切替（実装中のフラグ置き場）</p>
-      </section>
-
-      <section className="rounded-2xl border bg-white p-4">
-        <div className="mb-1 text-sm font-medium">Unused Components</div>
-        <p className="text-xs text-gray-600">将来: ビルド時のレポートから自動収集。暫定は手動リストでOK。</p>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Devtools / Mock</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="p-4 rounded-xl border">
+            <div className="text-sm font-medium mb-2">React Query Devtools</div>
+            <div className="text-xs text-zinc-500">(placeholder) トグル/マウントを後日追加</div>
+          </div>
+          <div className="p-4 rounded-xl border">
+            <div className="text-sm font-medium mb-2">Zustand Devtools</div>
+            <div className="text-xs text-zinc-500">(placeholder) トグル/マウントを後日追加</div>
+          </div>
+          <div className="p-4 rounded-xl border">
+            <div className="text-sm font-medium mb-2">Mock 切替</div>
+            <div className="text-xs text-zinc-500">(placeholder) API モック/実データ切替</div>
+          </div>
+          <div className="p-4 rounded-xl border">
+            <div className="text-sm font-medium mb-2">未使用コンポ一覧</div>
+            <div className="text-xs text-zinc-500">(placeholder) 自動検出 UI</div>
+          </div>
+        </div>
       </section>
     </div>
-  )
+  );
 }
+

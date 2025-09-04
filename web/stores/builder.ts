@@ -1,71 +1,100 @@
-'use client'
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { StatusConfig, NodeStatus } from '@/types/status'
-import { defaultStatusConfig } from '@/types/status'
+'use client';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { NodeStatus, StatusConfig } from '@/types/status';
+import { DEFAULT_STATUS_CONFIG } from '@/types/status';
 
 type BuilderNode = {
-  id: string
-  title?: string
-  prefecture?: string
-  position?: { x: number; y: number }
-  size?: { w: number; h: number }
-  z?: number
-  locked?: boolean
-  status?: NodeStatus
-}
+  id: string;
+  name?: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+};
+
+type PublishedSnapshot = {
+  nodes: BuilderNode[];
+  statuses: Record<string, NodeStatus>;
+  statusConfig: StatusConfig;
+  at: number;
+};
 
 type BuilderState = {
-  nodes: Record<string, BuilderNode>
-  publishedSnapshot: { nodes: Record<string, BuilderNode>; statusConfig: StatusConfig } | null
-  statusConfig: StatusConfig
-  usePublishedOnMap: boolean
+  nodes: BuilderNode[];
+  statuses: Record<string, NodeStatus>;
+  statusConfig: StatusConfig;
+  publishedSnapshot: PublishedSnapshot | null;
+  usePublishedOnMap: boolean;
 
-  updateMany: (patches: Array<Partial<BuilderNode> & { id: string }>) => void
-  setNodeStatus: (id: string, status: NodeStatus) => void
-  setStatusConfig: (updater: (prev: StatusConfig) => StatusConfig) => void
-  publishAll: () => void
-  setUsePublishedOnMap: (v: boolean) => void
-  getMapNodes: (preview?: boolean) => Record<string, BuilderNode>
-}
+  updateMany: (patches: Array<Partial<BuilderNode> & { id: string }>) => void;
+  setNodeStatus: (id: string, status: NodeStatus) => void;
+  setStatusConfig: (updater: (draft: StatusConfig) => StatusConfig | void) => void;
+  publishAll: () => void;
+  setUsePublishedOnMap: (v: boolean) => void;
+  getMapNodes: (preview?: boolean) => BuilderNode[];
+  getNodeStatus: (id: string) => NodeStatus;
+};
 
 export const useBuilderStore = create<BuilderState>()(
   persist(
     (set, get) => ({
-      nodes: {},
+      nodes: [],
+      statuses: {},
+      statusConfig: DEFAULT_STATUS_CONFIG,
       publishedSnapshot: null,
-      statusConfig: defaultStatusConfig,
       usePublishedOnMap: true,
 
       updateMany: (patches) =>
-        set((s) => {
-          const next = { ...s.nodes }
-          for (const p of patches) next[p.id] = { ...(next[p.id] ?? { id: p.id }), ...p }
-          return { nodes: next }
-        }),
+        set((s) => ({
+          nodes: s.nodes.map((n) => {
+            const p = patches.find((pp) => pp.id === n.id);
+            return p ? { ...n, ...p } : n;
+          }),
+        })),
 
       setNodeStatus: (id, status) =>
         set((s) => ({
-          nodes: { ...s.nodes, [id]: { ...(s.nodes[id] ?? { id }), status } },
+          statuses: { ...s.statuses, [id]: status },
         })),
 
-      setStatusConfig: (up) => set((s) => ({ statusConfig: up(s.statusConfig) })),
+      setStatusConfig: (updater) =>
+        set((s) => {
+          const next = structuredClone(s.statusConfig);
+          const r = updater(next);
+          return { statusConfig: (r ?? next) as StatusConfig };
+        }),
 
       publishAll: () =>
-        set((s) => ({ publishedSnapshot: { nodes: { ...s.nodes }, statusConfig: { ...s.statusConfig } } })),
+        set((s) => ({
+          publishedSnapshot: {
+            nodes: s.nodes,
+            statuses: s.statuses,
+            statusConfig: s.statusConfig,
+            at: Date.now(),
+          },
+        })),
 
       setUsePublishedOnMap: (v) => set({ usePublishedOnMap: v }),
 
       getMapNodes: (preview) => {
-        const s = get()
-        if (preview === true) return s.nodes
-        if (s.usePublishedOnMap && s.publishedSnapshot) return s.publishedSnapshot.nodes
-        return s.nodes
+        const s = get();
+        if (preview) return s.nodes;
+        if (!s.usePublishedOnMap) return s.nodes;
+        return s.publishedSnapshot?.nodes ?? s.nodes;
+      },
+
+      getNodeStatus: (id) => {
+        const s = get();
+        return (
+          s.statuses[id] ?? {
+            base: 'notVisited',
+            overlays: [],
+          }
+        );
       },
     }),
-    { name: 'builder-v2' }
+    { name: 'builder-store' }
   )
-)
+);
 
-// 便利：直接 get/set したいとき用
-export const builderStore = { getState: useBuilderStore.getState, setState: useBuilderStore.setState }
