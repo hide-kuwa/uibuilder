@@ -1,125 +1,68 @@
-'use client'
+'use client';
 
-import TriggersPanel from './TriggersCard'
-import ActionsCard from './ActionsCard'
-import EffectsCard from './EffectsCard'
-import MotionEffectsPanel from '@/components/panels/MotionEffectsPanel'
-import PresetsSidebar from '@/components/panels/PresetsSidebar'
-import PreviewPane from '@/components/panels/PreviewPane'
-import NodeStatusPanel from '@/components/panels/NodeStatusPanel'
-import StatusConfigPanel from '@/components/panels/StatusConfigPanel'
-import type { NodeStatus } from '@/types/status'
-
-import { builderStore, useBuilderStore } from '@/store/builderStore'
-import type { MotionEffect } from '@/types/motion'
+import Link from 'next/link';
+import { useBuilderStore } from '@/stores/builder';
+import { useCanvasStore } from '@/stores/canvas';
 
 export default function DevActionsPage() {
-  const selectedId = useBuilderStore((s) => s.selectedIds[0])
-  const selectedNode = useBuilderStore(
-    (s) => (selectedId ? s.elements.find((e) => e.id === selectedId) : null)
-  ) as any
+  const nodes = useBuilderStore((s) => s.nodes);
+  const publishAll = useBuilderStore((s) => s.publishAll);
+  const setNodeStatus = useBuilderStore((s) => s.setNodeStatus);
+  const setSelectedIds = useCanvasStore((s) => s.setSelectedIds);
 
-  const updateSelectedNode = (updater: (prev: any) => any) => {
-    if (!selectedId) return
-    builderStore.setState((state) => {
-      const update = (el: any) => (el.id === selectedId ? updater(el) : el)
-      return {
-        ...state,
-        elements: state.elements.map(update),
-        tree: state.tree.map(update),
-      }
-    })
-  }
+  const allNodeIds = nodes.map((n) => n.id);
 
-  const nodeStatus: NodeStatus = selectedNode?.status ?? { base: 'notVisited', overlays: [] }
-  const setNodeStatus = (next: NodeStatus) =>
-    updateSelectedNode((prev: any) => ({ ...prev, status: next }))
+  const selectAll = () => setSelectedIds(allNodeIds);
+  const resetStatuses = () => {
+    allNodeIds.forEach((id) =>
+      setNodeStatus(id, { base: 'notVisited', overlays: [] })
+    );
+  };
 
-  const motion: MotionEffect[] = selectedNode?.effects?.motion ?? []
-  const setMotion = (next: MotionEffect[]) =>
-    updateSelectedNode((prev: any) => ({
-      ...prev,
-      effects: { ...(prev.effects ?? {}), motion: next },
-    }))
-
-  // ―― ここがポイント：最初の Motion を“プリセット+強度”の編集対象にする
-  const primary = motion[0]
-  const ensurePrimary = () => {
-    if (motion.length > 0) return motion
-    const created: MotionEffect = {
-      id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
-      preset: 'fadeIn',
-      strength: 50,
-      runWhen: ['click'],
-      target: selectedNode?.id ? { type: 'nodeId', value: selectedNode.id } : undefined,
-      options: {},
-    }
-    const next = [created]
-    setMotion(next)
-    return next
-  }
-
-  const preset = primary?.preset ?? 'fadeIn'
-  const strength = primary?.strength ?? 50
-
-  const updatePrimary = (next: { preset?: string; strength?: number }) => {
-    const list = ensurePrimary()
-    const cur = list[0]
-    const updated: MotionEffect = {
-      ...cur,
-      ...(next.preset ? { preset: next.preset } : null),
-      ...(typeof next.strength === 'number' ? { strength: next.strength } : null),
-    }
-    setMotion([updated, ...list.slice(1)])
-  }
+  const links = [
+    { href: '/map', label: '/map' },
+    { href: '/map?preview=1', label: '/map?preview=1' },
+    { href: '/builder', label: '/builder' },
+  ];
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[260px_1fr_320px]">
-      {/* 左：Presets（クリック/スライダーで即反映） */}
-      <aside className="xl:sticky xl:top-4 xl:self-start">
-        <PresetsSidebar
-          preset={preset}
-          strength={strength}
-          onUpdate={updatePrimary}
-          openLabHref={`/dev/motion?p=${encodeURIComponent(preset)}&s=${strength}`}
-        />
-        <div className="mt-4">
-          <StatusConfigPanel />
-        </div>
-      </aside>
-
-      {/* 中央：2×2 グリッド */}
-      <main className="grid gap-4 lg:grid-cols-2">
-        {/* 左上：Triggers + NodeStatus */}
-        <section className="rounded-2xl border bg-white p-4 space-y-4">
-          <TriggersPanel />
-          <NodeStatusPanel value={nodeStatus} onChange={setNodeStatus} />
-        </section>
-        {/* 右上：Actions */}
-        <section className="rounded-2xl border bg-white p-4">
-          <ActionsCard />
-        </section>
-        {/* 左下：Effects (visual) */}
-        <section className="rounded-2xl border bg-white p-4">
-          <EffectsCard />
-        </section>
-        {/* 右下：Animation (preset) */}
-        <section className="rounded-2xl border bg-white p-4">
-          <div className="mb-2 text-sm font-medium text-gray-700">Animation (preset)</div>
-          <MotionEffectsPanel
-            value={motion}
-            onChange={setMotion}
-            defaultTargetNodeId={selectedNode?.id}
-            mode="simple"
-          />
-        </section>
-      </main>
-
-      {/* 右：Preview（スクロール追従） */}
-      <aside className="xl:sticky xl:top-4 xl:self-start">
-        <PreviewPane />
-      </aside>
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">/dev/actions</h1>
+        <Link href="/dev/pages" className="text-sm underline">
+          /dev/pages
+        </Link>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+        <button
+          onClick={publishAll}
+          className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        >
+          Publish All
+        </button>
+        <button
+          onClick={selectAll}
+          className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        >
+          全選択
+        </button>
+        <button
+          onClick={resetStatuses}
+          className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        >
+          ステータス初期化
+        </button>
+        {links.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center justify-center"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </div>
     </div>
-  )
+  );
 }
 
