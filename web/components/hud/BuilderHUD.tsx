@@ -2,6 +2,9 @@
 import React from 'react'
 import { useHudStore, type DeviceKind } from '@/store/hudStore'
 import { useUIStore } from '@/store/uiStore'
+import { usePageStore } from '@/store/pageStore'
+import { toast } from '@/lib/toast'
+import { saveTemplate } from '../../../src/lib/pageTemplates'
 
 function IconBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
   const { active, className, ...rest } = props
@@ -34,6 +37,14 @@ export function BuilderHUD() {
     toggleSnap,
   } = useHudStore()
   const { showRulers, toggleRulers } = useUIStore()
+
+  const saveAsTemplate = React.useCallback(() => {
+    const name = window.prompt('Template name?')
+    if (!name) return
+    const nodes = usePageStore.getState().getTree()
+    saveTemplate({ name, layoutId: 'default', nodes })
+    toast.success('Template saved')
+  }, [])
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -78,6 +89,7 @@ export function BuilderHUD() {
         <IconBtn active={showRulers} onClick={toggleRulers} title="Rulers (R)">Rul</IconBtn>
         <IconBtn active={showOutline} onClick={toggleOutline} title="Outline (O)">Out</IconBtn>
         <IconBtn active={snapToPixel} onClick={toggleSnap} title="Snap (P)">Snap</IconBtn>
+        <IconBtn onClick={saveAsTemplate} title="Save as Template">SaveTpl</IconBtn>
         <div className="mx-1 w-px h-6 bg-zinc-800" />
         <DeviceBtn d="free" label="Free" />
         <DeviceBtn d="desktop" label="Desktop" />
