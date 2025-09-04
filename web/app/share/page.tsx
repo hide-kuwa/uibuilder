@@ -39,13 +39,17 @@ function NodeViewer({ node }: { node: MapNode }) {
   return (
     <div
       ref={ref}
-      className="flex w-full max-w-[320px] flex-col items-center justify-center rounded-xl border p-6 text-center shadow-lg"
+      className="mx-auto flex w-full max-w-[400px] flex-col items-center justify-center rounded-2xl border p-6 text-center shadow-xl"
       style={{ background: bg, filter }}
     >
-      <div className="text-2xl font-bold drop-shadow">
-        {node.name ?? node.id}
+      <div className="w-full">
+        <div className="rounded-md bg-black/20 px-3 py-1 text-2xl font-bold tracking-wide drop-shadow">
+          {node.name ?? node.id}
+        </div>
+        <div className="mt-2 inline-block rounded-md bg-black/20 px-2 py-0.5 text-sm opacity-90">
+          id: {node.id}
+        </div>
       </div>
-      <div className="mt-2 text-xs opacity-70">id: {node.id}</div>
     </div>
   );
 }
@@ -59,7 +63,7 @@ export default function SharePage() {
 
   if (id) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="flex min-h-dvh flex-col items-center justify-center p-6">
         {node ? (
           <NodeViewer node={node} />
         ) : (
@@ -67,7 +71,7 @@ export default function SharePage() {
         )}
         <footer className="mt-6">
           <Link href="/map" className="text-sm underline">
-            ← 地図にもどる
+            ← 地図に戻る
           </Link>
         </footer>
       </div>
@@ -103,4 +107,3 @@ export default function SharePage() {
     </div>
   );
 }
-
