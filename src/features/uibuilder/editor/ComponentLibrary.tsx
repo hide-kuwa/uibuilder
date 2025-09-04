@@ -16,8 +16,14 @@ const LibraryItem: React.FC<{ comp: RegisteredComponent }> = ({ comp }) => {
       onClick={() => addNode(comp.id)}
       className="p-2 border rounded bg-white cursor-move flex items-center gap-2"
     >
-      <span>{comp.icon}</span>
-      <span>{comp.name}</span>
+      <div className="w-8 h-8 flex items-center justify-center">
+        {comp.preview ? <comp.preview /> : <span>{comp.icon}</span>}
+      </div>
+      <div className="flex flex-col">
+        <span>{comp.name}</span>
+        <span className="text-xs text-gray-500">{comp.description}</span>
+        <span className="text-[10px] text-gray-400">{comp.tags.join(', ')}</span>
+      </div>
     </div>
   );
 };

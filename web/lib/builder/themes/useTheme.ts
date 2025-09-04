@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import type { ThemeTokens } from './themeTokens';
 import { defaultTheme } from './themeTokens';
 import { useThemeContext } from './ThemeProvider';
+import { usePageStore } from '@/store/pageStore';
 
 const mergeTheme = (base: ThemeTokens, override?: Partial<ThemeTokens>): ThemeTokens => {
   if (!override) return base;
@@ -22,6 +23,10 @@ export const useTheme = (options?: {
   scope?: 'global' | 'local';
 }): ThemeTokens => {
   const { theme, setTheme } = useThemeContext();
+  const pageTheme = usePageStore((s) => {
+    const p = s.pages.find((p) => p.id === s.currentPageId);
+    return p?.theme;
+  });
 
   useEffect(() => {
     if (options?.override && options.scope === 'global') {
@@ -30,9 +35,10 @@ export const useTheme = (options?: {
   }, [options?.override, options?.scope, setTheme, theme]);
 
   return useMemo(() => {
-    const merged = resolveTheme(theme, options?.override);
+    const withPage = resolveTheme(theme, pageTheme);
+    const merged = resolveTheme(withPage, options?.override);
     return mergeTheme(defaultTheme, merged);
-  }, [theme, options?.override]);
+  }, [theme, pageTheme, options?.override]);
 };
 
 export default useTheme;

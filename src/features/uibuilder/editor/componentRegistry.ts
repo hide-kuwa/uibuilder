@@ -7,7 +7,10 @@ export interface RegisteredComponent {
   name: string;
   type: ComponentCategory;
   icon: React.ReactNode;
-  props?: Record<string, any>;
+  tags: string[];
+  description: string;
+  preview?: React.FC;
+  defaultProps?: Record<string, any>;
   component: React.ComponentType<any>;
 }
 

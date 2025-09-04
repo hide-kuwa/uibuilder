@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { type Elm } from '@/store/builderStore'
+import type { ThemeTokens } from '@/lib/builder/themes/themeTokens'
 
 export type PageId = string
 export type RoutePath = `/${string}`
@@ -11,6 +12,7 @@ export type Page = {
   path: RoutePath
   tree: Elm[]
   bindings: Record<`${string}:${string}`, unknown>
+  theme?: Partial<ThemeTokens>
 }
 
 interface PageState {
@@ -31,6 +33,8 @@ interface PageActions {
   setTree: (tree: Elm[]) => void
   getBindings: () => Page['bindings']
   setBindings: (b: Page['bindings']) => void
+  getTheme: () => Page['theme']
+  setTheme: (theme: Page['theme']) => void
   exportJSON: () => string
   importJSON: (json: string) => void
 }
@@ -42,6 +46,7 @@ function defaultPage(idx: number): Page {
     path: idx === 0 ? '/' : (`/page-${idx + 1}` as RoutePath),
     tree: [],
     bindings: {},
+    theme: {},
   }
 }
 
@@ -67,6 +72,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
       title: init?.title ?? `Page ${idx + 1}`,
       tree: init?.tree ?? [],
       bindings: init?.bindings ?? {},
+      theme: init?.theme ?? {},
     }
     set({ pages: [...pages, page], currentPageId: page.id })
     return page.id
@@ -94,6 +100,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
       path: (`/page-${idx + 1}` as RoutePath),
       tree: JSON.parse(JSON.stringify(src.tree)),
       bindings: JSON.parse(JSON.stringify(src.bindings)),
+      theme: JSON.parse(JSON.stringify(src.theme)),
     }
     set((s) => ({ pages: [...s.pages, newPage], currentPageId: newPage.id }))
     return newPage.id
@@ -127,6 +134,19 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
     set((s) => ({
       pages: s.pages.map((p) =>
         p.id === s.currentPageId ? { ...p, bindings: b } : p,
+      ),
+    }))
+  },
+
+  getTheme() {
+    const p = get().pages.find((p) => p.id === get().currentPageId)
+    return p?.theme ?? {}
+  },
+
+  setTheme(theme) {
+    set((s) => ({
+      pages: s.pages.map((p) =>
+        p.id === s.currentPageId ? { ...p, theme } : p,
       ),
     }))
   },
