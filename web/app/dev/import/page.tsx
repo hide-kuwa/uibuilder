@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useBuilderStore } from '@/stores/builder';
-import type { NodeStatus } from '@/types/status';
 
 function validate(json: any) {
   if (typeof json !== 'object' || json === null) return false;
@@ -45,8 +44,7 @@ function validate(json: any) {
 }
 
 export default function DevImportPage() {
-  const updateMany = useBuilderStore((s) => s.updateMany);
-  const setNodeStatus = useBuilderStore((s) => s.setNodeStatus);
+  const setNodes = useBuilderStore((s) => s.setNodes);
   const setStatusConfig = useBuilderStore((s) => s.setStatusConfig);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,12 +61,10 @@ export default function DevImportPage() {
         return;
       }
       const { nodes, statuses, statusConfig } = data;
-      updateMany(nodes);
-      Object.entries(statuses || {}).forEach(([id, status]) => {
-        setNodeStatus(id, status as NodeStatus);
-      });
+      setNodes(nodes);
+      useBuilderStore.setState({ statuses: statuses || {} });
       if (statusConfig) {
-        setStatusConfig((draft) => Object.assign(draft, statusConfig));
+        setStatusConfig(() => statusConfig);
       }
       setMessage('インポートに成功しました');
       setError(null);
