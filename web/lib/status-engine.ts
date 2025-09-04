@@ -78,12 +78,35 @@ function applyOverlay(baseHex: string, oc: OverlayConfig, glows: { color: string
   }
 }
 
-export function buildMotionFromStatus(status: NodeStatus, cfg: StatusConfig) {
+export function buildMotionFromStatus(
+  id: string,
+  status: NodeStatus,
+  cfg?: StatusConfig,
+): { scale: number[]; duration: number; direction: 'alternate'; easing: 'easeInOutSine'; loop: true } | undefined
+export function buildMotionFromStatus(
+  status: NodeStatus,
+  cfg?: StatusConfig,
+): { scale: number[]; duration: number; direction: 'alternate'; easing: 'easeInOutSine'; loop: true } | undefined
+export function buildMotionFromStatus(
+  idOrStatus: string | NodeStatus,
+  statusOrCfg?: NodeStatus | StatusConfig,
+  maybeCfg?: StatusConfig,
+) {
+  let status: NodeStatus
+  let cfg: StatusConfig = DEFAULT_STATUS_CONFIG
+  if (typeof idOrStatus === 'string') {
+    status = statusOrCfg as NodeStatus
+    cfg = maybeCfg ?? DEFAULT_STATUS_CONFIG
+  } else {
+    status = idOrStatus
+    cfg = (statusOrCfg as StatusConfig) ?? DEFAULT_STATUS_CONFIG
+  }
+
   const overlays = status.overlays
     .map((k) => cfg.overlays.find((o) => o.key === k))
-    .filter(Boolean) as OverlayConfig[];
-  const hasGlow = overlays.some((o) => o.mode === 'glow');
-  if (!hasGlow) return undefined;
+    .filter(Boolean) as OverlayConfig[]
+  const hasGlow = overlays.some((o) => o.mode === 'glow')
+  if (!hasGlow) return undefined
   // anime.js 用：軽い鼓動
   return {
     scale: [1, 1.03],
@@ -91,6 +114,6 @@ export function buildMotionFromStatus(status: NodeStatus, cfg: StatusConfig) {
     direction: 'alternate' as const,
     easing: 'easeInOutSine' as const,
     loop: true,
-  };
+  }
 }
 

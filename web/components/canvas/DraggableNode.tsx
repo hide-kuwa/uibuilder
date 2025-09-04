@@ -1,13 +1,11 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import { useHistoryStore } from '@/stores/history'
 import type { XY, Size } from '@/stores/canvas'
 import { snapToGrid } from '@/lib/snap'
 import { computeSnapWithGuides } from '@/lib/guides'
-import { computeBgColor, buildMotionFromStatus } from '@/lib/status-engine'
-import { useBuilderStore } from '@/stores/builder'
-import { animate } from 'animejs'
+import DraggableNodeWrapper from './DraggableNodeWrapper'
 
 type Props = {
   id: string
@@ -17,39 +15,6 @@ type Props = {
   z?: number
   locked?: boolean
   onCommit?: (xy: XY, sz?: Size) => void
-}
-
-export function DraggableNodeWrapper(
-  {
-    id,
-    style,
-    className,
-    children,
-    ...rest
-  }: {
-    id: string
-    style?: React.CSSProperties
-    className?: string
-    children: React.ReactNode
-  } & React.HTMLAttributes<HTMLDivElement>,
-) {
-  const cfg = useBuilderStore((s) => s.statusConfig)
-  const status = useBuilderStore((s) => s.getNodeStatus(id))
-  const ref = useRef<HTMLDivElement>(null)
-  const { bg, filter } = computeBgColor(status, cfg)
-  const motion = buildMotionFromStatus(status, cfg)
-
-  useEffect(() => {
-    if (!ref.current || !motion) return
-    const a = animate({ targets: ref.current, ...motion })
-    return () => a.pause()
-  }, [motion])
-
-  return (
-    <div ref={ref} data-node-id={id} style={{ background: bg, filter, ...style }} className={className} {...rest}>
-      {children}
-    </div>
-  )
 }
 
 export default function DraggableNode({
