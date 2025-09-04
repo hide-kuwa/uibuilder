@@ -1,0 +1,31 @@
+{
+  "name": "Corporate",
+  "colors": {
+    "background": "#111827",
+    "surface": "#1f2937",
+    "primary": "#2563eb",
+    "secondary": "#10b981",
+    "text": "#f9fafb",
+    "border": "#374151"
+  },
+  "radius": {
+    "sm": "2px",
+    "md": "4px",
+    "lg": "8px",
+    "full": "9999px"
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px"
+  },
+  "typography": {
+    "fontFamily": "Inter, sans-serif",
+    "baseSize": "16px",
+    "headingScale": 1.2,
+    "weightRegular": "400",
+    "weightBold": "700"
+  }
+}

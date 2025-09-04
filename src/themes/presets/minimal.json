@@ -1,0 +1,31 @@
+{
+  "name": "Minimal",
+  "colors": {
+    "background": "#0f172a",
+    "surface": "#1e293b",
+    "primary": "#3b82f6",
+    "secondary": "#f59e0b",
+    "text": "#f8fafc",
+    "border": "#334155"
+  },
+  "radius": {
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "full": "9999px"
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px"
+  },
+  "typography": {
+    "fontFamily": "Inter, sans-serif",
+    "baseSize": "16px",
+    "headingScale": 1.25,
+    "weightRegular": "400",
+    "weightBold": "700"
+  }
+}
