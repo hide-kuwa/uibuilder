@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDataSources } from './dataSources';
 import { PropBinding, useEditorState, useEditorActions } from './store';
 import { library as componentMeta } from '../lib/registry';
+import { t, generateKey, registerKey, getLanguage } from './lib/i18n';
 
 interface PropMeta {
   name: string;
@@ -210,7 +211,44 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       );
     }
 
-    // default: text input with Bind
+    const textual = ['text', 'label', 'title', 'placeholder'].some((s) =>
+      prop.name.toLowerCase().includes(s)
+    );
+    if (textual) {
+      const isI18n = value && typeof value === 'object' && typeof value.key === 'string';
+      const textVal = isI18n ? t(value.key) : value ?? '';
+      return (
+        <div className="flex space-x-1">
+          <input
+            type="text"
+            className={`${common} flex-1`}
+            value={textVal}
+            onChange={(e) => {
+              const txt = e.target.value;
+              if (!txt) {
+                updateProp(prop.name, undefined);
+                return;
+              }
+              if (isI18n) {
+                registerKey(getLanguage(), value.key, txt);
+                updateProp(prop.name, { key: value.key });
+              } else {
+                const key = generateKey(txt);
+                registerKey(getLanguage(), key, txt);
+                updateProp(prop.name, { key });
+              }
+            }}
+          />
+          <button
+            className="text-xs text-blue-600"
+            onClick={() => updateBinding(prop.name, { source: '', endpoint: '', path: '' })}
+          >
+            Bind
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex space-x-1">
         <input
