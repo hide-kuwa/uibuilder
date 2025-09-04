@@ -16,7 +16,8 @@
     "codemod:href": "jscodeshift -t codemods/fix-next-dynamic-href.ts web",
     "routes:gen": "ts-node --project tsconfig.json scripts/gen_route_helpers.ts",
     "routes:check": "ts-node --project tsconfig.json scripts/check_dynamic_hrefs.ts",
-    "prebuild": "pnpm routes:gen && pnpm routes:check"
+    "prebuild": "pnpm routes:gen && pnpm routes:check",
+    "export:pages": "ts-node scripts/export-pages.ts"
   },
   "bin": {
     "json2tsx": "./scripts/json2tsx.js"
@@ -28,6 +29,8 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.1",
+    "@tanstack/react-query": "^5.85.5",
+    "@tanstack/react-query-devtools": "^5.85.5",
     "immer": "10.0.0",
     "prettier": "^3.6.2",
     "react": "18.2.0",
@@ -36,17 +39,16 @@
     "react-dom": "18.2.0",
     "react-hook-form": "^7.62.0",
     "react-window": "^1.8.9",
+    "sharp": "^0.33.5",
     "ts-morph": "^22.0.0",
-    "@tanstack/react-query": "^5.85.5",
-    "@tanstack/react-query-devtools": "^5.85.5",
     "zod": "^3.23.8",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@types/react": "^18.2.47",
     "@playwright/test": "^1.47.0",
+    "@types/react": "^18.2.47",
+    "jscodeshift": "^0.15.2",
     "ts-node": "^10.9.1",
-    "typescript": "^5.4.0",
-    "jscodeshift": "^0.15.2"
+    "typescript": "^5.4.0"
   }
 }

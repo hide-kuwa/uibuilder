@@ -5,8 +5,12 @@ import { usePageStore } from '@/store/pageStore'
 import { serializeProject } from '@/lib/share'
 
 export function ShareMenu() {
-  const state = useBuilderStore((s) => ({ elements: s.elements, meta: s.meta }))
+  const elements = useBuilderStore((s) => s.elements)
   const currentPageId = usePageStore((s) => s.currentPageId)
+  const pageMeta = usePageStore((s) => {
+    const p = s.pages.find((p) => p.id === s.currentPageId)
+    return p?.meta ?? {}
+  })
   const [msg, setMsg] = useState<string>('')
   const fileRef = useRef<HTMLInputElement | null>(null)
 
@@ -23,7 +27,7 @@ export function ShareMenu() {
   }
 
   async function exportJson() {
-    const data = serializeProject(state)
+    const data = serializeProject({ elements, meta: pageMeta })
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -38,7 +42,10 @@ export function ShareMenu() {
     try {
       const parsed = JSON.parse(txt)
       if (parsed?.elements) {
-        useBuilderStore.setState({ elements: parsed.elements, tree: parsed.elements, meta: parsed.meta ?? {} })
+        useBuilderStore.setState({ elements: parsed.elements, tree: parsed.elements })
+        if (parsed.meta) {
+          usePageStore.getState().setMeta(parsed.meta)
+        }
         setMsg('Imported')
         setTimeout(() => setMsg(''), 1200)
       }

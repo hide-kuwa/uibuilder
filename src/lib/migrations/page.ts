@@ -20,6 +20,7 @@ export function migratePage(json: any): PageDoc {
       tree: Array.isArray(json.tree) ? json.tree : [],
       bindings: typeof json.bindings === 'object' && json.bindings ? json.bindings : {},
       pageOverrides: typeof json.pageOverrides === 'object' && json.pageOverrides ? json.pageOverrides : {},
+      meta: typeof json.meta === 'object' && json.meta ? json.meta : {},
       version: PAGE_VERSION,
     });
   }

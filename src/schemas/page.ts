@@ -17,12 +17,27 @@ export const builderNodeSchema: z.ZodType<BuilderNode> = z.lazy(() =>
   })
 );
 
+const pageMetaSchema = z
+  .object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    ogImage: z
+      .object({
+        mode: z.enum(['auto', 'custom']).default('auto'),
+        url: z.string().url().optional(),
+      })
+      .optional(),
+  })
+  .default({});
+export type PageMeta = z.infer<typeof pageMetaSchema>;
+
 export const pageSnapshotSchema = z.object({
   version: z.literal(1),
   pageId: z.string(),
   layoutId: z.string(),
   effectiveTheme: themeTokensSchema,
   nodes: z.array(builderNodeSchema),
+  meta: pageMetaSchema,
   timestamp: z.number(),
 });
 export type PageSnapshot = z.infer<typeof pageSnapshotSchema>;
@@ -34,6 +49,7 @@ export const pageDocSchema = z.object({
   tree: z.array(z.any()),
   bindings: z.record(z.any()),
   pageOverrides: z.object({ theme: themeTokensSchema.partial().optional() }).default({}),
+  meta: pageMetaSchema,
   version: z.literal(1),
 });
 export type PageDoc = z.infer<typeof pageDocSchema>;

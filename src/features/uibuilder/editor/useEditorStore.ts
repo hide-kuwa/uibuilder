@@ -11,6 +11,7 @@ export interface EditorNode {
     [key: string]: any;
   };
   children: EditorNode[];
+  locked?: boolean;
 }
 
 const createNode = (type: string, overrides: Partial<EditorNode> = {}): EditorNode => ({
@@ -45,14 +46,19 @@ function updateNode(node: EditorNode, id: string, updater: (n: EditorNode) => vo
 
 export interface EditorState {
   root: EditorNode;
-  selectedId: string | null;
+  selectedIds: string[];
   history: EditorNode[];
   future: EditorNode[];
-  select: (id: string | null) => void;
+  select: (ids: string[] | null) => void;
+  addSelect: (id: string) => void;
+  toggleSelect: (id: string) => void;
+  groupSelected: () => void;
+  ungroup: (id: string) => void;
+  setLocked: (ids: string[], locked: boolean) => void;
+  removeSelected: () => void;
   addNode: (type: string, parentId?: string) => void;
   updateProps: (id: string, props: Partial<EditorNode['props']>) => void;
   updateVariant: (id: string, variant: string, className: string) => void;
-  removeNode: (id: string) => void;
   applyTemplate: (root: EditorNode) => void;
   undo: () => void;
   redo: () => void;
@@ -65,10 +71,106 @@ const pushHistory = (history: EditorNode[], node: EditorNode): EditorNode[] => {
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   root: createNode('div', { id: 'root' }),
-  selectedId: null,
+  selectedIds: [],
   history: [],
   future: [],
-  select: (id) => set({ selectedId: id }),
+  select: (ids) => set({ selectedIds: ids ? [...ids] : [] }),
+  addSelect: (id) =>
+    set((s) => ({
+      selectedIds: s.selectedIds.includes(id)
+        ? s.selectedIds
+        : [...s.selectedIds, id],
+    })),
+  toggleSelect: (id) =>
+    set((s) => ({
+      selectedIds: s.selectedIds.includes(id)
+        ? s.selectedIds.filter((x) => x !== id)
+        : [...s.selectedIds, id],
+    })),
+  groupSelected: () =>
+    set((state) => {
+      if (state.selectedIds.length < 2) return state;
+      const root = cloneTree(state.root);
+      const ids = state.selectedIds;
+      const findParent = (node: EditorNode, childId: string): EditorNode | null => {
+        for (const child of node.children) {
+          if (child.id === childId) return node;
+          const res = findParent(child, childId);
+          if (res) return res;
+        }
+        return null;
+      };
+      const parent = findParent(root, ids[0]);
+      if (!parent) return state;
+      if (!ids.every((id) => findParent(root, id) === parent)) return state;
+      const group: EditorNode = {
+        id: `group-${Math.random().toString(36).slice(2, 9)}`,
+        type: 'group',
+        props: {},
+        children: [],
+      };
+      parent.children = parent.children.reduce<EditorNode[]>((arr, c) => {
+        if (ids.includes(c.id)) {
+          group.children.push(c);
+        } else {
+          arr.push(c);
+        }
+        return arr;
+      }, []);
+      parent.children.push(group);
+      return {
+        root,
+        selectedIds: [group.id],
+        history: pushHistory(state.history, state.root),
+        future: [],
+      };
+    }),
+  ungroup: (id) =>
+    set((state) => {
+      const root = cloneTree(state.root);
+      const ungroupRec = (node: EditorNode): boolean => {
+        const idx = node.children.findIndex((c) => c.id === id && c.type === 'group');
+        if (idx >= 0) {
+          const grp = node.children[idx];
+          node.children.splice(idx, 1, ...grp.children);
+          return true;
+        }
+        return node.children.some((c) => ungroupRec(c));
+      };
+      if (!ungroupRec(root)) return state;
+      return {
+        root,
+        selectedIds: [],
+        history: pushHistory(state.history, state.root),
+        future: [],
+      };
+    }),
+  setLocked: (ids, locked) =>
+    set((state) => {
+      const root = cloneTree(state.root);
+      ids.forEach((id) => updateNode(root, id, (n) => (n.locked = locked)));
+      return {
+        root,
+        history: pushHistory(state.history, state.root),
+        future: [],
+      };
+    }),
+  removeSelected: () =>
+    set((state) => {
+      if (!state.selectedIds.length) return state;
+      const root = cloneTree(state.root);
+      const remove = (node: EditorNode) => {
+        node.children = node.children.filter((c) => !state.selectedIds.includes(c.id));
+        node.children.forEach(remove);
+      };
+      remove(root);
+      return {
+        root,
+        selectedIds: [],
+        history: pushHistory(state.history, state.root),
+        future: [],
+      };
+    }),
   addNode: (type, parentId = 'root') =>
     set((state) => {
       const root = cloneTree(state.root);
@@ -98,22 +200,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       });
       return { root, history: pushHistory(state.history, state.root), future: [] };
     }),
-  removeNode: (id) =>
-    set((state) => {
-      const root = cloneTree(state.root);
-      const remove = (parent: EditorNode) => {
-        parent.children = parent.children.filter((c) => c.id !== id);
-        parent.children.forEach(remove);
-      };
-      remove(root);
-      return { root, history: pushHistory(state.history, state.root), future: [] };
-    }),
   applyTemplate: (root) =>
     set((state) => ({
       root: cloneTree(root),
       history: pushHistory(state.history, state.root),
       future: [],
-      selectedId: null,
+      selectedIds: [],
     })),
   undo: () =>
     set((state) => {
