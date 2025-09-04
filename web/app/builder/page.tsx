@@ -2,6 +2,7 @@
 import StatusConfigPanel from "@/components/panels/StatusConfigPanel";
 import StatusDropdown from "@/components/panels/StatusDropdown";
 import { useBuilderStore } from "@/stores/builder";
+import { useCanvasStore } from "@/stores/canvas";
 import Link from "next/link";
 
 export default function BuilderPage() {
@@ -14,6 +15,12 @@ export default function BuilderPage() {
   const redo = useBuilderStore((s) => s.redo);
   const canUndo = useBuilderStore((s) => s.undoStack.length > 0);
   const canRedo = useBuilderStore((s) => s.redoStack.length > 0);
+  const setSelectedIds = useCanvasStore((s) => s.setSelectedIds);
+
+  const selectAll = () => {
+    const allIds = useBuilderStore.getState().nodes.map((n) => n.id);
+    setSelectedIds(allIds);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -41,6 +48,12 @@ export default function BuilderPage() {
             className="px-3 py-2 rounded-lg border disabled:text-zinc-400 disabled:border-zinc-200"
           >
             ↪ Redo
+          </button>
+          <button
+            onClick={selectAll}
+            className="px-3 py-2 rounded-lg border"
+          >
+            全選択
           </button>
           <div className="flex flex-col items-end gap-1">
             <button
