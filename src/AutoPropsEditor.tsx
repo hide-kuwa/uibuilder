@@ -4,6 +4,9 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import { Popover, PopoverTrigger, PopoverContent } from './components/ui/popover'
+import { Calendar } from './components/ui/calendar'
+import { formatDate, formatDateTime } from './utils/date'
 
 interface PropMeta {
   name: string
@@ -196,6 +199,63 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
           value={value as AssetMeta | undefined}
           onSelect={(a) => updateProp(prop.name, a)}
         />
+      )
+    }
+
+    if (prop.type === 'date' || prop.type === 'datetime') {
+      const date = value ? new Date(value) : new Date()
+      const display = value
+        ? value
+        : prop.type === 'date'
+        ? formatDate(date)
+        : formatDateTime(date)
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className={common}>{display}</button>
+          </PopoverTrigger>
+          <PopoverContent className="p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(d) => {
+                if (!d) return
+                if (prop.type === 'date') {
+                  updateProp(prop.name, formatDate(d))
+                } else {
+                  const nd = new Date(d)
+                  nd.setHours(date.getHours(), date.getMinutes(), date.getSeconds(), 0)
+                  updateProp(prop.name, formatDateTime(nd))
+                }
+              }}
+            />
+            {prop.type === 'datetime' && (
+              <div className="p-2">
+                <input
+                  type="time"
+                  className="w-full border rounded px-2 py-1"
+                  value={`${String(date.getHours()).padStart(2, '0')}:${String(
+                    date.getMinutes()
+                  ).padStart(2, '0')}`}
+                  onChange={(e) => {
+                    const [h, m] = e.target.value.split(':').map(Number)
+                    const nd = new Date(date)
+                    nd.setHours(h, m, 0, 0)
+                    updateProp(prop.name, formatDateTime(nd))
+                  }}
+                />
+              </div>
+            )}
+            <div className="flex justify-end p-2">
+              <button
+                className="text-xs text-red-500"
+                onClick={() => updateProp(prop.name, undefined)}
+              >
+                Clear
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       )
     }
 
