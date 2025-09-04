@@ -1,5 +1,8 @@
 import React from 'react';
 
+/**
+ * Simple form container with a single input field.
+ */
 const FormBox: React.FC = () => {
   return (
     <form className="p-2 border rounded">

@@ -1,0 +1,78 @@
+[
+  {
+    "name": "ContainerBox",
+    "description": "Generic container for layout.",
+    "props": [
+      {
+        "name": "children",
+        "type": "ReactNode",
+        "required": false,
+        "description": "Content to render inside the container"
+      }
+    ],
+    "available": true
+  },
+  {
+    "name": "FormBox",
+    "description": "Simple form container with a single input field.",
+    "props": [],
+    "available": true
+  },
+  {
+    "name": "PublishButton",
+    "description": "Button that publishes the current editor state to the server.",
+    "props": [],
+    "available": true
+  },
+  {
+    "name": "TextBlock",
+    "description": "Displays a small block of text.",
+    "props": [
+      {
+        "name": "text",
+        "type": "string",
+        "required": false,
+        "default": "Text block",
+        "description": "Text content to display"
+      }
+    ],
+    "available": true
+  },
+  {
+    "name": "MyCard",
+    "description": "",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "highlighted",
+        "type": "boolean",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "tone",
+        "type": "\"info\" | \"warn\"",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "required": false,
+        "description": ""
+      }
+    ],
+    "available": false
+  },
+  {
+    "name": "ThemeProvider",
+    "description": "",
+    "props": [],
+    "available": false
+  }
+]
