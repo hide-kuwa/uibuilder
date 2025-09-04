@@ -4,6 +4,7 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import { useEnumOptions } from './hooks/useEnumOptions'
 
 interface PropMeta {
   name: string
@@ -11,6 +12,7 @@ interface PropMeta {
   required: boolean
   defaultValue?: string
   description: string
+  options?: string[] | { source: string; endpoint: string }
 }
 
 interface AutoPropsEditorProps {
@@ -42,6 +44,33 @@ function parseLiteralUnion(type: string): string[] | null {
     return null
   }
   return values
+}
+
+type EnumOptions = { source: string; endpoint: string }
+
+const EnumSelect: React.FC<{
+  options?: string[] | EnumOptions
+  value: string | undefined
+  onChange: (v: string) => void
+  className: string
+}> = ({ options, value, onChange, className }) => {
+  const opts = useEnumOptions(options)
+  return (
+    <select
+      className={className}
+      value={value ?? ''}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="" disabled>
+        Select an option
+      </option>
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  )
 }
 
 const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
@@ -167,6 +196,17 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
             }
           />
         </div>
+      )
+    }
+
+    if (prop.type === 'enum') {
+      return (
+        <EnumSelect
+          options={prop.options}
+          value={value}
+          onChange={(v) => updateProp(prop.name, v)}
+          className={common}
+        />
       )
     }
 
