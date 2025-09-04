@@ -1,47 +1,70 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'fs'
+import path from 'path'
 
 export interface NestedMenuItem {
-  id: string;            // unique identifier, typically the route path
-  href: string;          // path used for navigation
-  label: string;         // display title
-  children?: NestedMenuItem[];
-  hidden?: boolean;
-  disabled?: boolean;
+  id: string            // unique id (path)
+  href: string          // route href
+  label: string         // display label
+  children?: NestedMenuItem[]
+  hidden?: boolean
+  disabled?: boolean
 }
 
-function readTitle(file: string, fallback: string) {
+// helper to humanize segment name
+function labelFromSegment(seg: string): string {
+  if (!seg) return 'Home'
+  const s = seg.replace(/^[\[\]\(\)]+|[\[\]\(\)]+$/g, '')
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function readTitle(file: string, fallback: string): string {
   try {
-    const src = fs.readFileSync(file, 'utf8');
-    const m = src.match(/^\s*\/\/\s*title:\s*(.+)$/m);
-    return m ? m[1].trim() : fallback;
+    const content = fs.readFileSync(file, 'utf8')
+    // コメント行から title を抽出（ファイル先頭 or 任意行）
+    const match = content.match(/^\s*\/\/\s*title:\s*(.+)$/m)
+    if (match) return match[1].trim()
   } catch {
-    return fallback;
+    // ignore
+  }
+  return fallback
+}
+
+function walk(dir: string, segs: string[]): NestedMenuItem | null {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  const children: NestedMenuItem[] = []
+
+  for (const e of entries) {
+    if (e.isDirectory()) {
+      const child = walk(path.join(dir, e.name), [...segs, e.name])
+      if (child) children.push(child)
+    }
+  }
+
+  const page = entries.find(
+    (e) => e.isFile() && /^page\.(tsx|ts|jsx|js)$/.test(e.name)
+  )
+  if (!page && children.length === 0) return null
+
+  const href = '/' + segs.join('/')
+  const label = page
+    ? readTitle(
+        path.join(dir, page.name),
+        labelFromSegment(segs[segs.length - 1] ?? '')
+      )
+    : labelFromSegment(segs[segs.length - 1] ?? '')
+
+  return {
+    id: href || '/',
+    href: href || '/',
+    label,
+    children: children.length ? children : undefined,
   }
 }
 
-export function scanRoutes(appDir: string): NestedMenuItem[] {
-  const walk = (dir: string, parentPath: string): NestedMenuItem[] => {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const nodes: NestedMenuItem[] = [];
-    for (const ent of entries) {
-      if (!ent.isDirectory()) continue;
-      const seg = ent.name;
-      const abs = path.join(dir, seg);
-      const rel = path.posix.join(parentPath, seg);
-      const page = ['page.tsx', 'page.ts', 'page.jsx', 'page.js']
-        .map(f => path.join(abs, f))
-        .find(fs.existsSync);
-      const children = walk(abs, rel);
-      if (page) {
-        const label = readTitle(page, seg);
-        nodes.push({ id: rel, href: rel, label, children: children.length ? children : undefined });
-      } else if (children.length) {
-        // folders without page.tsx are flattened
-        nodes.push(...children);
-      }
-    }
-    return nodes;
-  };
-  return walk(appDir, '');
+export function scanRoutes(root = path.join(process.cwd(), 'src/app')): NestedMenuItem[] {
+  if (!fs.existsSync(root)) return []
+  const rootNode = walk(root, [])
+  return rootNode?.children ?? []
 }
+
+export default scanRoutes

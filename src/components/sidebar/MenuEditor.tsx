@@ -1,63 +1,89 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import type { NestedMenuItem } from '../../lib/router/scanRoutes';
+import { useState } from 'react'
+import type { NestedMenuItem } from '../../lib/router/scanRoutes'
 
-interface MenuEditorProps {
-  items: NestedMenuItem[];
-  onChange?: (items: NestedMenuItem[]) => void;
+export interface MenuEditorProps {
+  value: NestedMenuItem[]
+  onChange?: (items: NestedMenuItem[]) => void
 }
 
-export default function MenuEditor({ items, onChange }: MenuEditorProps) {
-  const [local, setLocal] = useState<NestedMenuItem[]>(items);
+function EditorNode({
+  item,
+  depth,
+  update,
+}: {
+  item: NestedMenuItem
+  depth: number
+  update: (n: NestedMenuItem) => void
+}) {
+  const [label, setLabel] = useState(item.label)
+  const [hidden, setHidden] = useState(!!item.hidden)
+  const [children, setChildren] = useState(item.children ?? [])
 
-  const update = (next: NestedMenuItem[]) => {
-    setLocal(next);
-    onChange?.(next);
-  };
+  const handleChildChange = (idx: number, child: NestedMenuItem) => {
+    const next = children.slice()
+    next[idx] = child
+    setChildren(next)
+    update({ ...item, label, hidden, children: next })
+  }
 
-  const toggleHidden = (id: string) => {
-    const walk = (arr: NestedMenuItem[]): NestedMenuItem[] =>
-      arr.map(n =>
-        n.id === id
-          ? { ...n, hidden: !n.hidden }
-          : { ...n, children: n.children ? walk(n.children) : undefined }
-      );
-    update(walk(local));
-  };
+  return (
+    <div style={{ marginLeft: depth * 12 }} className="space-y-1">
+      <div className="flex items-center gap-2">
+        <input
+          className="border px-1 text-sm flex-1 rounded"
+          value={label}
+          onChange={(e) => {
+            setLabel(e.target.value)
+            update({ ...item, label: e.target.value, hidden, children })
+          }}
+        />
+        <label className="text-xs flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={hidden}
+            onChange={(e) => {
+              setHidden(e.target.checked)
+              update({ ...item, label, hidden: e.target.checked, children })
+            }}
+          />
+          hidden
+        </label>
+      </div>
 
-  const rename = (id: string, label: string) => {
-    const walk = (arr: NestedMenuItem[]): NestedMenuItem[] =>
-      arr.map(n =>
-        n.id === id
-          ? { ...n, label }
-          : { ...n, children: n.children ? walk(n.children) : undefined }
-      );
-    update(walk(local));
-  };
-
-  const render = (arr: NestedMenuItem[]) => (
-    <ul className="pl-4 space-y-1">
-      {arr.map(n => (
-        <li key={n.id} className="space-y-1">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={!n.hidden}
-              onChange={() => toggleHidden(n.id)}
-            />
-            <input
-              type="text"
-              value={n.label}
-              onChange={e => rename(n.id, e.target.value)}
-              className="border p-1 rounded flex-1"
-            />
-          </div>
-          {n.children && n.children.length ? render(n.children) : null}
-        </li>
+      {children.map((c, i) => (
+        <EditorNode
+          key={c.id}
+          item={c}
+          depth={depth + 1}
+          update={(n) => handleChildChange(i, n)}
+        />
       ))}
-    </ul>
-  );
+    </div>
+  )
+}
 
-  return <div>{render(local)}</div>;
+export default function MenuEditor({ value, onChange }: MenuEditorProps) {
+  const [items, setItems] = useState(value)
+
+  const handleUpdate = (idx: number, item: NestedMenuItem) => {
+    const next = items.slice()
+    next[idx] = item
+    setItems(next)
+    onChange?.(next)
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((it, i) => (
+        <EditorNode
+          key={it.id}
+          item={it}
+          depth={0}
+          update={(n) => handleUpdate(i, n)}
+        />
+      ))}
+    </div>
+  )
 }

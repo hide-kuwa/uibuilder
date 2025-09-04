@@ -1,64 +1,70 @@
-'use client';
-import Link from 'next/link';
-import { mergeMenu } from '@/lib/menu';
-import { useSidebarStore } from '@/store/sidebarStore';
-import type { NestedMenuItem } from '../../../src/lib/router/scanRoutes';
-import { useRbacStore, type FeatureKey } from '../../../src/stores/rbacStore';
+import fs from 'fs'
+import path from 'path'
 
-function NodeView({ n }: { n: NestedMenuItem }) {
-  if (n.hidden) return null;
-  return (
-    <li>
-      <Link
-        href={n.href}
-        className={`block px-3 py-1.5 rounded hover:bg-[color:var(--panel2)] ${n.disabled ? 'opacity-50 pointer-events-none' : ''}`}
-      >
-        {n.label}
-      </Link>
-      {n.children?.length ? (
-        <ul className="ml-3 border-l border-[color:var(--border)] pl-2 space-y-1">
-          {n.children.map((c) => <NodeView key={c.id} n={c} />)}
-        </ul>
-      ) : null}
-    </li>
-  );
+export interface NestedMenuItem {
+  id: string            // unique id (path)
+  href: string          // route href
+  label: string         // display label
+  children?: NestedMenuItem[]
+  hidden?: boolean
+  disabled?: boolean
 }
 
-interface SidebarProps {
-  menuItems?: NestedMenuItem[];
-  useAuto?: boolean;
-  rbacKeys?: Record<string, FeatureKey>;
+// helper to humanize segment name
+function labelFromSegment(seg: string): string {
+  if (!seg) return 'Home'
+  const s = seg.replace(/^[\[\]\(\)]+|[\[\]\(\)]+$/g, '')
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-export default function Sidebar({ menuItems = [], useAuto = true, rbacKeys }: SidebarProps) {
-  const preset = useSidebarStore(s => s.active());
-  const { role, permissions, locks } = useRbacStore();
-
-  const applyRbac = (nodes: NestedMenuItem[]): NestedMenuItem[] =>
-    nodes.map(n => {
-      const key = rbacKeys?.[n.href];
-      const allowed = key ? permissions[role][key] : true;
-      const unlocked = key ? locks[key] : true;
-      const children = n.children ? applyRbac(n.children) : undefined;
-      return {
-        ...n,
-        hidden: n.hidden || !allowed,
-        disabled: n.disabled || !unlocked,
-        children,
-      };
-    });
-
-  let tree: NestedMenuItem[] = useAuto ? (mergeMenu(preset) as NestedMenuItem[]) : menuItems;
-  tree = applyRbac(tree);
-
-  if (useAuto && preset.rootHidden) return null;
-
-  return (
-    <aside className="w-64 shrink-0 border-r" style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}>
-      <div className="p-3 text-xs uppercase tracking-wide text-[color:var(--muted)]">Menu</div>
-      <ul className="px-2 pb-4 space-y-1">
-        {tree.map((n) => <NodeView key={n.id} n={n} />)}
-      </ul>
-    </aside>
-  );
+function readTitle(file: string, fallback: string): string {
+  try {
+    const content = fs.readFileSync(file, 'utf8')
+    // コメント行から title を抽出（ファイル先頭 or 任意行）
+    const match = content.match(/^\s*\/\/\s*title:\s*(.+)$/m)
+    if (match) return match[1].trim()
+  } catch {
+    // ignore
+  }
+  return fallback
 }
+
+function walk(dir: string, segs: string[]): NestedMenuItem | null {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  const children: NestedMenuItem[] = []
+
+  for (const e of entries) {
+    if (e.isDirectory()) {
+      const child = walk(path.join(dir, e.name), [...segs, e.name])
+      if (child) children.push(child)
+    }
+  }
+
+  const page = entries.find(
+    (e) => e.isFile() && /^page\.(tsx|ts|jsx|js)$/.test(e.name)
+  )
+  if (!page && children.length === 0) return null
+
+  const href = '/' + segs.join('/')
+  const label = page
+    ? readTitle(
+        path.join(dir, page.name),
+        labelFromSegment(segs[segs.length - 1] ?? '')
+      )
+    : labelFromSegment(segs[segs.length - 1] ?? '')
+
+  return {
+    id: href || '/',
+    href: href || '/',
+    label,
+    children: children.length ? children : undefined,
+  }
+}
+
+export function scanRoutes(root = path.join(process.cwd(), 'src/app')): NestedMenuItem[] {
+  if (!fs.existsSync(root)) return []
+  const rootNode = walk(root, [])
+  return rootNode?.children ?? []
+}
+
+export default scanRoutes
