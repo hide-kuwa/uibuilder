@@ -2,7 +2,10 @@
 import React, { useState } from 'react'
 import { useEditorState, useEditorActions } from '../src/store'
 
-const Header: React.FC = () => {
+/**
+ * Button that publishes the current editor state to the server.
+ */
+const PublishButton: React.FC = () => {
   const { tree } = useEditorState()
   const { undo, redo } = useEditorActions()
   const [toast, setToast] = useState(false)
@@ -64,4 +67,4 @@ const Header: React.FC = () => {
   )
 }
 
-export default Header
+export default PublishButton
