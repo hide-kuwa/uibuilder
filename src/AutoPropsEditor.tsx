@@ -4,6 +4,14 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import { groupProps, type PropMeta } from './lib/groupProps'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './components/ui/accordion'
+import { useEnumOptions } from './hooks/useEnumOptions'
 import {
   Tooltip,
   TooltipTrigger,
@@ -17,14 +25,6 @@ import { Popover, PopoverTrigger, PopoverContent } from './components/ui/popover
 import { Calendar } from './components/ui/calendar'
 import { formatDate, formatDateTime } from './utils/date'
 
-interface PropMeta {
-  name: string
-  type: string
-  required: boolean
-  defaultValue?: string
-  description: string
-}
-
 interface AutoPropsEditorProps {
   selectedComponentType: string
   selectedProps: Record<string, any>
@@ -35,7 +35,6 @@ interface AutoPropsEditorProps {
   onVariantsChange?: (v: { hover?: { className?: string } }) => void
 }
 
-// Attempt to extract union/enum values from a type string like '"a" | "b"' or 'Enum.A | Enum.B'
 function parseLiteralUnion(type: string): string[] | null {
   const parts = type.split('|').map((p) => p.trim()).filter(Boolean)
   if (!parts.length) return null
@@ -54,6 +53,29 @@ function parseLiteralUnion(type: string): string[] | null {
     return null
   }
   return values
+}
+
+type EnumOptions = { source: string; endpoint: string }
+
+const EnumSelect: React.FC<{
+  options?: string[] | EnumOptions
+  value: string | undefined
+  onChange: (v: string) => void
+  className: string
+}> = ({ options, value, onChange, className }) => {
+  const opts = useEnumOptions(options)
+  return (
+    <select className={className} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+      <option value="" disabled>
+        Select an option
+      </option>
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  )
 }
 
 const JsonEditor: React.FC<{ value: any; onChange: (v: any) => void; missing: boolean }> = ({
@@ -168,10 +190,16 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     return () => clearTimeout(handle)
   }, [localVariants, onVariantsChange])
 
-  const meta = useMemo(
-    () => componentMeta.find((m) => m.displayName === selectedComponentType),
-    [componentMeta, selectedComponentType]
-  )
+  const meta = useMemo(() => componentMeta.find((m) => m.displayName === selectedComponentType), [
+    componentMeta,
+    selectedComponentType,
+  ])
+
+  const groupedProps = useMemo(() => {
+    if (!meta) return {}
+    const props = meta.props.filter((p) => p.name !== 'className')
+    return groupProps(props)
+  }, [meta])
 
   const updateProp = (name: string, value: any) => {
     setLocalProps((prev) => ({ ...prev, [name]: value }))
@@ -201,8 +229,19 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (binding) {
       return (
         <div className="space-y-1">
-          {/* data binding UI */}
+          {/* バインドUI実装はここに */}
         </div>
+      )
+    }
+
+    if (prop.type === 'enum') {
+      return (
+        <EnumSelect
+          options={prop.options}
+          value={value}
+          onChange={(v) => updateProp(prop.name, v)}
+          className={common}
+        />
       )
     }
 
@@ -261,34 +300,55 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       )
     }
 
-    // ... (boolean, number, color, text controls 同様)
+    // boolean, number, color, text などの処理も追加可能
+    return (
+      <div className="flex space-x-1">
+        <input type="text" className={`${common} flex-1`} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)} />
+      </div>
+    )
   }
 
   if (!selectedComponentType) return <div className="p-2 text-sm text-gray-500">No component selected</div>
 
   return (
     <div className="space-y-4 p-2">
-      {/* className / hover tab */}
       {meta ? (
-        <TooltipProvider>
-          {meta.props.filter((p) => p.name !== 'className').map((prop) => {
-            const value = localProps[prop.name]
-            const missing = prop.required && (value === undefined || value === '')
-            const label = <label className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}>{prop.name}</label>
-            return (
-              <div key={prop.name} className="flex items-center space-x-2">
-                {prop.description ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{label}</TooltipTrigger>
-                    <TooltipContent>{prop.description}</TooltipContent>
-                  </Tooltip>
-                ) : label}
-                <div className="flex-1">{renderControl(prop, missing)}</div>
-              </div>
-            )
-          })}
-        </TooltipProvider>
-      ) : <div className="text-sm text-gray-500">No props info</div>}
+        <Accordion type="multiple" defaultValue={['General']}>
+          {Object.entries(groupedProps).map(([group, props]) => (
+            <AccordionItem key={group} value={group}>
+              <AccordionTrigger>{group}</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                {props.map((prop) => {
+                  const value = localProps[prop.name]
+                  const missing = prop.required && (value === undefined || value === '')
+                  const label = (
+                    <label className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}>
+                      {prop.name}
+                    </label>
+                  )
+                  return (
+                    <div key={prop.name} className="flex items-center space-x-2">
+                      {prop.description ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>{label}</TooltipTrigger>
+                            <TooltipContent>{prop.description}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        label
+                      )}
+                      <div className="flex-1">{renderControl(prop, missing)}</div>
+                    </div>
+                  )
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      ) : (
+        <div className="text-sm text-gray-500">No props info</div>
+      )}
     </div>
   )
 }
