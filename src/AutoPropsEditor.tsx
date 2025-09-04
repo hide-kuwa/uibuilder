@@ -151,40 +151,6 @@ const LongTextArea: React.FC<{
   )
 }
 
-const I18nTextInput: React.FC<{
-  value: string | undefined
-  onChange: (v: string | undefined) => void
-  className: string
-}> = ({ value, onChange, className }) => {
-  const [text, setText] = useState('')
-
-  useEffect(() => {
-    setText(value ? t(value) : '')
-  }, [value])
-
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if (text === '') {
-        onChange(undefined)
-        return
-      }
-      const key = value || generateKey(text)
-      registerKey(getLanguage(), key, text)
-      onChange(key)
-    }, 300)
-    return () => clearTimeout(handle)
-  }, [text, value, onChange])
-
-  return (
-    <input
-      type="text"
-      className={className}
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-    />
-  )
-}
-
 const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   selectedComponentType,
   selectedProps,
@@ -338,7 +304,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       return (
         <input
           type="checkbox"
-          className="h-4 w-4"
+          className={`h-4 w-4 ${missing ? 'ring-1 ring-red-500' : ''}`}
           checked={!!value}
           onChange={(e) => updateProp(prop.name, e.target.checked)}
         />
@@ -352,30 +318,62 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
           className={common}
           value={value ?? ''}
           onChange={(e) => {
-            const v = e.target.value
-            updateProp(prop.name, v === '' ? undefined : Number(v))
+            const val = e.target.value
+            updateProp(prop.name, val === '' ? undefined : Number(val))
           }}
         />
       )
     }
 
-    if (prop.type === 'string') {
-      if (prop.name.toLowerCase().includes('color')) {
-        return (
-          <input
-            type="color"
-            className={common}
-            value={value ?? '#000000'}
-            onChange={(e) => updateProp(prop.name, e.target.value)}
-          />
-        )
-      }
+    if (prop.type === 'string' && prop.name.toLowerCase().includes('color')) {
       return (
-        <I18nTextInput
+        <input
+          type="color"
           className={common}
-          value={value}
-          onChange={(v) => updateProp(prop.name, v)}
+          value={value ?? '#000000'}
+          onChange={(e) => updateProp(prop.name, e.target.value)}
         />
+      )
+    }
+
+    const textual = ['text', 'label', 'title', 'placeholder'].some((s) =>
+      prop.name.toLowerCase().includes(s)
+    )
+
+    if (textual) {
+      const isI18n = value && typeof value === 'object' && typeof value.key === 'string'
+      const textVal = isI18n ? t(value.key) : value ?? ''
+      return (
+        <div className="flex space-x-1">
+          <input
+            type="text"
+            className={`${common} flex-1`}
+            value={textVal}
+            onChange={(e) => {
+              const txt = e.target.value
+              if (!txt) {
+                updateProp(prop.name, undefined)
+                return
+              }
+              if (isI18n) {
+                registerKey(getLanguage(), value.key, txt)
+                updateProp(prop.name, { key: value.key })
+              } else {
+                const key = generateKey(txt)
+                registerKey(getLanguage(), key, txt)
+                updateProp(prop.name, { key })
+              }
+            }}
+          />
+          <button
+            className="text-xs text-blue-600"
+            onClick={() =>
+              updateBinding(prop.name, { source: '', endpoint: '', path: '' })
+            }
+          >
+            Bind
+          </button>
+        </div>
       )
     }
 
@@ -387,6 +385,14 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
           value={value ?? ''}
           onChange={(e) => updateProp(prop.name, e.target.value)}
         />
+        <button
+          className="text-xs text-blue-600"
+          onClick={() =>
+            updateBinding(prop.name, { source: '', endpoint: '', path: '' })
+          }
+        >
+          Bind
+        </button>
       </div>
     )
   }
