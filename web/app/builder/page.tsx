@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import StatusConfigPanel from "@/components/panels/StatusConfigPanel";
 import StatusDropdown from "@/components/panels/StatusDropdown";
 import { useBuilderStore } from "@/stores/builder";
@@ -28,6 +29,43 @@ export default function BuilderPage() {
       setNodeStatus(n.id, { base: "notVisited", overlays: [] }),
     );
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const mac = navigator.platform.toLowerCase().includes("mac");
+      const mod = mac ? e.metaKey : e.ctrlKey;
+      const key = e.key.toLowerCase();
+      if (mod && key === "z") {
+        e.preventDefault();
+        undo();
+      } else if (mod && key === "y") {
+        e.preventDefault();
+        redo();
+      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        if (key === "p") {
+          e.preventDefault();
+          publishAll();
+        } else if (key === "a") {
+          e.preventDefault();
+          selectAll();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, {
+        capture: true,
+      } as any);
+  }, [undo, redo, publishAll, selectAll]);
 
   return (
     <div className="p-6 space-y-6">
