@@ -4,14 +4,13 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
-
-interface PropMeta {
-  name: string
-  type: string
-  required: boolean
-  defaultValue?: string
-  description: string
-}
+import { groupProps, type PropMeta } from './lib/groupProps'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './components/ui/accordion'
 
 interface AutoPropsEditorProps {
   selectedComponentType: string
@@ -89,6 +88,12 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     () => componentMeta.find((m) => m.displayName === selectedComponentType),
     [componentMeta, selectedComponentType]
   )
+
+  const groupedProps = useMemo(() => {
+    if (!meta) return {}
+    const props = meta.props.filter((p) => p.name !== 'className')
+    return groupProps(props)
+  }, [meta])
 
   const updateProp = (name: string, value: any) => {
     setLocalProps((prev) => ({ ...prev, [name]: value }))
@@ -335,22 +340,29 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
         />
       </div>
       {meta ? (
-        meta.props
-          .filter((p) => p.name !== 'className')
-          .map((prop) => {
-            const value = localProps[prop.name]
-            const missing = prop.required && (value === undefined || value === '')
-            return (
-              <div key={prop.name} className="flex items-center space-x-2">
-                <label
-                  className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}
-                >
-                  {prop.name}
-                </label>
-                <div className="flex-1">{renderControl(prop, missing)}</div>
-              </div>
-            )
-          })
+        <Accordion type="multiple" defaultValue={["General"]}>
+          {Object.entries(groupedProps).map(([group, props]) => (
+            <AccordionItem key={group} value={group}>
+              <AccordionTrigger>{group}</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                {props.map((prop) => {
+                  const value = localProps[prop.name]
+                  const missing = prop.required && (value === undefined || value === '')
+                  return (
+                    <div key={prop.name} className="flex items-center space-x-2">
+                      <label
+                        className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}
+                      >
+                        {prop.name}
+                      </label>
+                      <div className="flex-1">{renderControl(prop, missing)}</div>
+                    </div>
+                  )
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       ) : (
         <div className="text-sm text-gray-500">No props info</div>
       )}

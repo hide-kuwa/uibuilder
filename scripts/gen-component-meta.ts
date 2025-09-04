@@ -8,6 +8,7 @@ interface PropMeta {
   required: boolean;
   defaultValue?: string;
   description: string;
+  group?: string;
 }
 
 interface ComponentMeta {
