@@ -151,6 +151,40 @@ const LongTextArea: React.FC<{
   )
 }
 
+const I18nTextInput: React.FC<{
+  value: string | undefined
+  onChange: (v: string | undefined) => void
+  className: string
+}> = ({ value, onChange, className }) => {
+  const [text, setText] = useState('')
+
+  useEffect(() => {
+    setText(value ? t(value) : '')
+  }, [value])
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (text === '') {
+        onChange(undefined)
+        return
+      }
+      const key = value || generateKey(text)
+      registerKey(getLanguage(), key, text)
+      onChange(key)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [text, value, onChange])
+
+  return (
+    <input
+      type="text"
+      className={className}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+    />
+  )
+}
+
 const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   selectedComponentType,
   selectedProps,
@@ -300,10 +334,59 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
       )
     }
 
-    // boolean, number, color, text などの処理も追加可能
+    if (prop.type === 'boolean') {
+      return (
+        <input
+          type="checkbox"
+          className="h-4 w-4"
+          checked={!!value}
+          onChange={(e) => updateProp(prop.name, e.target.checked)}
+        />
+      )
+    }
+
+    if (prop.type === 'number') {
+      return (
+        <input
+          type="number"
+          className={common}
+          value={value ?? ''}
+          onChange={(e) => {
+            const v = e.target.value
+            updateProp(prop.name, v === '' ? undefined : Number(v))
+          }}
+        />
+      )
+    }
+
+    if (prop.type === 'string') {
+      if (prop.name.toLowerCase().includes('color')) {
+        return (
+          <input
+            type="color"
+            className={common}
+            value={value ?? '#000000'}
+            onChange={(e) => updateProp(prop.name, e.target.value)}
+          />
+        )
+      }
+      return (
+        <I18nTextInput
+          className={common}
+          value={value}
+          onChange={(v) => updateProp(prop.name, v)}
+        />
+      )
+    }
+
     return (
       <div className="flex space-x-1">
-        <input type="text" className={`${common} flex-1`} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)} />
+        <input
+          type="text"
+          className={`${common} flex-1`}
+          value={value ?? ''}
+          onChange={(e) => updateProp(prop.name, e.target.value)}
+        />
       </div>
     )
   }
