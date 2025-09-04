@@ -9,6 +9,7 @@ type CanvasState = {
   tx: number
   ty: number
   nodePos: Record<string, XY>
+  initialPos: Record<string, XY>
 
   // 選択
   selectedIds: string[]
@@ -23,6 +24,7 @@ type CanvasState = {
 
   setTransform: (p: Partial<Pick<CanvasState, 'scale' | 'tx' | 'ty'>>) => void
   setNodePos: (id: string, xy: XY) => void
+  setInitialPos: (id: string, xy: XY, overwrite?: boolean) => void
   moveNodes: (ids: string[], dx: number, dy: number) => void
   resetView: () => void
 }
@@ -34,6 +36,7 @@ export const useCanvasStore = create<CanvasState>()(
       tx: 0,
       ty: 0,
       nodePos: {},
+      initialPos: {},
 
       selectedIds: [],
       setSelectedIds: (ids) => set({ selectedIds: ids }),
@@ -54,16 +57,25 @@ export const useCanvasStore = create<CanvasState>()(
 
       setTransform: (p) => set({ ...get(), ...p }),
       setNodePos: (id, xy) => set({ nodePos: { ...get().nodePos, [id]: xy } }),
+
+      setInitialPos: (id, xy, overwrite = false) => {
+        const cur = get().initialPos
+        if (!overwrite && cur[id]) return
+        set({ initialPos: { ...cur, [id]: xy } })
+      },
+
       moveNodes: (ids, dx, dy) => {
         const next = { ...get().nodePos }
+        const base = get().initialPos
         for (const id of ids) {
-          const cur = next[id] ?? { x: 0, y: 0 }
+          const cur = next[id] ?? base[id] ?? { x: 0, y: 0 }
           next[id] = { x: cur.x + dx, y: cur.y + dy }
         }
         set({ nodePos: next })
       },
+
       resetView: () => set({ scale: 1, tx: 0, ty: 0 }),
     }),
-    { name: 'geokore-canvas-v2' }
+    { name: 'geokore-canvas-v4' } // バージョンキー更新
   )
 )

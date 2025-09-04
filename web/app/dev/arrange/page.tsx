@@ -15,6 +15,7 @@ export default function ArrangePage() {
   const { nodePos, setNodePos, moveNodes, snapEnabled, gridSize, snapThreshold } = useCanvasStore()
   const setSelectedIds = useCanvasStore(s => s.setSelectedIds)
   const setTransform = useCanvasStore(s => s.setTransform)
+  const setInitialPos = useCanvasStore(s => s.setInitialPos)
 
   // キーボード微調整
   useEffect(() => {
@@ -30,6 +31,12 @@ export default function ArrangePage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selectedIds])
+
+  useEffect(() => {
+    nodes.forEach((n: any) => {
+      if ((n as any).position) setInitialPos(n.id, (n as any).position)
+    })
+  }, [nodes, setInitialPos])
 
   // 整列・等間隔
   const align = (dir: 'left'|'right'|'top'|'bottom'|'hcenter'|'vcenter') => {
