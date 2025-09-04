@@ -3,9 +3,9 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { animate } from "animejs";
 import { useBuilderStore } from "@/stores/builder";
 import { computeBgColor, buildMotionFromStatus } from "@/lib/status-engine";
+import { runMotionEffects } from "@/lib/runMotion";
 
 type MapNode = {
   id: string;
@@ -22,17 +22,29 @@ function NodeViewer({ node }: { node: MapNode }) {
 
   useEffect(() => {
     if (!ref.current || !motion) return;
-    const inst = animate({ targets: ref.current, loop: true, ...motion });
-    return () => inst.pause();
+    runMotionEffects(
+      [
+        {
+          id: "glow",
+          preset: "pulse",
+          runWhen: ["mount"],
+          options: { loop: true, ...motion },
+        },
+      ],
+      "mount",
+      ref.current,
+    );
   }, [motion]);
 
   return (
     <div
       ref={ref}
-      className="flex w-[300px] h-[200px] flex-col items-center justify-center rounded-xl border p-6 shadow-sm"
+      className="flex w-full max-w-[320px] flex-col items-center justify-center rounded-xl border p-6 text-center shadow-lg"
       style={{ background: bg, filter }}
     >
-      <div className="font-semibold">{node.name ?? node.id}</div>
+      <div className="text-2xl font-bold drop-shadow">
+        {node.name ?? node.id}
+      </div>
       <div className="mt-2 text-xs opacity-70">id: {node.id}</div>
     </div>
   );
@@ -47,19 +59,17 @@ export default function SharePage() {
 
   if (id) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">共有ビュー</h1>
-          <Link href="/map" className="text-sm underline">
-            ← /map
-          </Link>
-        </div>
-
+      <div className="flex min-h-screen flex-col items-center justify-center p-6">
         {node ? (
           <NodeViewer node={node} />
         ) : (
           <p className="text-sm text-zinc-500">該当ノードが見つかりません</p>
         )}
+        <footer className="mt-6">
+          <Link href="/map" className="text-sm underline">
+            ← 地図にもどる
+          </Link>
+        </footer>
       </div>
     );
   }
