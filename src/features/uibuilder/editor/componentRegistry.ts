@@ -1,21 +1,35 @@
 import React from 'react';
 
+export type ComponentCategory = 'action' | 'visual' | 'functional' | 'layout';
+
 export interface RegisteredComponent {
+  id: string;
   name: string;
+  type: ComponentCategory;
+  icon: React.ReactNode;
+  props?: Record<string, any>;
   component: React.ComponentType<any>;
 }
 
 const registry: Record<string, RegisteredComponent> = {};
 
-export function registerComponent(component: React.ComponentType<any>, meta: { name: string }) {
-  registry[meta.name] = { name: meta.name, component };
+export function registerComponent(
+  component: React.ComponentType<any>,
+  meta: Omit<RegisteredComponent, 'component'>
+) {
+  registry[meta.id] = { ...meta, component };
 }
 
-export function getRegisteredComponents(): RegisteredComponent[] {
-  return Object.values(registry);
+export function getRegisteredComponents(type?: ComponentCategory): RegisteredComponent[] {
+  const comps = Object.values(registry);
+  return type ? comps.filter((c) => c.type === type) : comps;
 }
 
-export function getComponentByName(name: string): React.ComponentType<any> | undefined {
-  return registry[name]?.component;
+export function getRegisteredComponent(id: string): RegisteredComponent | undefined {
+  return registry[id];
+}
+
+export function getComponentById(id: string): React.ComponentType<any> | undefined {
+  return registry[id]?.component;
 }
 

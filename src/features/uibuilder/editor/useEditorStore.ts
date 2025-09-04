@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getRegisteredComponent } from './componentRegistry';
 
 export interface EditorNode {
   id: string;
@@ -73,7 +74,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const root = cloneTree(state.root);
       const parent = findNode(root, parentId);
       if (parent) {
-        parent.children.push(createNode(type));
+        const meta = getRegisteredComponent(type);
+        const props = meta?.props || {};
+        parent.children.push(
+          createNode(type, { props: { text: meta?.name || type, ...props } })
+        );
       }
       return { root, history: pushHistory(state.history, state.root), future: [] };
     }),
