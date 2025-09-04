@@ -18,6 +18,15 @@ type CanvasState = {
   toggleSelect: (id: string, multi?: boolean) => void
   clearSelection: () => void
 
+  // グループ
+  groups: Record<string, string[]>
+  memberOf: Record<string, string | undefined>
+  createGroup: (ids: string[]) => string
+  ungroup: (groupId: string) => void
+  getGroupMembers: (nodeId: string) => string[]
+  groupSelectEnabled: boolean
+  setGroupSelectEnabled: (v: boolean) => void
+
   // スナップ
   snapEnabled: boolean
   gridSize: number
@@ -52,6 +61,32 @@ export const useCanvasStore = create<CanvasState>()(
       },
       clearSelection: () => set({ selectedIds: [] }),
 
+      groups: {},
+      memberOf: {},
+      groupSelectEnabled: true,
+      setGroupSelectEnabled: (v) => set({ groupSelectEnabled: v }),
+      createGroup: (ids) => {
+        const gid = `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`
+        const groups = { ...get().groups, [gid]: Array.from(new Set(ids)) }
+        const memberOf = { ...get().memberOf }
+        for (const id of ids) memberOf[id] = gid
+        set({ groups, memberOf })
+        return gid
+      },
+      ungroup: (groupId) => {
+        const groups = { ...get().groups }
+        const members = groups[groupId] ?? []
+        delete groups[groupId]
+        const memberOf = { ...get().memberOf }
+        for (const m of members) if (memberOf[m] === groupId) delete memberOf[m]
+        set({ groups, memberOf })
+      },
+      getGroupMembers: (nodeId) => {
+        const gid = get().memberOf[nodeId]
+        if (!gid) return [nodeId]
+        return get().groups[gid] ?? [nodeId]
+      },
+
       snapEnabled: true,
       gridSize: 20,
       snapThreshold: 6,
@@ -74,6 +109,6 @@ export const useCanvasStore = create<CanvasState>()(
       setNodeSize: (id, sz) => set({ nodeSize: { ...get().nodeSize, [id]: sz } }),
       resetView: () => set({ scale: 1, tx: 0, ty: 0 }),
     }),
-    { name: 'geokore-canvas-v3' }
+    { name: 'geokore-canvas-v5' }
   )
 )

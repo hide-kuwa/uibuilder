@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
+import { useHistoryStore } from '@/stores/history'
 import type { XY, Size } from '@/stores/canvas'
 import { snapToGrid } from '@/lib/snap'
 import { computeSnapWithGuides } from '@/lib/guides'
@@ -23,9 +24,12 @@ export default function DraggableNode({
 }: Props) {
   const {
     nodePos, setNodePos, moveNodes, nodeSize, setNodeSize, scale,
-    selectedIds, toggleSelect, snapEnabled, gridSize, snapThreshold,
+    selectedIds, toggleSelect, setSelectedIds,
+    getGroupMembers, groupSelectEnabled,
+    snapEnabled, gridSize, snapThreshold,
     setGuides, clearGuides,
   } = useCanvasStore()
+  const record = useHistoryStore(s => s.record)
 
   // サイズをストアに同期（ガイド用）
   useEffect(() => { useCanvasStore.getState().setNodeSize(id, size) }, [id, size.w, size.h])
@@ -39,8 +43,26 @@ export default function DraggableNode({
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (locked || resizing) return
     e.currentTarget.setPointerCapture(e.pointerId)
+    // ★ まず履歴を記録（ドラッグ操作の前に）
+    record()
+
     const multi = e.metaKey || e.ctrlKey
-    toggleSelect(id, multi)
+    const alreadySelected = selectedIds.includes(id)
+
+    // ★ グループ選択（有効時）
+    if (!multi && groupSelectEnabled) {
+      const members = getGroupMembers(id)
+      if (members.length > 1) {
+        setSelectedIds(members)
+      } else if (!alreadySelected) {
+        setSelectedIds([id])
+      }
+    } else {
+      // 従来挙動
+      if (multi) toggleSelect(id, true)
+      else if (!alreadySelected) setSelectedIds([id])
+    }
+
     setDragStart({ x: e.clientX, y: e.clientY, base: pos })
   }
 
