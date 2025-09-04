@@ -4,6 +4,12 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from './components/ui/Tooltip'
 
 interface PropMeta {
   name: string
@@ -335,22 +341,34 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
         />
       </div>
       {meta ? (
-        meta.props
-          .filter((p) => p.name !== 'className')
-          .map((prop) => {
-            const value = localProps[prop.name]
-            const missing = prop.required && (value === undefined || value === '')
-            return (
-              <div key={prop.name} className="flex items-center space-x-2">
+        <TooltipProvider>
+          {meta.props
+            .filter((p) => p.name !== 'className')
+            .map((prop) => {
+              const value = localProps[prop.name]
+              const missing = prop.required && (value === undefined || value === '')
+              const label = (
                 <label
                   className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}
                 >
                   {prop.name}
                 </label>
-                <div className="flex-1">{renderControl(prop, missing)}</div>
-              </div>
-            )
-          })
+              )
+              return (
+                <div key={prop.name} className="flex items-center space-x-2">
+                  {prop.description ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{label}</TooltipTrigger>
+                      <TooltipContent>{prop.description}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    label
+                  )}
+                  <div className="flex-1">{renderControl(prop, missing)}</div>
+                </div>
+              )
+            })}
+        </TooltipProvider>
       ) : (
         <div className="text-sm text-gray-500">No props info</div>
       )}
