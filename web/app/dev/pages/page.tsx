@@ -31,14 +31,10 @@ export default function DevPages() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Devtools / Mock</h2>
         <div className="grid sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-xl border">
-            <div className="text-sm font-medium mb-2">React Query Devtools</div>
-            <div className="text-xs text-zinc-500">(placeholder) トグル/マウントを後日追加</div>
-          </div>
-          <div className="p-4 rounded-xl border">
-            <div className="text-sm font-medium mb-2">Zustand Devtools</div>
-            <div className="text-xs text-zinc-500">(placeholder) トグル/マウントを後日追加</div>
-          </div>
+          <Link href="/dev/devtools" className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900">
+            <div className="text-sm font-medium mb-2">Devtools</div>
+            <div className="text-xs text-zinc-500">React Query / Zustand Devtools</div>
+          </Link>
           <div className="p-4 rounded-xl border">
             <div className="text-sm font-medium mb-2">Mock 切替</div>
             <div className="text-xs text-zinc-500">(placeholder) API モック/実データ切替</div>
