@@ -1,16 +1,18 @@
 'use client'
 import React, { useRef, useState } from 'react'
 import { useBuilderStore } from '@/store/builderStore'
-import { encodeShare, serializeProject } from '@/lib/share'
+import { usePageStore } from '@/store/pageStore'
+import { serializeProject } from '@/lib/share'
 
 export function ShareMenu() {
-  const state = useBuilderStore(s => ({ elements: s.elements, meta: s.meta }))
+  const state = useBuilderStore((s) => ({ elements: s.elements, meta: s.meta }))
+  const currentPageId = usePageStore((s) => s.currentPageId)
   const [msg, setMsg] = useState<string>('')
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   function currentUrl() {
     const base = typeof window !== 'undefined' ? window.location.origin : ''
-    return base + '/preview?d=' + encodeShare(serializeProject(state))
+    return base + '/preview/' + currentPageId
   }
 
   async function copyUrl() {
