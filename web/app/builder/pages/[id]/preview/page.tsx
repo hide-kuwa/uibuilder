@@ -1,15 +1,22 @@
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function PagePreview({ params }: { params: { id: string } }) {
+  const router = useRouter()
   const [published, setPublished] = useState(false)
+
+  const handlePublish = () => {
+    console.log('Publishing page:', params.id)
+    setPublished(true)
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Page Preview</h1>
         <button
-          onClick={() => setPublished(true)}
+          onClick={handlePublish}
           className="px-3 py-2 rounded-lg border bg-black text-white"
         >
           Publish
@@ -19,9 +26,12 @@ export default function PagePreview({ params }: { params: { id: string } }) {
       {published && (
         <p className="text-sm text-green-600">Published!</p>
       )}
-      <Link href={`/builder/pages/${params.id}/edit`} className="text-blue-600 underline">
+      <button
+        onClick={() => router.push(`/builder/pages/${params.id}/edit`)}
+        className="text-blue-600 underline"
+      >
         Back to edit
-      </Link>
+      </button>
     </div>
   )
 }
