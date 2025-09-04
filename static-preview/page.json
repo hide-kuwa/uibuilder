@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "pageId": "sample",
+  "layoutId": "sample",
+  "effectiveTheme": {
+    "colors": { "text": "#000", "background": "#fff" },
+    "radius": {},
+    "spacing": {},
+    "typography": {
+      "fontFamily": "sans-serif",
+      "baseSize": "16px",
+      "headingScale": 1.2,
+      "weightRegular": "400",
+      "weightBold": "700"
+    }
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "Box",
+      "props": { "style": { "padding": "20px" } },
+      "children": [
+        { "id": "n2", "type": "Text", "props": { "children": "Hello static preview!" } }
+      ]
+    }
+  ],
+  "timestamp": 0
+}
