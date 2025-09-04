@@ -1,16 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDesignTokens } from "@/store/designTokensStore";
 import { nanoid } from "nanoid";
-
-const radiusMap: Record<string, number> = {
-  none: 0,
-  sm: 4,
-  md: 8,
-  lg: 16,
-  xl: 24,
-};
+import { themePresets, type ThemeToken } from "./themePresets";
 
 const fontOptions = [
   { label: "inter", value: "Inter, system-ui, sans-serif" },
@@ -19,41 +12,34 @@ const fontOptions = [
 ];
 
 export default function ThemeEditor() {
-  const store = useDesignTokens();
-  const [tokens, setTokens] = useState(() => ({
-    color: {
-      primary: store.tokens.color?.primary || "#1d4ed8",
-      secondary: store.tokens.color?.secondary || "#9333ea",
-      background: store.tokens.color?.background || "#ffffff",
-      text: store.tokens.color?.text || "#111827",
-    },
-    radius: {
-      base: store.tokens.radius?.base ?? radiusMap.md,
-    },
-    space: {
-      xs: store.tokens.space?.xs ?? 4,
-      sm: store.tokens.space?.sm ?? 8,
-      md: store.tokens.space?.md ?? 16,
-      lg: store.tokens.space?.lg ?? 24,
-      xl: store.tokens.space?.xl ?? 32,
-    },
-    fontFamily: {
-      base: store.tokens.fontFamily?.base || fontOptions[0].value,
-    },
-    fontSize: {
-      base: store.tokens.fontSize?.base || 16,
-    },
-  }));
+  const [preset, setPreset] = useState<keyof typeof themePresets>("Minimal");
+  const [tokens, setTokens] = useState<ThemeToken>(themePresets[preset]);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
-  function updateToken(group: string, key: string, value: any) {
+  useEffect(() => {
+    const t = themePresets[preset];
+    setTokens(t);
+    applyTokensToStore(t);
+  }, [preset]);
+
+  function applyTokensToStore(t: ThemeToken) {
+    useDesignTokens.getState().replaceAll({
+      color: { ...t.colors },
+      radius: { ...t.radius },
+      space: { ...t.spacing },
+      fontFamily: { base: t.font.family },
+      fontSize: { base: t.font.size },
+    });
+  }
+
+  function updateToken(group: keyof ThemeToken, key: string, value: any) {
     const next = {
       ...tokens,
-      [group]: { ...tokens[group as keyof typeof tokens], [key]: value },
-    };
+      [group]: { ...tokens[group], [key]: value },
+    } as ThemeToken;
     setTokens(next);
-    useDesignTokens.getState().replaceAll(next);
+    applyTokensToStore(next);
   }
 
   function handleApply() {
@@ -77,46 +63,65 @@ export default function ThemeEditor() {
   return (
     <div className="p-4 space-y-6">
       <section>
-        <h3 className="font-bold mb-2">Colors</h3>
-        {Object.keys(tokens.color).map((k) => (
-          <div key={k} className="flex items-center gap-2 mb-2">
-            <label className="w-24 capitalize">{k}</label>
-            <input
-              type="color"
-              value={tokens.color[k as keyof typeof tokens.color]}
-              onChange={(e) => updateToken("color", k, e.target.value)}
-            />
-          </div>
-        ))}
-      </section>
-
-      <section>
-        <h3 className="font-bold mb-2">Radius</h3>
+        <h3 className="font-bold mb-2">Preset</h3>
         <select
           className="border p-1"
-          value={tokens.radius.base}
+          value={preset}
           onChange={(e) =>
-            updateToken("radius", "base", Number(e.target.value))
+            setPreset(e.target.value as keyof typeof themePresets)
           }
         >
-          {Object.entries(radiusMap).map(([k, v]) => (
-            <option key={k} value={v}>
-              {k}
+          {Object.keys(themePresets).map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>
       </section>
 
       <section>
-        <h3 className="font-bold mb-2">Space (px)</h3>
-        {Object.keys(tokens.space).map((k) => (
+        <h3 className="font-bold mb-2">Colors</h3>
+        {Object.keys(tokens.colors).map((k) => (
+          <div key={k} className="flex items-center gap-2 mb-2">
+            <label className="w-24 capitalize">{k}</label>
+            <input
+              type="color"
+              value={tokens.colors[k as keyof ThemeToken["colors"]]}
+              onChange={(e) => updateToken("colors", k, e.target.value)}
+            />
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h3 className="font-bold mb-2">Radius (px)</h3>
+        {Object.keys(tokens.radius).map((k) => (
+          <div key={k} className="flex items-center gap-2 mb-2">
+            <label className="w-24 capitalize">{k}</label>
+            <input
+              type="number"
+              className="border p-1 w-20"
+              value={tokens.radius[k as keyof ThemeToken["radius"]]}
+              onChange={(e) =>
+                updateToken("radius", k, Number(e.target.value))
+              }
+            />
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h3 className="font-bold mb-2">Spacing (px)</h3>
+        {Object.keys(tokens.spacing).map((k) => (
           <div key={k} className="flex items-center gap-2 mb-2">
             <label className="w-8 uppercase">{k}</label>
             <input
               type="number"
               className="border p-1 w-20"
-              value={tokens.space[k as keyof typeof tokens.space]}
-              onChange={(e) => updateToken("space", k, Number(e.target.value))}
+              value={tokens.spacing[k as keyof ThemeToken["spacing"]]}
+              onChange={(e) =>
+                updateToken("spacing", k, Number(e.target.value))
+              }
             />
           </div>
         ))}
@@ -128,8 +133,8 @@ export default function ThemeEditor() {
           <label className="w-24">Family</label>
           <select
             className="border p-1"
-            value={tokens.fontFamily.base}
-            onChange={(e) => updateToken("fontFamily", "base", e.target.value)}
+            value={tokens.font.family}
+            onChange={(e) => updateToken("font", "family", e.target.value)}
           >
             {fontOptions.map((f) => (
               <option key={f.label} value={f.value}>
@@ -143,9 +148,9 @@ export default function ThemeEditor() {
           <input
             type="number"
             className="border p-1 w-20"
-            value={tokens.fontSize.base}
+            value={tokens.font.size}
             onChange={(e) =>
-              updateToken("fontSize", "base", Number(e.target.value))
+              updateToken("font", "size", Number(e.target.value))
             }
           />
         </div>
