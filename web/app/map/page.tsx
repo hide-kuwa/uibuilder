@@ -11,19 +11,20 @@ export default function MapPage() {
   return (
     <div className="p-4">
       <div className="mb-3 text-sm text-gray-600">Published nodes: {nodes.length}</div>
-      <div className="relative grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+      <div className="relative h-[calc(100vh-120px)] overflow-hidden rounded-2xl border bg-white">
         {nodes.map((n: any) => {
           const statusEff = buildMotionFromStatus(n.id, n.status ?? { base:'notVisited', overlays:[] })
           const bg = computeBgColor(n.status ?? { base:'notVisited', overlays:[] })
           const label = n.title ?? n.prefecture ?? n.id
           const href = n.prefecture ? `/map/${encodeURIComponent(n.prefecture)}` : undefined
+          const xy = n.position ?? { x: 0, y: 0 }
 
           const card = (
             <div
               key={n.id}
               data-node-id={n.id}
-              className="h-28 rounded-xl border p-3 text-sm"
-              style={{ backgroundColor: bg }}
+              className="h-28 w-40 rounded-xl border p-3 text-sm"
+              style={{ transform: `translate(${xy.x}px, ${xy.y}px)`, backgroundColor: bg, position: 'absolute' }}
               onMouseEnter={(e)=> runMotionEffects(statusEff.hoverEnter, 'hoverEnter', e.currentTarget as HTMLElement)}
               onMouseLeave={(e)=> runMotionEffects(statusEff.hoverLeave, 'hoverLeave', e.currentTarget as HTMLElement)}
               ref={(el)=>{ if (el) queueMicrotask(()=> runMotionEffects(statusEff.mount, 'mount', el!)) }}
