@@ -25,6 +25,8 @@
   --color-state-info: 210 90% 60%;
   --color-overlay-scrim: 0 0% 0% / 0.5;
   --color-overlay-focus-ring: 210 90% 60% / 0.6;
+  --focus-ring-color: hsl(var(--color-overlay-focus-ring));
+  --focus-ring-offset: 2px;
 
   --space-xxs: 4px;
   --space-xs: 8px;
@@ -83,6 +85,8 @@
   --color-state-info: 210 90% 60%;
   --color-overlay-scrim: 0 0% 0% / 0.5;
   --color-overlay-focus-ring: 210 90% 60% / 0.6;
+  --focus-ring-color: hsl(var(--color-overlay-focus-ring));
+  --focus-ring-offset: 2px;
 }
 
 @layer base {
@@ -92,7 +96,7 @@
     font-family: var(--font-ui);
   }
   :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--color-overlay-focus-ring));
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 }

@@ -32,12 +32,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function Button({ variant = 'solid', tone = 'neutral', size = 'md', className, children, ...props }: ButtonProps) {
   const classes = cn(
-    'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none',
+    'inline-flex items-center justify-center font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none',
     buttonVar({ variant, tone, size }),
     className
   )
   return (
-    <button className={classes} {...props}>
+    <button
+      className={classes}
+      style={{ outlineColor: 'var(--focus-ring-color)', outlineOffset: 'var(--focus-ring-offset)' }}
+      {...props}
+    >
       {children}
     </button>
   )
