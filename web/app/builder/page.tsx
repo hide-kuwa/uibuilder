@@ -1,38 +1,49 @@
-'use client'
-import StatusConfigPanel from '@/components/panels/StatusConfigPanel'
-import StatusDropdown from '@/components/panels/StatusDropdown'
-import { useBuilderStore } from '@/stores/builder'
+'use client';
+import StatusConfigPanel from '@/components/panels/StatusConfigPanel';
+import StatusDropdown from '@/components/panels/StatusDropdown';
+import { useBuilderStore } from '@/stores/builder';
+import Link from 'next/link';
 
 export default function BuilderPage() {
-  const nodes = useBuilderStore(s=> Object.values(s.nodes ?? {}))
-  const publishAll = useBuilderStore(s=> s.publishAll)
-  const usePublishedOnMap = useBuilderStore(s=> s.usePublishedOnMap)
-  const setUsePublishedOnMap = useBuilderStore(s=> s.setUsePublishedOnMap)
+  const nodes = useBuilderStore((s) => s.nodes);
+  const publishAll = useBuilderStore((s) => s.publishAll);
+  const usePublished = useBuilderStore((s) => s.usePublishedOnMap);
+  const setUsePublished = useBuilderStore((s) => s.setUsePublishedOnMap);
 
   return (
-    <div className="space-y-4 p-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Builder</h1>
-        <div className="flex items-center gap-2">
-          <label className="text-xs">
-            /map は公開版を表示
-            <input className="ml-2" type="checkbox" checked={usePublishedOnMap}
-              onChange={(e)=> setUsePublishedOnMap(e.target.checked)} />
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Builder</h1>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={usePublished} onChange={(e) => setUsePublished(e.target.checked)} />
+            <span>/map は公開版を使用</span>
           </label>
-          <button className="rounded border px-3 py-1 text-sm" onClick={publishAll}>Publish</button>
+          <button onClick={publishAll} className="px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black">
+            Publish All
+          </button>
+          <Link href="/map" className="px-3 py-2 rounded-lg border">/map</Link>
+          <Link href="/map?preview=1" className="px-3 py-2 rounded-lg border">/map?preview=1</Link>
         </div>
-      </header>
+      </div>
 
-      <StatusConfigPanel />
-
-      <section className="grid gap-3 md:grid-cols-2">
-        {nodes.map(n => (
-          <div key={n.id} className="rounded-2xl border bg-white p-3">
-            <div className="mb-2 text-sm font-medium">{n.title ?? n.prefecture ?? n.id}</div>
-            <StatusDropdown nodeId={n.id} />
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-8 space-y-4">
+          <div className="text-sm text-zinc-500">ノードごとのステータス編集</div>
+          <div className="grid grid-cols-2 gap-4">
+            {nodes.map((n) => (
+              <div key={n.id} className="p-3 rounded-xl border bg-white/70 dark:bg-zinc-900/70">
+                <div className="mb-2 text-sm font-medium">{n.name ?? n.id}</div>
+                <StatusDropdown nodeId={n.id} />
+              </div>
+            ))}
           </div>
-        ))}
-      </section>
+        </div>
+        <div className="col-span-4">
+          <StatusConfigPanel />
+        </div>
+      </div>
     </div>
-  )
+  );
 }
+

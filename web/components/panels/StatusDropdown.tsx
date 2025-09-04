@@ -1,57 +1,63 @@
-'use client'
-import { useBuilderStore } from '@/stores/builder'
-import type { NodeStatus, BaseStatus, Overlay } from '@/types/status'
-
-const BASES: { key: BaseStatus; label: string }[] = [
-  { key: 'visited', label: '行った' },
-  { key: 'resident', label: '住んでる' },
-  { key: 'notVisited', label: '行ってない' },
-]
-const OVERS: { key: Overlay; label: string }[] = [
-  { key: 'want', label: '行きたい' },
-  { key: 'hasPhotos', label: '写真あり' },
-]
+'use client';
+import { useMemo } from 'react';
+import { useBuilderStore } from '@/stores/builder';
+import type { BaseKind, OverlayKind } from '@/types/status';
 
 export default function StatusDropdown({ nodeId }: { nodeId: string }) {
-  const node = useBuilderStore(s => s.nodes[nodeId])
-  const setNodeStatus = useBuilderStore(s => s.setNodeStatus)
-  const cfg = useBuilderStore(s => s.statusConfig)
+  const status = useBuilderStore((s) => s.getNodeStatus(nodeId));
+  const cfg = useBuilderStore((s) => s.statusConfig);
+  const setNodeStatus = useBuilderStore((s) => s.setNodeStatus);
 
-  const status: NodeStatus = node?.status ?? { base: 'notVisited', overlays: [] }
-  const setBase = (b: BaseStatus) => setNodeStatus(nodeId, { ...status, base: b })
-  const toggleOv = (o: Overlay) => {
-    const exists = status.overlays.includes(o)
-    const overlays = exists ? status.overlays.filter(x=>x!==o) : [...status.overlays, o]
-    setNodeStatus(nodeId, { ...status, overlays })
-  }
+  const baseOptions = useMemo(
+    () => Object.entries(cfg.base) as [BaseKind, { label: string; color: string }][],
+    [cfg]
+  );
+
+  const onToggleOverlay = (key: OverlayKind) => {
+    const set = new Set(status.overlays);
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    setNodeStatus(nodeId, { ...status, overlays: [...set] });
+  };
+
+  const onChangeBase = (base: BaseKind) => setNodeStatus(nodeId, { ...status, base });
 
   return (
-    <div className="rounded-lg border bg-white p-3 text-sm">
-      <div className="mb-1 text-xs text-gray-500">ステータス</div>
-      <select
-        value={status.base}
-        onChange={(e)=> setBase(e.target.value as BaseStatus)}
-        className="w-full rounded border px-2 py-1"
-        style={{ backgroundColor: cfg.base[status.base]?.color }}
-      >
-        {BASES.map(b => <option key={b.key} value={b.key}>{b.label}</option>)}
-      </select>
+    <div className="flex flex-col gap-2 p-2 rounded-lg border bg-white/80 dark:bg-zinc-900/80">
+      <div className="text-xs font-semibold text-zinc-500">ステータス</div>
+      <div className="flex gap-2">
+        {baseOptions.map(([key, v]) => (
+          <button
+            key={key}
+            onClick={() => onChangeBase(key)}
+            className={`px-2 py-1 rounded border text-xs ${status.base === key ? 'ring-2 ring-offset-1' : ''}`}
+            style={{ backgroundColor: v.color }}
+            aria-pressed={status.base === key}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="mt-2 space-y-1">
-        {OVERS.map(o => {
-          const checked = status.overlays.includes(o.key)
-          const color = cfg.overlay[o.key]?.color
+      <div className="text-xs font-semibold text-zinc-500 mt-2">オーバーレイ</div>
+      <div className="flex gap-2 flex-wrap">
+        {cfg.overlays.map((o) => {
+          const active = status.overlays.includes(o.key as OverlayKind);
           return (
-            <label key={o.key} className="flex items-center gap-2 text-xs">
-              <input type="checkbox" checked={checked} onChange={()=> toggleOv(o.key)} />
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: color }} />
-                {o.label}
-              </span>
-            </label>
-          )
+            <button
+              key={o.key}
+              onClick={() => onToggleOverlay(o.key as OverlayKind)}
+              className={`px-2 py-1 rounded border text-xs ${active ? 'ring-2 ring-offset-1' : ''}`}
+              style={{ backgroundColor: o.color }}
+              aria-pressed={active}
+              title={`mode:${o.mode} prio:${o.priority}`}
+            >
+              {o.label}
+            </button>
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
+

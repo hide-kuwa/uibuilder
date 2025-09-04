@@ -1,26 +1,59 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import { useHistoryStore } from '@/stores/history'
 import type { XY, Size } from '@/stores/canvas'
 import { snapToGrid } from '@/lib/snap'
 import { computeSnapWithGuides } from '@/lib/guides'
-import { buildMotionFromStatus, computeBgColor } from '@/lib/status-engine'
-import { runMotionEffects } from '@/lib/runMotion'
+import { computeBgColor, buildMotionFromStatus } from '@/lib/status-engine'
+import { useBuilderStore } from '@/stores/builder'
+import { animate } from 'animejs'
 
 type Props = {
   id: string
   label: string
   initial?: XY
-  status?: any
   size?: Size         // builderノードの size を渡せる
   z?: number
   locked?: boolean
   onCommit?: (xy: XY, sz?: Size) => void
 }
 
+export function DraggableNodeWrapper(
+  {
+    id,
+    style,
+    className,
+    children,
+    ...rest
+  }: {
+    id: string
+    style?: React.CSSProperties
+    className?: string
+    children: React.ReactNode
+  } & React.HTMLAttributes<HTMLDivElement>,
+) {
+  const cfg = useBuilderStore((s) => s.statusConfig)
+  const status = useBuilderStore((s) => s.getNodeStatus(id))
+  const ref = useRef<HTMLDivElement>(null)
+  const { bg, filter } = computeBgColor(status, cfg)
+  const motion = buildMotionFromStatus(status, cfg)
+
+  useEffect(() => {
+    if (!ref.current || !motion) return
+    const a = animate({ targets: ref.current, ...motion })
+    return () => a.pause()
+  }, [motion])
+
+  return (
+    <div ref={ref} data-node-id={id} style={{ background: bg, filter, ...style }} className={className} {...rest}>
+      {children}
+    </div>
+  )
+}
+
 export default function DraggableNode({
-  id, label, initial, status, size = { w: 160, h: 96 }, z = 0, locked = false, onCommit,
+  id, label, initial, size = { w: 160, h: 96 }, z = 0, locked = false, onCommit,
 }: Props) {
   const {
     nodePos, setNodePos, moveNodes, nodeSize, setNodeSize, scale,
@@ -136,26 +169,8 @@ export default function DraggableNode({
     />
   )
 
-  const bg = computeBgColor(status ?? { base: 'notVisited', overlays: [] })
-  const eff = buildMotionFromStatus(id, status ?? { base: 'notVisited', overlays: [] })
-
-  return (
-    <div
-      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''} ${locked ? 'opacity-70' : ''}`}
-      style={{
-        width: curSize.w, height: curSize.h,
-        transform: `translate(${pos.x}px, ${pos.y}px)`,
-        backgroundColor: bg, touchAction: 'none', zIndex: z,
-      }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onMouseEnter={(e)=> runMotionEffects(eff.hoverEnter, 'hoverEnter', e.currentTarget as HTMLElement)}
-      onMouseLeave={(e)=> runMotionEffects(eff.hoverLeave, 'hoverLeave', e.currentTarget as HTMLElement)}
-      ref={(el)=>{ if (el) queueMicrotask(()=> el && runMotionEffects(eff.mount, 'mount', el)) }}
-      data-node-id={id}
-    >
+  const content = (
+    <>
       <div className="flex items-center justify-between">
         <div>{label}</div>
         {locked && <div className="rounded bg-gray-800/70 px-1.5 py-0.5 text-[10px] text-white">LOCK</div>}
@@ -177,6 +192,26 @@ export default function DraggableNode({
           {mkHandle('se', { left: '100%', top: '100%' })}
         </>
       )}
-    </div>
+    </>
+  )
+
+  return (
+    <DraggableNodeWrapper
+      id={id}
+      style={{
+        width: curSize.w,
+        height: curSize.h,
+        transform: `translate(${pos.x}px, ${pos.y}px)`,
+        touchAction: 'none',
+        zIndex: z,
+      }}
+      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''} ${locked ? 'opacity-70' : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {content}
+    </DraggableNodeWrapper>
   )
 }
