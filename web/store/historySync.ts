@@ -18,7 +18,7 @@ export function mountHistorySync() {
       useHistoryStore.getState().push(snap)
       saveProject({ schemaVersion: 1, meta: snap.meta, elements: snap.elements, designTokens: snap.designTokens, assets: [] })
     }
-  }, 150)
+  }, 1000)
 
   useHistoryStore.getState().initFromCurrent()
 

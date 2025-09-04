@@ -23,7 +23,7 @@ type Actions = {
   redo: () => void
   clear: () => void
   setCapacity: (n: number) => void
-  apply: (snap: Snapshot) => void
+  apply: (offset: number) => void
   getCounts: () => { past: number; future: number }
   getPresent: () => Snapshot | null
 }
@@ -32,7 +32,7 @@ export const useHistoryStore = create<State & Actions>((set, get) => ({
   past: [],
   present: null,
   future: [],
-  capacity: 50,
+  capacity: 100,
   busy: false,
   initFromCurrent: () => {
     const s = snapshotFromStores()
@@ -65,10 +65,28 @@ export const useHistoryStore = create<State & Actions>((set, get) => ({
   },
   clear: () => set({ past: [], present: get().present, future: [] }),
   setCapacity: (n) => set({ capacity: Math.max(1, Math.min(500, n)) }),
-  apply: (snap) => {
-    set({ busy: true })
-    applyToStores(snap)
-    set({ busy: false })
+  apply: (offset) => {
+    const { past, present, future } = get()
+    if (!present || offset === 0) return
+    if (offset < 0) {
+      const idx = past.length + offset
+      if (idx < 0) return
+      const target = past[idx]
+      const newPast = past.slice(0, idx)
+      const newFuture = [...past.slice(idx + 1), present, ...future]
+      set({ past: newPast, present: target, future: newFuture, busy: true })
+      applyToStores(target)
+      set({ busy: false })
+    } else {
+      const idx = offset - 1
+      if (idx >= future.length) return
+      const target = future[idx]
+      const newPast = [...past, present, ...future.slice(0, idx)]
+      const newFuture = future.slice(idx + 1)
+      set({ past: newPast, present: target, future: newFuture, busy: true })
+      applyToStores(target)
+      set({ busy: false })
+    }
   },
   getCounts: () => ({ past: get().past.length, future: get().future.length }),
   getPresent: () => get().present,
