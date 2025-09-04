@@ -11,9 +11,11 @@ function findNode(root: EditorNode, id: string): EditorNode | null {
 }
 
 export const PropertyPanel: React.FC = () => {
-  const selectedId = useEditorStore((s) => s.selectedId);
+  const selectedIds = useEditorStore((s) => s.selectedIds);
   const root = useEditorStore((s) => s.root);
-  const node = useMemo(() => (selectedId ? findNode(root, selectedId) : null), [root, selectedId]);
+  const node = useMemo(() =>
+    selectedIds.length === 1 ? findNode(root, selectedIds[0]) : null,
+  [root, selectedIds]);
   const updateProps = useEditorStore((s) => s.updateProps);
   const updateVariant = useEditorStore((s) => s.updateVariant);
   const [tab, setTab] = useState<'default' | 'hover'>('default');
