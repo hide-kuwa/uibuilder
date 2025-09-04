@@ -4,6 +4,9 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import CodeMirror from '@uiw/react-codemirror'
+import { json as jsonLang } from '@codemirror/lang-json'
+import { safeParse, prettify } from './lib/jsonUtils'
 
 interface PropMeta {
   name: string
@@ -42,6 +45,83 @@ function parseLiteralUnion(type: string): string[] | null {
     return null
   }
   return values
+}
+
+const JsonEditor: React.FC<{ value: any; onChange: (v: any) => void; missing: boolean }> = ({
+  value,
+  onChange,
+  missing,
+}) => {
+  const [text, setText] = useState<string>(() => (value ? prettify(value) : ''))
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setText(value ? prettify(value) : '')
+  }, [value])
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (text.trim() === '') {
+        onChange(undefined)
+        setError(null)
+        return
+      }
+      const { value: parsed, error } = safeParse(text)
+      if (error) {
+        setError(error.message)
+      } else {
+        setError(null)
+        onChange(parsed)
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [text, onChange])
+
+  return (
+    <div>
+      <div
+        className={`border rounded ${error ? 'border-red-500' : 'border-gray-300'}`}
+      >
+        <CodeMirror
+          value={text}
+          height="200px"
+          extensions={[jsonLang()]}
+          onChange={(val) => setText(val)}
+        />
+      </div>
+      {error && <div className="text-xs text-red-600 mt-1">{error}</div>}
+    </div>
+  )
+}
+
+const LongTextArea: React.FC<{
+  value: string | undefined
+  onChange: (v: string | undefined) => void
+  missing: boolean
+}> = ({ value, onChange, missing }) => {
+  const [text, setText] = useState(value ?? '')
+
+  useEffect(() => {
+    setText(value ?? '')
+  }, [value])
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      onChange(text || undefined)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [text, onChange])
+
+  return (
+    <textarea
+      rows={6}
+      className={`w-full border rounded px-2 py-1 ${
+        missing ? 'border-red-500' : 'border-gray-300'
+      }`}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+    />
+  )
 }
 
 const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
@@ -187,6 +267,26 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
             </option>
           ))}
         </select>
+      )
+    }
+
+    if (prop.type === 'json') {
+      return (
+        <JsonEditor
+          value={value}
+          onChange={(v) => updateProp(prop.name, v)}
+          missing={missing}
+        />
+      )
+    }
+
+    if (prop.type === 'longtext') {
+      return (
+        <LongTextArea
+          value={value}
+          onChange={(v) => updateProp(prop.name, v)}
+          missing={missing}
+        />
       )
     }
 
