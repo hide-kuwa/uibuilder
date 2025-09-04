@@ -7,6 +7,73 @@ import ThemeEditor from '@/components/theme/ThemeEditor';
 import { useDesignTokens } from '@/store/designTokensStore';
 import type { ThemeTokens } from '@/lib/builder/themes/themeTokens';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/storage/drafts';
+import { ViewportProvider, useViewport } from '@/components/canvas/ViewportStore';
+import DevicePreviewFrame from '@/components/canvas/DevicePreviewFrame';
+import GridOverlay from '@/components/canvas/GridOverlay';
+
+function CanvasControls() {
+  const { vp, toggle, setGrid, setDevice } = useViewport()
+
+  const updateCols = (n: number) => setGrid(n, vp.gridGutter, vp.gridMaxWidth)
+  const updateGutter = (n: number) => setGrid(vp.gridCols, n, vp.gridMaxWidth)
+  const updateWidth = (n: number) => setGrid(vp.gridCols, vp.gridGutter, n)
+
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        className="border rounded px-2 py-1 text-sm"
+        value={vp.device}
+        onChange={(e) => setDevice(e.target.value as any)}
+      >
+        <option value="mobile">Mobile</option>
+        <option value="tablet">Tablet</option>
+        <option value="desktop">Desktop</option>
+      </select>
+      <button
+        onClick={() => toggle('showGrid')}
+        className="border rounded px-2 py-1 text-sm"
+      >
+        {vp.showGrid ? 'Grid On' : 'Grid Off'}
+      </button>
+      <label className="text-sm">Cols</label>
+      <select
+        className="border rounded px-2 py-1 text-sm"
+        value={vp.gridCols}
+        onChange={(e) => updateCols(parseInt(e.target.value))}
+      >
+        {[4, 6, 12].map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+      <label className="text-sm">Gutter</label>
+      <select
+        className="border rounded px-2 py-1 text-sm"
+        value={vp.gridGutter}
+        onChange={(e) => updateGutter(parseInt(e.target.value))}
+      >
+        {[8, 12, 16, 24].map((n) => (
+          <option key={n} value={n}>
+            {n}px
+          </option>
+        ))}
+      </select>
+      <label className="text-sm">Max</label>
+      <select
+        className="border rounded px-2 py-1 text-sm"
+        value={vp.gridMaxWidth}
+        onChange={(e) => updateWidth(parseInt(e.target.value))}
+      >
+        {[640, 768, 1024, 1280].map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
 
 export default function PageEditor({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -126,6 +193,7 @@ export default function PageEditor({ params }: { params: { id: string } }) {
   };
 
   return (
+    <ViewportProvider>
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Page Editor</h1>
@@ -148,9 +216,17 @@ export default function PageEditor({ params }: { params: { id: string } }) {
                 Preview
               </button>
             </div>
+            <CanvasControls />
           </div>
         </div>
       <p className="text-sm text-zinc-500">Editing page: {params.id}</p>
+      <div className="relative border rounded overflow-hidden h-[400px]">
+        <DevicePreviewFrame>
+          <div className="absolute inset-0">
+            <GridOverlay />
+          </div>
+        </DevicePreviewFrame>
+      </div>
       <div>
         <h2 className="font-medium mb-1">Theme Override</h2>
         <button
@@ -182,5 +258,6 @@ export default function PageEditor({ params }: { params: { id: string } }) {
         </div>
       )}
     </div>
+    </ViewportProvider>
   );
 }
