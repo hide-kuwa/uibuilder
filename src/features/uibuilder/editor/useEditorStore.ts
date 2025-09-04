@@ -75,7 +75,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const parent = findNode(root, parentId);
       if (parent) {
         const meta = getRegisteredComponent(type);
-        const props = meta?.props || {};
+        const props = meta?.defaultProps || {};
         parent.children.push(
           createNode(type, { props: { text: meta?.name || type, ...props } })
         );

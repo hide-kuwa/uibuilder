@@ -1,3 +1,4 @@
+import React from 'react';
 import PublishButton from '../../../../components/PublishButton';
 import TextBlock from '../../../../components/TextBlock';
 import FormBox from '../../../../components/FormBox';
@@ -9,7 +10,10 @@ registerComponent(PublishButton, {
   name: 'Publish Button',
   type: 'action',
   icon: '🚀',
-  props: {},
+  tags: ['action'],
+  description: 'Triggers page publication.',
+  preview: () => <PublishButton />,
+  defaultProps: {},
 });
 
 registerComponent(TextBlock, {
@@ -17,7 +21,10 @@ registerComponent(TextBlock, {
   name: 'Text Block',
   type: 'visual',
   icon: '📝',
-  props: { text: 'Sample text' },
+  tags: ['visual', 'text'],
+  description: 'Displays simple text content.',
+  preview: () => <TextBlock text="Sample text" />,
+  defaultProps: { text: 'Sample text' },
 });
 
 registerComponent(FormBox, {
@@ -25,7 +32,10 @@ registerComponent(FormBox, {
   name: 'Form',
   type: 'functional',
   icon: '📋',
-  props: {},
+  tags: ['functional', 'form'],
+  description: 'Simple form container.',
+  preview: () => <FormBox />,
+  defaultProps: {},
 });
 
 registerComponent(ContainerBox, {
@@ -33,6 +43,9 @@ registerComponent(ContainerBox, {
   name: 'Container',
   type: 'layout',
   icon: '📦',
-  props: {},
+  tags: ['layout', 'container'],
+  description: 'Generic container for layout.',
+  preview: () => <ContainerBox />,
+  defaultProps: {},
 });
 
