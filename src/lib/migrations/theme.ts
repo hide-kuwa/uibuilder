@@ -1,10 +1,8 @@
 import { defaultTheme, type ThemeTokens } from '../../stores/themeStore';
+import { themeDocSchema, type ThemeDoc } from '../../schemas/theme';
+import { ZodError } from 'zod';
 
 export const THEME_VERSION = 1;
-
-export interface ThemeDoc extends ThemeTokens {
-  version: number;
-}
 
 // migrateTheme converts given json (possibly legacy) to latest ThemeDoc.
 // It accepts both v1 (current) and legacy unversioned themes.
@@ -14,7 +12,7 @@ export function migrateTheme(json: any): ThemeDoc {
   }
   const v = json.version ?? 0;
   if (v === THEME_VERSION) {
-    return json as ThemeDoc;
+    return parse(json);
   }
   if (v === 0) {
     const merged: ThemeTokens = {
@@ -25,7 +23,19 @@ export function migrateTheme(json: any): ThemeDoc {
       spacing: { ...defaultTheme.spacing, ...(json.spacing || {}) },
       typography: { ...defaultTheme.typography, ...(json.typography || {}) },
     };
-    return { ...merged, version: THEME_VERSION };
+    return parse({ ...merged, version: THEME_VERSION });
   }
   throw new Error(`Unsupported theme version: ${v}`);
+}
+
+function parse(doc: unknown): ThemeDoc {
+  try {
+    return themeDocSchema.parse(doc);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      const msg = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(msg);
+    }
+    throw err;
+  }
 }

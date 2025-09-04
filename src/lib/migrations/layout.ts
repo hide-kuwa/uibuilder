@@ -1,3 +1,6 @@
+import { layoutTemplateSchema, type LayoutTemplate } from '../../schemas/layout';
+import { ZodError } from 'zod';
+
 export const LAYOUT_VERSION = 1;
 
 export interface LayoutState {
@@ -8,9 +11,7 @@ export interface LayoutState {
   lastResetAt?: number;
 }
 
-export interface LayoutDoc extends LayoutState {
-  version: number;
-}
+export type LayoutDoc = LayoutTemplate;
 
 const DEFAULT_LAYOUT: LayoutState = {
   left: { width: 240, collapsed: false },
@@ -23,15 +24,27 @@ const DEFAULT_LAYOUT: LayoutState = {
 // v1 -> returned as-is; legacy unversioned objects are merged with defaults.
 export function migrateLayout(json: any): LayoutDoc {
   if (!json || typeof json !== 'object') {
-    return { ...DEFAULT_LAYOUT, version: LAYOUT_VERSION };
+    return parse({ ...DEFAULT_LAYOUT, version: LAYOUT_VERSION });
   }
   const v = json.version ?? 0;
   if (v === LAYOUT_VERSION) {
-    return { ...DEFAULT_LAYOUT, ...(json as LayoutState), version: LAYOUT_VERSION };
+    return parse({ ...DEFAULT_LAYOUT, ...(json as LayoutState), version: LAYOUT_VERSION });
   }
   if (v === 0) {
     const state = json as Partial<LayoutState>;
-    return { ...DEFAULT_LAYOUT, ...state, version: LAYOUT_VERSION };
+    return parse({ ...DEFAULT_LAYOUT, ...state, version: LAYOUT_VERSION });
   }
   throw new Error(`Unsupported layout version: ${v}`);
+}
+
+function parse(doc: unknown): LayoutDoc {
+  try {
+    return layoutTemplateSchema.parse(doc);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      const msg = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(msg);
+    }
+    throw err;
+  }
 }

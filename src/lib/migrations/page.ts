@@ -1,14 +1,7 @@
-export const PAGE_VERSION = 1;
+import { pageDocSchema, type PageDoc } from '../../schemas/page';
+import { ZodError } from 'zod';
 
-export interface PageDoc {
-  id: string;
-  title: string;
-  path: string;
-  tree: any[];
-  bindings: Record<string, unknown>;
-  pageOverrides: { theme?: Record<string, any> };
-  version: number;
-}
+export const PAGE_VERSION = 1;
 
 // migratePage converts legacy page JSON to the latest PageDoc format.
 export function migratePage(json: any): PageDoc {
@@ -17,10 +10,10 @@ export function migratePage(json: any): PageDoc {
   }
   const v = json.version ?? 0;
   if (v === PAGE_VERSION) {
-    return json as PageDoc;
+    return parse(json);
   }
   if (v === 0) {
-    return {
+    return parse({
       id: json.id ?? '',
       title: json.title ?? '',
       path: json.path ?? '/',
@@ -28,7 +21,19 @@ export function migratePage(json: any): PageDoc {
       bindings: typeof json.bindings === 'object' && json.bindings ? json.bindings : {},
       pageOverrides: typeof json.pageOverrides === 'object' && json.pageOverrides ? json.pageOverrides : {},
       version: PAGE_VERSION,
-    };
+    });
   }
   throw new Error(`Unsupported page version: ${v}`);
+}
+
+function parse(doc: unknown): PageDoc {
+  try {
+    return pageDocSchema.parse(doc);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      const msg = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(msg);
+    }
+    throw err;
+  }
 }

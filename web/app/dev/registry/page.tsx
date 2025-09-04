@@ -4,15 +4,25 @@ import { registry } from "@/lib/registry";
 import { themePresets } from "@/lib/themePresets";
 import { hoverActionPresets } from "@/lib/hoverActionPresets";
 import { animationPresets } from "@/lib/animationPresets";
+import { ZodError } from "zod";
+import { themeDocSchema } from "../../../../src/schemas/theme";
+import { layoutTemplateSchema } from "../../../../src/schemas/layout";
+import { pageSnapshotSchema } from "../../../../src/schemas/page";
 
- type Tab = "components" | "themes" | "hover" | "animations";
+ type Tab = "components" | "themes" | "hover" | "animations" | "schemas";
 
 export default function DevRegistryPage() {
   const [tab, setTab] = useState<Tab>("components");
   return (
     <div className="p-4 space-y-4">
       <div className="flex gap-2">
-        {[{ key: "components", label: "Components" }, { key: "themes", label: "Themes" }, { key: "hover", label: "Hover Actions" }, { key: "animations", label: "Animations" }].map(t => (
+        {[
+          { key: "components", label: "Components" },
+          { key: "themes", label: "Themes" },
+          { key: "hover", label: "Hover Actions" },
+          { key: "animations", label: "Animations" },
+          { key: "schemas", label: "Schemas" },
+        ].map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key as Tab)}
@@ -27,6 +37,7 @@ export default function DevRegistryPage() {
       {tab === "themes" && <ThemesSection />}
       {tab === "hover" && <HoverSection />}
       {tab === "animations" && <AnimationSection />}
+      {tab === "schemas" && <SchemasSection />}
     </div>
   );
 }
@@ -141,6 +152,60 @@ function AnimationSection() {
           </details>
         );
       })}
+    </div>
+  );
+}
+
+function SchemasSection() {
+  const [kind, setKind] = useState<'theme' | 'layout' | 'page'>('theme');
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+
+  const validate = () => {
+    try {
+      const json = JSON.parse(text);
+      const schema =
+        kind === 'theme'
+          ? themeDocSchema
+          : kind === 'layout'
+          ? layoutTemplateSchema
+          : pageSnapshotSchema;
+      schema.parse(json);
+      setResult('Valid!');
+    } catch (e) {
+      if (e instanceof ZodError) {
+        setResult(e.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', '));
+      } else if (e instanceof Error) {
+        setResult(e.message);
+      } else {
+        setResult('Unknown error');
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-2 max-w-xl">
+      <div className="flex gap-2">
+        <select
+          value={kind}
+          onChange={e => setKind(e.target.value as any)}
+          className="border px-2 py-1 rounded text-sm"
+        >
+          <option value="theme">Theme</option>
+          <option value="layout">Layout</option>
+          <option value="page">Page</option>
+        </select>
+        <button onClick={validate} className="px-2 py-1 rounded border text-sm">
+          Validate
+        </button>
+      </div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        className="w-full h-40 border p-2 text-xs font-mono rounded"
+        placeholder="Paste JSON here"
+      />
+      {result && <p className="text-sm">{result}</p>}
     </div>
   );
 }

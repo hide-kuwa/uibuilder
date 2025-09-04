@@ -1,32 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
-
-export type ThemeTokens = {
-  [key: string]: any;
-};
-
-export type BuilderNode = {
-  id: string;
-  type: string;
-  props?: Record<string, any>;
-  children?: BuilderNode[];
-};
-
-export type PageSnapshot = {
-  pageId: string;
-  layoutId: string;
-  effectiveTheme: ThemeTokens;
-  nodes: BuilderNode[];
-  timestamp: number;
-};
+import {
+  pageSnapshotSchema,
+  type PageSnapshot,
+} from '../../../../src/schemas/page';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as PageSnapshot;
-    if (!body?.pageId) {
-      return NextResponse.json({ error: 'pageId required' }, { status: 400 });
+    const json = await req.json();
+    const parsed = pageSnapshotSchema.safeParse(json);
+    if (!parsed.success) {
+      const msg = parsed.error.errors
+        .map(e => `${e.path.join('.')}: ${e.message}`)
+        .join(', ');
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
+    const body: PageSnapshot = parsed.data;
     const pagesDir = path.join(process.cwd(), 'data/pages');
     await mkdir(pagesDir, { recursive: true });
     const filePath = path.join(pagesDir, `${body.pageId}.json`);
