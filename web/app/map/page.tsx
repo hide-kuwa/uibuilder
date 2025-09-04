@@ -1,6 +1,6 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { useBuilderStore } from '@/stores/builder';
 import { computeBgColor } from '@/lib/status-engine';
 import ZoomPanCanvas from '@/components/canvas/ZoomPanCanvas';
@@ -26,7 +26,21 @@ const OVERLAY_LABELS: Record<OverlayKind, string> = {
   photo: '📷 写真あり',
 };
 
-function NodeCard({ node, faded }: { node: MapNode; faded?: boolean }) {
+function NodeCard({
+  node,
+  faded,
+  onHover,
+  onMove,
+  onLeave,
+  onToggle,
+}: {
+  node: MapNode;
+  faded?: boolean;
+  onHover: (id: string, x: number, y: number) => void;
+  onMove: (id: string, x: number, y: number) => void;
+  onLeave: () => void;
+  onToggle: (id: string, x: number, y: number) => void;
+}) {
   const cfg = useBuilderStore((s) => s.statusConfig);
   const getStatus = useBuilderStore((s) => s.getNodeStatus);
   const { bg, filter } = computeBgColor(getStatus(node.id), cfg);
@@ -45,6 +59,10 @@ function NodeCard({ node, faded }: { node: MapNode; faded?: boolean }) {
         background: bg,
         filter,
       }}
+      onMouseEnter={(e) => onHover(node.id, e.clientX, e.clientY)}
+      onMouseMove={(e) => onMove(node.id, e.clientX, e.clientY)}
+      onMouseLeave={onLeave}
+      onClick={(e) => onToggle(node.id, e.clientX, e.clientY)}
     >
       <div className="font-semibold">{node.name ?? node.id}</div>
       <div className="opacity-70 text-xs">id: {node.id}</div>
@@ -64,6 +82,105 @@ export default function MapPage() {
   const [base, setBase] = useState<BaseKind | 'all'>('all');
   const [overlays, setOverlays] = useState<OverlayKind[]>([]);
   const [showNonMatch, setShowNonMatch] = useState(false);
+
+  const tipRef = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    id: string | null;
+    content: React.ReactNode | null;
+  }>({ visible: false, x: 0, y: 0, id: null, content: null });
+
+  const clamp = (x: number, y: number) => {
+    const el = tipRef.current;
+    const w = el?.offsetWidth ?? 0;
+    const h = el?.offsetHeight ?? 0;
+    const nx = Math.min(Math.max(8, x), window.innerWidth - w - 8);
+    const ny = Math.min(Math.max(8, y), window.innerHeight - h - 8);
+    return { x: nx, y: ny };
+  };
+
+  const showTip = (id: string, x: number, y: number) => {
+    const status = getNodeStatus(id);
+    const baseCfg = cfg.base[status.base];
+    const content = (
+      <div>
+        <table className="text-xs">
+          <tbody>
+            <tr>
+              <td className="pr-2">base</td>
+              <td>{baseCfg.label}</td>
+            </tr>
+            {status.overlays.map((k) => {
+              const oc = cfg.overlays.find((o) => o.key === k);
+              return (
+                <tr key={k}>
+                  <td className="pr-2">{oc?.label ?? k}</td>
+                  <td>
+                    p{oc?.priority}/{oc?.mode}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+    const pos = clamp(x + 8, y + 8);
+    setTip({ visible: true, x: pos.x, y: pos.y, id, content });
+  };
+
+  const moveTip = (id: string, x: number, y: number) => {
+    setTip((prev) => {
+      if (!prev.visible || prev.id !== id) return prev;
+      const pos = clamp(x + 8, y + 8);
+      return { ...prev, x: pos.x, y: pos.y };
+    });
+  };
+
+  const hideTip = () => setTip((p) => ({ ...p, visible: false }));
+
+  const toggleTip = (id: string, x: number, y: number) => {
+    setTip((prev) => {
+      if (prev.visible && prev.id === id) return { ...prev, visible: false };
+      const status = getNodeStatus(id);
+      const baseCfg = cfg.base[status.base];
+      const content = (
+        <div>
+          <table className="text-xs">
+            <tbody>
+              <tr>
+                <td className="pr-2">base</td>
+                <td>{baseCfg.label}</td>
+              </tr>
+              {status.overlays.map((k) => {
+                const oc = cfg.overlays.find((o) => o.key === k);
+                return (
+                  <tr key={k}>
+                    <td className="pr-2">{oc?.label ?? k}</td>
+                    <td>
+                      p{oc?.priority}/{oc?.mode}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+      const pos = clamp(x + 8, y + 8);
+      return { visible: true, x: pos.x, y: pos.y, id, content };
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!tip.visible) return;
+    const pos = clamp(tip.x, tip.y);
+    if (pos.x !== tip.x || pos.y !== tip.y) {
+      setTip((prev) => ({ ...prev, x: pos.x, y: pos.y }));
+    }
+  }, [tip.x, tip.y, tip.visible]);
 
   const toggleOverlay = (o: OverlayKind) =>
     setOverlays((cur) =>
@@ -132,7 +249,17 @@ export default function MapPage() {
       <ZoomPanCanvas className="w-full h-[1000px]">
         {mapped.map(({ node, match }) => {
           if (!showNonMatch && !match) return null;
-          return <NodeCard key={node.id} node={node} faded={!match && showNonMatch} />;
+          return (
+            <NodeCard
+              key={node.id}
+              node={node}
+              faded={!match && showNonMatch}
+              onHover={showTip}
+              onMove={moveTip}
+              onLeave={hideTip}
+              onToggle={toggleTip}
+            />
+          );
         })}
       </ZoomPanCanvas>
       <div className="fixed bottom-4 left-4 bg-white/80 p-4 rounded-xl shadow text-sm space-y-1">
@@ -155,6 +282,15 @@ export default function MapPage() {
           </div>
         ))}
       </div>
+      {tip.visible && (
+        <div
+          ref={tipRef}
+          className="pointer-events-none fixed z-50 border rounded bg-white text-xs shadow p-2"
+          style={{ left: tip.x, top: tip.y }}
+        >
+          {tip.content}
+        </div>
+      )}
     </div>
   );
 }
