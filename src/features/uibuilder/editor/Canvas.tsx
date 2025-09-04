@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useEditorStore, EditorNode } from './useEditorStore';
-import { getComponentByName } from './componentRegistry';
+import { getComponentById } from './componentRegistry';
 
 function buildClass(node: EditorNode): string {
   const classes = [node.props.className || ''];
@@ -16,7 +16,7 @@ function buildClass(node: EditorNode): string {
 const RenderNode: React.FC<{ node: EditorNode }> = ({ node }) => {
   const select = useEditorStore((s) => s.select);
   const selectedId = useEditorStore((s) => s.selectedId);
-  const Tag = getComponentByName(node.type) || (node.type as any) || 'div';
+  const Tag = getComponentById(node.type) || (node.type as any) || 'div';
   return (
     <Tag
       className={`${buildClass(node)} ${selectedId === node.id ? 'outline outline-blue-500' : ''}`}
