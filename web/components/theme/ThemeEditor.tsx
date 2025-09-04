@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useDesignTokens } from "@/store/designTokensStore";
 import { nanoid } from "nanoid";
 import { themePresets, type ThemeToken } from "./themePresets";
+import { contrastRatio, passesWcagAA } from "../../../src/lib/a11y/contrast";
 
 const fontOptions = [
   { label: "inter", value: "Inter, system-ui, sans-serif" },
@@ -16,6 +17,9 @@ export default function ThemeEditor() {
   const [tokens, setTokens] = useState<ThemeToken>(themePresets[preset]);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+
+  const contrast = contrastRatio(tokens.colors.text, tokens.colors.background);
+  const contrastPass = passesWcagAA(tokens.colors.text, tokens.colors.background);
 
   useEffect(() => {
     const t = themePresets[preset];
@@ -91,6 +95,16 @@ export default function ThemeEditor() {
             />
           </div>
         ))}
+      </section>
+
+      <section>
+        <h3 className="font-bold mb-2">Accessibility</h3>
+        <p>
+          Contrast: {contrast.toFixed(2)}
+          {!contrastPass && (
+            <span className="text-red-500 ml-2">WCAG AA requires ≥4.5</span>
+          )}
+        </p>
       </section>
 
       <section>

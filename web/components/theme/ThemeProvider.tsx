@@ -23,6 +23,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     Object.entries(tokens.radius).forEach(([k, v]) => root.style.setProperty(`--radius-${k}`, `${v}px`));
     Object.entries(tokens.spacing).forEach(([k, v]) => root.style.setProperty(`--spacing-${k}`, `${v}px`));
     Object.entries(tokens.font).forEach(([k, v]) => root.style.setProperty(`--font-${k}`, v));
+    if (tokens.color.accent) {
+      root.style.setProperty('--focus-ring-color', tokens.color.accent);
+    }
+    root.style.setProperty('--focus-ring-offset', '2px');
   }, [tokens]);
 
   return (
