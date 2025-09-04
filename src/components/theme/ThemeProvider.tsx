@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useLayoutEffect } from 'react'
 import { useThemeStore, defaultTheme, type ThemeTokens } from '../../stores/themeStore'
+import { useUserStore } from '../../stores/userStore'
 
 interface ThemeContextValue {
   getEffectiveTheme: (opts?: {
@@ -61,6 +62,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     layoutThemeMap,
     pageThemeOverride
   } = useThemeStore()
+  const { brandThemeId } = useUserStore()
 
   const getEffectiveTheme = useCallback(
     ({
@@ -72,12 +74,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       layoutId?: string
       override?: Partial<ThemeTokens>
     } = {}): ThemeTokens => {
-      const domainThemeId = currentDomainId && domainDefaultTheme[currentDomainId]
-      let theme = domainThemeId && themes[domainThemeId] ? themes[domainThemeId] : defaultTheme
+      const isPreview =
+        typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('preview')
+      let theme: ThemeTokens
+      if (isPreview && brandThemeId && themes[brandThemeId]) {
+        theme = themes[brandThemeId]
+      } else {
+        const domainThemeId = currentDomainId && domainDefaultTheme[currentDomainId]
+        theme = domainThemeId && themes[domainThemeId] ? themes[domainThemeId] : defaultTheme
 
-      const layoutThemeId = (layoutId && layoutThemeMap[layoutId]) || (currentLayoutId && layoutThemeMap[currentLayoutId])
-      if (layoutThemeId && themes[layoutThemeId]) {
-        theme = themes[layoutThemeId]
+        const layoutThemeId = (layoutId && layoutThemeMap[layoutId]) ||
+          (currentLayoutId && layoutThemeMap[currentLayoutId])
+        if (layoutThemeId && themes[layoutThemeId]) {
+          theme = themes[layoutThemeId]
+        }
       }
 
       const pageOverrideObj =
@@ -87,6 +97,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return theme
     },
     [
+      brandThemeId,
       currentDomainId,
       currentLayoutId,
       currentPageId,
