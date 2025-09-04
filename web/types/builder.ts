@@ -26,7 +26,7 @@ export type ComponentMeta = {
   /** short description shown in libraries */
   description?: string;
   /** optional preview component rendered in libraries */
-  preview?: React.FC;
+  preview?: () => JSX.Element;
   /** default props applied on insert */
   defaultProps?: Record<string, any>;
 };

@@ -9,7 +9,7 @@ export interface RegisteredComponent {
   icon: React.ReactNode;
   tags: string[];
   description: string;
-  preview?: React.FC;
+  preview?: () => JSX.Element;
   defaultProps?: Record<string, any>;
   component: React.ComponentType<any>;
 }

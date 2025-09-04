@@ -12,7 +12,9 @@ export type Page = {
   path: RoutePath
   tree: Elm[]
   bindings: Record<`${string}:${string}`, unknown>
-  theme?: Partial<ThemeTokens>
+  pageOverrides: {
+    theme?: Partial<ThemeTokens>
+  }
 }
 
 interface PageState {
@@ -33,8 +35,8 @@ interface PageActions {
   setTree: (tree: Elm[]) => void
   getBindings: () => Page['bindings']
   setBindings: (b: Page['bindings']) => void
-  getTheme: () => Page['theme']
-  setTheme: (theme: Page['theme']) => void
+  getTheme: () => Page['pageOverrides']['theme']
+  setTheme: (theme: Page['pageOverrides']['theme']) => void
   exportJSON: () => string
   importJSON: (json: string) => void
 }
@@ -46,7 +48,7 @@ function defaultPage(idx: number): Page {
     path: idx === 0 ? '/' : (`/page-${idx + 1}` as RoutePath),
     tree: [],
     bindings: {},
-    theme: {},
+    pageOverrides: { theme: {} },
   }
 }
 
@@ -72,7 +74,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
       title: init?.title ?? `Page ${idx + 1}`,
       tree: init?.tree ?? [],
       bindings: init?.bindings ?? {},
-      theme: init?.theme ?? {},
+      pageOverrides: { theme: init?.pageOverrides?.theme ?? {} },
     }
     set({ pages: [...pages, page], currentPageId: page.id })
     return page.id
@@ -100,7 +102,7 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
       path: (`/page-${idx + 1}` as RoutePath),
       tree: JSON.parse(JSON.stringify(src.tree)),
       bindings: JSON.parse(JSON.stringify(src.bindings)),
-      theme: JSON.parse(JSON.stringify(src.theme)),
+      pageOverrides: JSON.parse(JSON.stringify(src.pageOverrides ?? {})),
     }
     set((s) => ({ pages: [...s.pages, newPage], currentPageId: newPage.id }))
     return newPage.id
@@ -140,13 +142,15 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
 
   getTheme() {
     const p = get().pages.find((p) => p.id === get().currentPageId)
-    return p?.theme ?? {}
+    return p?.pageOverrides?.theme ?? {}
   },
 
   setTheme(theme) {
     set((s) => ({
       pages: s.pages.map((p) =>
-        p.id === s.currentPageId ? { ...p, theme } : p,
+        p.id === s.currentPageId
+          ? { ...p, pageOverrides: { ...(p.pageOverrides ?? {}), theme } }
+          : p,
       ),
     }))
   },

@@ -10,6 +10,10 @@ export type PropMeta<T=unknown> = {
 export type ComponentMeta = {
   id: string; displayName: string; group?: string; icon?: string;
   props: PropMeta[]; allowChildren?: boolean;
+  tags?: string[];
+  description?: string;
+  preview?: () => JSX.Element;
+  defaultProps?: Record<string, any>;
 };
 
 export type RendererProps = { nodeId: string; values: Record<string, any>; children?: ReactNode; };
