@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -19,6 +19,7 @@ import {
   useEditorActions,
   ComponentNode,
 } from './store';
+import { t, setLanguage } from './lib/i18n';
 
 function NodeView({ node, path }: { node: ComponentNode; path: number[] }) {
   const actions = useEditorActions();
@@ -52,10 +53,17 @@ function NodeView({ node, path }: { node: ComponentNode; path: number[] }) {
     <NodeView key={c.id} node={c} path={[...path, i]} />
   ));
 
+  const translatedProps: Record<string, any> = { ...(node.props || {}) };
+  for (const [k, v] of Object.entries(translatedProps)) {
+    if (v && typeof v === 'object' && typeof (v as any).key === 'string') {
+      translatedProps[k] = t((v as any).key);
+    }
+  }
+
   const content = React.createElement(
     node.type as any,
     {
-      ...(node.props || {}),
+      ...translatedProps,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         actions.selectComponent(node.id);
@@ -85,6 +93,11 @@ const Canvas: React.FC = () => {
   const { tree, hoverPreview } = useEditorState();
   const actions = useEditorActions();
   const sensors = useSensors(useSensor(PointerSensor));
+  const [lang, setLang] = useState<'ja' | 'en'>('ja');
+
+  useEffect(() => {
+    setLanguage(lang);
+  }, [lang]);
 
   const rootDrop = useDroppable({
     id: 'c-root',
@@ -122,6 +135,14 @@ const Canvas: React.FC = () => {
             onChange={(e) => actions.setHoverPreview(e.target.checked)}
           />
           <span className="text-sm">Hover preview</span>
+          <select
+            className="border px-2 py-1 text-sm"
+            value={lang}
+            onChange={(e) => setLang(e.target.value as 'ja' | 'en')}
+          >
+            <option value="ja">ja</option>
+            <option value="en">en</option>
+          </select>
         </div>
 
         {/* キャンバス */}

@@ -5,6 +5,7 @@ import { ComponentNode, PropBinding } from './store';
 import { useDataSources, DataSource } from './dataSources';
 import { NodeWrapper } from '@/components/shared/NodeWrapper';
 import { getByKey } from '../lib/registry';
+import { t } from './lib/i18n';
 
 function getByPath(obj: any, path: string) {
   if (!path || !path.startsWith('$.')) return undefined;
@@ -76,6 +77,12 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({ node, previewHover }) => {
         const val = dataMap[prop];
         props[prop] = val !== undefined ? val : binding.fallback ?? '';
       }
+    }
+  }
+
+  for (const [k, v] of Object.entries(props)) {
+    if (v && typeof v === 'object' && typeof (v as any).key === 'string') {
+      props[k] = t((v as any).key);
     }
   }
 
