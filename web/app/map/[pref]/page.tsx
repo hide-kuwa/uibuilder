@@ -10,7 +10,12 @@ export default function PrefPage({ params }: { params: { pref: string } }) {
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{pref}</h1>
-        <Link href="/map" className="rounded-md border px-3 py-2 text-sm">← Back to map</Link>
+        <div className="flex gap-2">
+          <Link href={`/dev/share?pref=${encodeURIComponent(pref)}`} className="rounded-md border px-3 py-2 text-sm">
+            Share動画を作る
+          </Link>
+          <Link href="/map" className="rounded-md border px-3 py-2 text-sm">← Back to map</Link>
+        </div>
       </div>
 
       {/* 上下に流れるギャラリー */}
