@@ -31,9 +31,11 @@ function arrayEqual(a: readonly string[] = [], b: readonly string[] = []) {
 }
 
 function diffStatuses(a: Snapshot, b: Snapshot) {
+  const statusesA = a.statuses || {};
+  const statusesB = b.statuses || {};
   const ids = new Set([
-    ...Object.keys(a.statuses || {}),
-    ...Object.keys(b.statuses || {}),
+    ...Object.keys(statusesA),
+    ...Object.keys(statusesB),
   ]);
   const res: {
     id: string;
@@ -44,8 +46,8 @@ function diffStatuses(a: Snapshot, b: Snapshot) {
     type: string;
   }[] = [];
   ids.forEach((id) => {
-    const sa = a.statuses[id];
-    const sb = b.statuses[id];
+    const sa = statusesA[id];
+    const sb = statusesB[id];
     if (!sa && sb) {
       res.push({
         id,
