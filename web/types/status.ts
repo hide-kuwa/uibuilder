@@ -1,29 +1,63 @@
-export type BaseStatus = 'visited' | 'living' | 'notVisited'
-export type OverlayStatus = 'want' | 'hasPhoto'
-export type AnyStatus = BaseStatus | OverlayStatus
+export type BaseStatus = 'visited' | 'resident' | 'notVisited'
+export type Overlay = 'want' | 'hasPhotos'
 
-export type StatusStyle = {
-  /** カードの背景色（例: #3b82f6） */
-  color: string
-  /** ベース常時エフェクト（mount 等） */
-  motionPreset?: string
-  motionStrength?: number
-  /** ホバー時のエフェクト */
-  hoverPreset?: string
-  hoverStrength?: number
-}
+export type MotionPresetId =
+  | 'pulse-glow'
+  | 'bounce'
+  | 'float'
+  | 'trail'
+  | 'arc-zoom-fade'
+  | 'shuffle-cards'
+  | 'none'
 
-/** グローバルの初期（ちゃぴおすすめ） */
-export const DEFAULT_STATUS_CONFIG: Record<AnyStatus, StatusStyle> = {
-  visited:   { color: '#3b82f6', motionPreset: 'fadeIn',     motionStrength: 40, hoverPreset: 'pulse', hoverStrength: 40 },
-  living:    { color: '#22c55e', motionPreset: 'slideInUp',  motionStrength: 35, hoverPreset: 'pulse', hoverStrength: 35 },
-  notVisited:{ color: '#d1d5db', motionPreset: undefined,    motionStrength: 0,  hoverPreset: 'pulse', hoverStrength: 20 },
-  want:      { color: '#eab308', motionPreset: undefined,    motionStrength: 0,  hoverPreset: 'bounce', hoverStrength: 40 },
-  hasPhoto:  { color: '#8b5cf6', motionPreset: undefined,    motionStrength: 0,  hoverPreset: 'shake',  hoverStrength: 30 },
-}
-
-/** ノードに保存する状態 */
-export type NodeStatusState = {
+export type NodeStatus = {
   base: BaseStatus
-  overlays: OverlayStatus[] // 例: ['want','hasPhoto']
+  overlays: Overlay[]
+}
+
+export type StatusVisual = {
+  color: string
+  effects: MotionPresetId[]
+}
+
+export type OverlayRule = StatusVisual & {
+  priority: number
+  mode: 'blend' | 'override' | 'glow'
+}
+
+export type StatusConfig = {
+  base: Record<BaseStatus, StatusVisual>
+  overlay: Record<Overlay, OverlayRule>
+  compose: {
+    colorMode: 'blend' | 'override'
+    order: 'priority' | 'fixed'
+  }
+}
+
+export const defaultStatusConfig: StatusConfig = {
+  base: {
+    visited:   { color: '#2563eb', effects: ['none'] },
+    resident:  { color: '#16a34a', effects: ['float'] },
+    notVisited:{ color: '#9ca3af', effects: ['none'] },
+  },
+  overlay: {
+    want:      { color: '#f59e0b', effects: ['pulse-glow'], priority: 10, mode: 'glow' },
+    hasPhotos: { color: '#111827', effects: ['trail'],      priority: 5,  mode: 'blend' },
+  },
+  compose: { colorMode: 'blend', order: 'priority' }
+}
+
+// backward-compatible aliases
+export type OverlayStatus = Overlay
+export type AnyStatus = BaseStatus | Overlay | 'hasPhoto'
+export type StatusStyle = StatusVisual
+export type NodeStatusState = NodeStatus
+export const DEFAULT_STATUS_CONFIG: Record<AnyStatus, StatusStyle> = {
+  visited: defaultStatusConfig.base.visited,
+  living: defaultStatusConfig.base.resident,
+  resident: defaultStatusConfig.base.resident,
+  notVisited: defaultStatusConfig.base.notVisited,
+  want: defaultStatusConfig.overlay.want,
+  hasPhoto: defaultStatusConfig.overlay.hasPhotos,
+  hasPhotos: defaultStatusConfig.overlay.hasPhotos,
 }

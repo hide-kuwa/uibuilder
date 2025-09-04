@@ -1,23 +1,23 @@
 'use client'
-import type { BaseStatus, OverlayStatus, NodeStatusState } from '@/types/status'
+import type { BaseStatus, Overlay, NodeStatus } from '@/types/status'
 import { computeBgColor } from '@/lib/status-engine'
 
 const BASES: { key: BaseStatus; label: string }[] = [
   { key: 'visited', label: '行った' },
-  { key: 'living', label: '住んでる' },
+  { key: 'resident', label: '住んでる' },
   { key: 'notVisited', label: '行ってない' },
 ]
-const OVS: { key: OverlayStatus; label: string }[] = [
+const OVS: { key: Overlay; label: string }[] = [
   { key: 'want', label: '行きたい（ブースト）' },
-  { key: 'hasPhoto', label: '写真あり（ブースト）' },
+  { key: 'hasPhotos', label: '写真あり（ブースト）' },
 ]
 
 export default function NodeStatusPanel({
   value,
   onChange,
 }: {
-  value: NodeStatusState
-  onChange: (v: NodeStatusState) => void
+  value: NodeStatus
+  onChange: (v: NodeStatus) => void
 }) {
   const bg = computeBgColor(value)
 

@@ -1,72 +1,52 @@
-import type { NodeStatusState, AnyStatus } from '@/types/status'
-import type { MotionEffect } from '@/types/motion'
-import { useStatusConfig } from '@/stores/statusConfig'
+import type { NodeStatus, StatusConfig, MotionPresetId } from '@/types/status'
+import { defaultStatusConfig } from '@/types/status'
 
-/** 背景色を決定（ベース色に、オーバーレイがあれば “縁取り”など拡張も後で可） */
-export function computeBgColor(state: NodeStatusState): string {
-  const { config } = useStatusConfig.getState()
-  return config[state.base]?.color ?? '#eee'
+// 簡易ブレンド（alpha 0.35 固定の乗算風）
+function blend(base: string, over: string): string {
+  const toRgb = (c: string) => {
+    const ctx = document.createElement('canvas').getContext('2d')!
+    ctx.fillStyle = c; const m = ctx.fillStyle as string
+    // ブラウザに任せて正規化 → rgb(r, g, b)
+    const nums = m.match(/\d+/g)?.map(Number) ?? [0,0,0]
+    return { r: nums[0], g: nums[1], b: nums[2] }
+  }
+  const b = toRgb(base), o = toRgb(over)
+  const a = 0.35
+  const r = Math.round((1-a)*b.r + a*o.r)
+  const g = Math.round((1-a)*b.g + a*o.g)
+  const v = Math.round((1-a)*b.b + a*o.b)
+  return `rgb(${r}, ${g}, ${v})`
 }
 
-/** 常時＆ホバー用の Motion を合成（オーバーレイは “追加ブースト” として上書き） */
-export function buildMotionFromStatus(nodeId: string, state: NodeStatusState): {
-  mount: MotionEffect[]
-  hoverEnter: MotionEffect[]
-  hoverLeave: MotionEffect[]
-} {
-  const { config } = useStatusConfig.getState()
+export function computeBgColor(status: NodeStatus, cfg?: StatusConfig): string {
+  const conf = cfg ?? defaultStatusConfig
+  let color = conf.base[status.base].color
+  const overlays = [...status.overlays]
 
-  const pick = (key: AnyStatus) => config[key]
-  const eff = [] as MotionEffect[]
-  const hover = [] as MotionEffect[]
+  const ordered = conf.compose.order === 'priority'
+    ? overlays.sort((a,b)=> (conf.overlay[b]?.priority ?? 0) - (conf.overlay[a]?.priority ?? 0))
+    : overlays
 
-  // base 常時
-  const base = pick(state.base)
-  if (base.motionPreset) {
-    eff.push({
-      id: `${nodeId}-base`,
-      preset: base.motionPreset,
-      strength: base.motionStrength ?? 40,
-      runWhen: ['mount'],
-      target: { type: 'nodeId', value: nodeId },
-    })
+  for (const ov of ordered) {
+    const rule = conf.overlay[ov]; if (!rule) continue
+    const mode = rule.mode ?? conf.compose.colorMode
+    if (mode === 'override') color = rule.color
+    else if (mode === 'blend') color = blend(color, rule.color)
+    else if (mode === 'glow')  color = blend(color, rule.color) // 実際の発光はエフェクトで付与
   }
-  if (base.hoverPreset) {
-    hover.push({
-      id: `${nodeId}-base-hover`,
-      preset: base.hoverPreset,
-      strength: base.hoverStrength ?? 30,
-      runWhen: ['hoverEnter'],
-      target: { type: 'nodeId', value: nodeId },
-    })
-  }
+  return color
+}
 
-  // overlay は加算（want = 光る、hasPhoto = 小刻み 等、上書きで強める）
-  for (const ov of state.overlays) {
-    const s = pick(ov)
-    if (s.motionPreset) {
-      eff.push({
-        id: `${nodeId}-${ov}`,
-        preset: s.motionPreset,
-        strength: s.motionStrength ?? 30,
-        runWhen: ['mount'],
-        target: { type: 'nodeId', value: nodeId },
-      })
-    }
-    if (s.hoverPreset) {
-      hover.push({
-        id: `${nodeId}-${ov}-hover`,
-        preset: s.hoverPreset,
-        strength: s.hoverStrength ?? 30,
-        runWhen: ['hoverEnter'],
-        target: { type: 'nodeId', value: nodeId },
-      })
-    }
-  }
+// 既存の runMotion と接続するための形に変換
+export function buildMotionFromStatus(id: string, status: NodeStatus, cfg?: StatusConfig) {
+  const conf = cfg ?? defaultStatusConfig
+  const baseFx = conf.base[status.base]?.effects ?? []
+  const overlayFx = status.overlays.flatMap(o => conf.overlay[o]?.effects ?? [])
+  const all: MotionPresetId[] = [...new Set([...baseFx, ...overlayFx])].filter(x => x !== 'none')
 
   return {
-    mount: eff,
-    hoverEnter: hover,
-    hoverLeave: [], // 必要ならここで “戻すエフェクト” を定義。今は leave で remove する運用。
+    mount: all,
+    hoverEnter: overlayFx, // 「行きたい」「写真登録」などをホバーで強調したいとき
+    hoverLeave: [],
   }
 }

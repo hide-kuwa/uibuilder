@@ -1,67 +1,38 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import '../registry.entry';
-import React, { useEffect } from 'react'
-import BuilderPage from './BuilderPage'
-import ClientOnly from '@/components/ClientOnly'
-import Sidebar from '@/components/layout/Sidebar'
-import { useBuilderStore } from '@/store/builderStore'
-import { loadProjectFromQuery, makeProject, saveProject } from '@/lib/project/io'
-import { mountLiveSync } from '@/store/liveSync'
-import { useDesignTokens } from '@/store/designTokensStore'
-import { useDataSources } from '@/store/dataBindingStore'
-import { hydrateProjectStores } from '@/lib/project/loaders'
+import StatusConfigPanel from '@/components/panels/StatusConfigPanel'
+import StatusDropdown from '@/components/panels/StatusDropdown'
+import { useBuilderStore } from '@/stores/builder'
 
-export default function BuilderPageWrapper() {
-  useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      const pj = await loadProjectFromQuery()
-      if (mounted) {
-        if (pj) {
-          hydrateProjectStores(pj)
-        } else {
-          const init = makeProject([], { id: 'local', name: 'Local Project' }, useDesignTokens.getState().getAll(), useDataSources.getState().sources)
-          hydrateProjectStores(init)
-        }
-      }
-      mountLiveSync('builder')
-    })()
-    return () => { mounted = false }
-  }, [])
-
-  useEffect(() => {
-    const unsub1 = useBuilderStore.subscribe((s) => {
-      const meta = (s as any).meta || { id: 'local', name: 'Local Project' }
-      const tokens = useDesignTokens.getState().getAll()
-      const data = useDataSources.getState().sources
-      saveProject({ schemaVersion: 1, meta, elements: s.elements, designTokens: tokens, dataSources: data, assets: [] })
-    })
-    const unsub2 = useDesignTokens.subscribe(() => {
-      const s = useBuilderStore.getState()
-      const meta = (s as any).meta || { id: 'local', name: 'Local Project' }
-      const tokens = useDesignTokens.getState().getAll()
-      const data = useDataSources.getState().sources
-      saveProject({ schemaVersion: 1, meta, elements: s.elements, designTokens: tokens, dataSources: data, assets: [] })
-    })
-    const unsub3 = useDataSources.subscribe(() => {
-      const s = useBuilderStore.getState()
-      const meta = (s as any).meta || { id: 'local', name: 'Local Project' }
-      const tokens = useDesignTokens.getState().getAll()
-      const data = useDataSources.getState().sources
-      saveProject({ schemaVersion: 1, meta, elements: s.elements, designTokens: tokens, dataSources: data, assets: [] })
-    })
-    return () => { unsub1(); unsub2(); unsub3() }
-  }, [])
+export default function BuilderPage() {
+  const nodes = useBuilderStore(s=> Object.values(s.nodes ?? {}))
+  const publishAll = useBuilderStore(s=> s.publishAll)
+  const usePublishedOnMap = useBuilderStore(s=> s.usePublishedOnMap)
+  const setUsePublishedOnMap = useBuilderStore(s=> s.setUsePublishedOnMap)
 
   return (
-    <ClientOnly fallback={null}>
-      <div className="flex h-[calc(100vh-40px)]">
-        <Sidebar />
-        <div className="flex-1">
-          <BuilderPage />
+    <div className="space-y-4 p-4">
+      <header className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Builder</h1>
+        <div className="flex items-center gap-2">
+          <label className="text-xs">
+            /map は公開版を表示
+            <input className="ml-2" type="checkbox" checked={usePublishedOnMap}
+              onChange={(e)=> setUsePublishedOnMap(e.target.checked)} />
+          </label>
+          <button className="rounded border px-3 py-1 text-sm" onClick={publishAll}>Publish</button>
         </div>
-      </div>
-    </ClientOnly>
+      </header>
+
+      <StatusConfigPanel />
+
+      <section className="grid gap-3 md:grid-cols-2">
+        {nodes.map(n => (
+          <div key={n.id} className="rounded-2xl border bg-white p-3">
+            <div className="mb-2 text-sm font-medium">{n.title ?? n.prefecture ?? n.id}</div>
+            <StatusDropdown nodeId={n.id} />
+          </div>
+        ))}
+      </section>
+    </div>
   )
 }
