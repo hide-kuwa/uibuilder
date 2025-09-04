@@ -26,15 +26,16 @@ type CanvasState = {
   snapThreshold: number
 
   // ガイド線（ワールド座標）
-  guidesV: number[]   // 縦線 x 座標
-  guidesH: number[]   // 横線 y 座標
+  guidesV: number[]
+  guidesH: number[]
   setGuides: (vxs: number[], hys: number[]) => void
   clearGuides: () => void
 
   setTransform: (p: Partial<Pick<CanvasState, 'scale' | 'tx' | 'ty'>>) => void
   setNodePos: (id: string, xy: XY) => void
-  moveNodes: (ids: string[], dx: number, dy: number) => void
+  setInitialPos: (id: string, xy: XY) => void
   clearInitialPos: () => void
+  moveNodes: (ids: string[], dx: number, dy: number) => void
   setNodeSize: (id: string, sz: Size) => void
   resetView: () => void
 }
@@ -42,7 +43,9 @@ type CanvasState = {
 export const useCanvasStore = create<CanvasState>()(
   persist(
     (set, get) => ({
-      scale: 1, tx: 0, ty: 0,
+      scale: 1,
+      tx: 0,
+      ty: 0,
       nodePos: {},
       nodeSize: {},
       initialPos: {},
@@ -52,7 +55,15 @@ export const useCanvasStore = create<CanvasState>()(
       toggleSelect: (id, multi) => {
         const cur = get().selectedIds
         const has = cur.includes(id)
-        set({ selectedIds: multi ? (has ? cur.filter(x=>x!==id) : [...cur,id]) : (has ? [] : [id]) })
+        set({
+          selectedIds: multi
+            ? has
+              ? cur.filter((x) => x !== id)
+              : [...cur, id]
+            : has
+            ? []
+            : [id],
+        })
       },
       clearSelection: () => set({ selectedIds: [] }),
 
@@ -66,16 +77,23 @@ export const useCanvasStore = create<CanvasState>()(
       clearGuides: () => set({ guidesV: [], guidesH: [] }),
 
       setTransform: (p) => set({ ...get(), ...p }),
-      setNodePos: (id, xy) => set({ nodePos: { ...get().nodePos, [id]: xy } }),
+      setNodePos: (id, xy) =>
+        set({ nodePos: { ...get().nodePos, [id]: xy } }),
+      setInitialPos: (id, xy) =>
+        set({ initialPos: { ...get().initialPos, [id]: xy } }),
+      clearInitialPos: () => set({ initialPos: {} }),
+
       moveNodes: (ids, dx, dy) => {
         const next = { ...get().nodePos }
         const base = { ...get().initialPos }
         const b = builderStore.getState() as any
+
         for (const id of ids) {
           if (!base[id]) {
-            const p = next[id]
-              ?? b.nodes?.[id]?.position
-              ?? (() => {
+            const p =
+              next[id] ??
+              b.nodes?.[id]?.position ??
+              (() => {
                 const el = b.elements?.find((e: any) => e.id === id)
                 return el ? { x: el.x, y: el.y } : { x: 0, y: 0 }
               })()
@@ -85,8 +103,10 @@ export const useCanvasStore = create<CanvasState>()(
         }
         set({ nodePos: next, initialPos: base })
       },
-      clearInitialPos: () => set({ initialPos: {} }),
-      setNodeSize: (id, sz) => set({ nodeSize: { ...get().nodeSize, [id]: sz } }),
+
+      setNodeSize: (id, sz) =>
+        set({ nodeSize: { ...get().nodeSize, [id]: sz } }),
+
       resetView: () => set({ scale: 1, tx: 0, ty: 0 }),
     }),
     { name: 'geokore-canvas-v3' }
