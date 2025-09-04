@@ -2,6 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useBuilderStore } from '@/stores/builder';
 import { computeBgColor } from '@/lib/status-engine';
+import ZoomPanCanvas from '@/components/canvas/ZoomPanCanvas';
 
 type MapNode = {
   id: string;
@@ -47,11 +48,11 @@ export default function MapPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">/map {preview ? '(preview)' : '(published)'}</h1>
       </div>
-      <div className="relative w-full h-[1000px] overflow-auto">
+      <ZoomPanCanvas className="w-full h-[1000px]">
         {nodes.map((n) => (
           <NodeCard key={n.id} node={n} />
         ))}
-      </div>
+      </ZoomPanCanvas>
     </div>
   );
 }
