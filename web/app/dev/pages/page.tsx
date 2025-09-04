@@ -1,15 +1,15 @@
 'use client';
 import Link from 'next/link';
-import ThemeToggle from '@/components/ThemeToggle';
+
 
 export default function DevPages() {
   const links = [
     { href: '/builder', label: 'Builder' },
     { href: '/dev/arrange', label: 'Arrange' },
-    { href: '/dev/actions', label: 'Actions (placeholder)' },
-    { href: '/share', label: 'Share (placeholder)' },
-    { href: '/map', label: 'Map (published)' },
+    { href: '/dev/actions', label: 'Actions' },
+    { href: '/map', label: 'Map' },
     { href: '/map?preview=1', label: 'Map (preview)' },
+    { href: '/dev/share', label: 'Share' },
   ] as const;
 
   const version = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.13.0';
@@ -20,7 +20,13 @@ export default function DevPages() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">/dev/pages</h1>
-        <ThemeToggle />
+        <button
+          type="button"
+          onClick={() => document.documentElement.classList.toggle('dark')}
+          className="text-sm px-3 py-1 rounded border hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        >
+          🌙
+        </button>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
