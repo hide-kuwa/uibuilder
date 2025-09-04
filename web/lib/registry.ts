@@ -1,3 +1,4 @@
+import React from 'react';
 import type { ComponentMeta } from '@/types/builder';
 import Card from '@/components/Card';
 import TripHeader from '@/components/travel/TripHeader';
@@ -92,6 +93,10 @@ register({
     allowChildren: true,
     defaultW: 240,
     defaultH: 160,
+    tags: ['layout', 'container'],
+    description: 'Generic container card.',
+    preview: () => <Card />,
+    defaultProps: {},
   },
   Render: Card,
 });
@@ -104,6 +109,10 @@ register({
     allowChildren: false,
     defaultW: 320,
     defaultH: 80,
+    tags: ['visual'],
+    description: 'Header section for trips.',
+    preview: () => <TripHeader />,
+    defaultProps: {},
   },
   Render: TripHeader,
 });

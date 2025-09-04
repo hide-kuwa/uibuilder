@@ -1,3 +1,5 @@
+import type React from 'react';
+
 export type PropMeta = {
   id: string;
   label: string;
@@ -19,6 +21,14 @@ export type ComponentMeta = {
   preferredSize?: { width: number; height: number };
   defaultW?: number;
   defaultH?: number;
+  /** classification tags for search or filtering */
+  tags?: string[];
+  /** short description shown in libraries */
+  description?: string;
+  /** optional preview component rendered in libraries */
+  preview?: React.FC;
+  /** default props applied on insert */
+  defaultProps?: Record<string, any>;
 };
 
 export type RendererProps = {
