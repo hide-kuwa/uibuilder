@@ -10,6 +10,10 @@ export default function BuilderPage() {
   const publishedAt = useBuilderStore((s) => s.publishedSnapshot?.at);
   const usePublished = useBuilderStore((s) => s.usePublishedOnMap);
   const setUsePublished = useBuilderStore((s) => s.setUsePublishedOnMap);
+  const undo = useBuilderStore((s) => s.undo);
+  const redo = useBuilderStore((s) => s.redo);
+  const canUndo = useBuilderStore((s) => s.undoStack.length > 0);
+  const canRedo = useBuilderStore((s) => s.redoStack.length > 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -24,6 +28,20 @@ export default function BuilderPage() {
             />
             <span>/map は公開版を使用</span>
           </label>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="px-3 py-2 rounded-lg border disabled:text-zinc-400 disabled:border-zinc-200"
+          >
+            ↩ Undo
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="px-3 py-2 rounded-lg border disabled:text-zinc-400 disabled:border-zinc-200"
+          >
+            ↪ Redo
+          </button>
           <div className="flex flex-col items-end gap-1">
             <button
               onClick={publishAll}
