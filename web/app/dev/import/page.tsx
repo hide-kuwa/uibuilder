@@ -5,11 +5,51 @@ import Link from 'next/link';
 import { useBuilderStore } from '@/stores/builder';
 import type { NodeStatus } from '@/types/status';
 
+function validate(json: any) {
+  if (typeof json !== 'object' || json === null) return false;
+  const { nodes, statuses, statusConfig } = json as any;
+
+  if (!Array.isArray(nodes)) return false;
+  if (
+    nodes.some(
+      (n) =>
+        typeof n !== 'object' ||
+        typeof n.id !== 'string' ||
+        typeof n.x !== 'number' ||
+        typeof n.y !== 'number' ||
+        typeof n.w !== 'number' ||
+        typeof n.h !== 'number',
+    )
+  )
+    return false;
+
+  if (typeof statuses !== 'object' || statuses === null || Array.isArray(statuses)) return false;
+  if (
+    Object.values(statuses).some(
+      (s: any) =>
+        typeof s !== 'object' ||
+        typeof s.base !== 'string' ||
+        !Array.isArray(s.overlays) ||
+        s.overlays.some((o: any) => typeof o !== 'string'),
+    )
+  )
+    return false;
+
+  if (
+    statusConfig !== undefined &&
+    (typeof statusConfig !== 'object' || statusConfig === null || Array.isArray(statusConfig))
+  )
+    return false;
+
+  return true;
+}
+
 export default function DevImportPage() {
   const updateMany = useBuilderStore((s) => s.updateMany);
   const setNodeStatus = useBuilderStore((s) => s.setNodeStatus);
   const setStatusConfig = useBuilderStore((s) => s.setStatusConfig);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -17,6 +57,11 @@ export default function DevImportPage() {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
+      if (!validate(data)) {
+        setError('読み込んだJSONが不正です');
+        setMessage(null);
+        return;
+      }
       const { nodes, statuses, statusConfig } = data;
       updateMany(nodes);
       Object.entries(statuses || {}).forEach(([id, status]) => {
@@ -26,9 +71,11 @@ export default function DevImportPage() {
         setStatusConfig((draft) => Object.assign(draft, statusConfig));
       }
       setMessage('インポートに成功しました');
+      setError(null);
     } catch (err) {
       console.error(err);
-      setMessage('インポートに失敗しました');
+      setError('インポートに失敗しました');
+      setMessage(null);
     }
   };
 
@@ -42,6 +89,7 @@ export default function DevImportPage() {
       </div>
       <div className="max-w-sm p-4 rounded-xl border space-y-4">
         <input type="file" accept="application/json" onChange={onFile} />
+        {error && <p className="text-sm text-red-500">{error}</p>}
         {message && <p className="text-sm">{message}</p>}
       </div>
     </div>
