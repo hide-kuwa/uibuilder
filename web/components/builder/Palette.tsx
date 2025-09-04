@@ -23,15 +23,31 @@ function Item({ comp }: { comp: RegistryItem }) {
     id: 'palette:' + comp.meta.id,
     data: { from: 'palette', type: 'instance', meta: { componentId: comp.meta.id } },
   })
+  const Preview = comp.meta.preview
   return (
     <button
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="w-full text-left px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800"
+      className="w-full text-left px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800 flex items-center gap-2"
       title={comp.meta.id}
     >
-      {comp.meta.displayName}
+      {Preview && (
+        <div className="w-8 h-8 flex items-center justify-center">
+          <Preview />
+        </div>
+      )}
+      <div className="flex flex-col">
+        <span>{comp.meta.displayName}</span>
+        {comp.meta.description && (
+          <span className="text-xs text-zinc-400">{comp.meta.description}</span>
+        )}
+        {comp.meta.tags?.length ? (
+          <span className="text-[10px] text-zinc-500">
+            {comp.meta.tags.join(', ')}
+          </span>
+        ) : null}
+      </div>
     </button>
   )
 }
