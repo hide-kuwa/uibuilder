@@ -1,6 +1,6 @@
 'use client'
 import { useBuilderStore } from '@/stores/builder'
-import type { BaseStatus, Overlay, MotionPresetId } from '@/types/status'
+import type { BaseStatus, Overlay, MotionPresetId, StatusConfig } from '@/types/status'
 
 const BASES: BaseStatus[] = ['visited','resident','notVisited']
 const OVERS: Overlay[] = ['want','hasPhotos']
@@ -15,7 +15,7 @@ export default function StatusConfigPanel() {
   const setBaseEffects = (k: BaseStatus, arr: MotionPresetId[]) =>
     setCfg(prev => ({ ...prev, base: { ...prev.base, [k]: { ...prev.base[k], effects: arr } } }))
 
-  const setOv = (k: Overlay, patch: Partial<typeof cfg.overlay[Overlay]>) =>
+  const setOv = (k: Overlay, patch: Partial<StatusConfig['overlay'][Overlay]>) =>
     setCfg(prev => ({ ...prev, overlay: { ...prev.overlay, [k]: { ...prev.overlay[k], ...patch } } }))
 
   return (
