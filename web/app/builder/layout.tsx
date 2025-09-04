@@ -10,6 +10,7 @@ import ProjectMetaMenu from '@/components/builder/ProjectMetaMenu'
 import UndoRedoButtons from '@/components/builder/UndoRedoButtons'
 import LoadFromGitHubMenu from '@/components/builder/LoadFromGitHubMenu'
 import HistoryHotkeys from '@/components/hud/HistoryHotkeys'
+import HistoryTimeline from '@/components/hud/HistoryTimeline'
 import { mountHistorySync } from '@/store/historySync'
 import StatusCenter from '@/components/hud/StatusCenter'
 import ErrorBoundary from '@/components/hud/ErrorBoundary'
@@ -40,6 +41,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       </ErrorBoundary>
       <StatusCenter />
       <HistoryHotkeys />
+      <HistoryTimeline />
       {process.env.NODE_ENV !== 'production' && <DevConsoleHUD />}
       <ModalHost />
     </div>
