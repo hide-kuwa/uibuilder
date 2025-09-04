@@ -2,20 +2,23 @@ import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { type Elm } from '@/store/builderStore'
 import type { ThemeTokens } from '@/lib/builder/themes/themeTokens'
+import { migratePage, PAGE_VERSION } from '../../src/lib/migrations/page'
+import { toast } from '@/lib/toast'
 
 export type PageId = string
 export type RoutePath = `/${string}`
 
 export type Page = {
-  id: PageId
-  title: string
-  path: RoutePath
-  tree: Elm[]
-  bindings: Record<`${string}:${string}`, unknown>
-  pageOverrides: {
-    theme?: Partial<ThemeTokens>
+    id: PageId
+    title: string
+    path: RoutePath
+    tree: Elm[]
+    bindings: Record<`${string}:${string}`, unknown>
+    pageOverrides: {
+      theme?: Partial<ThemeTokens>
+    }
+    version: number
   }
-}
 
 interface PageState {
   pages: Page[]
@@ -41,16 +44,17 @@ interface PageActions {
   importJSON: (json: string) => void
 }
 
-function defaultPage(idx: number): Page {
-  return {
-    id: `page_${nanoid(6)}`,
-    title: idx === 0 ? 'Home' : `Page ${idx + 1}`,
-    path: idx === 0 ? '/' : (`/page-${idx + 1}` as RoutePath),
-    tree: [],
-    bindings: {},
-    pageOverrides: { theme: {} },
+  function defaultPage(idx: number): Page {
+    return {
+      id: `page_${nanoid(6)}`,
+      title: idx === 0 ? 'Home' : `Page ${idx + 1}`,
+      path: idx === 0 ? '/' : (`/page-${idx + 1}` as RoutePath),
+      tree: [],
+      bindings: {},
+      pageOverrides: { theme: {} },
+      version: PAGE_VERSION,
+    }
   }
-}
 
 const initial = defaultPage(0)
 
@@ -66,16 +70,17 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
   addPage(init) {
     const pages = get().pages
     const idx = pages.length
-    const page: Page = {
-      ...defaultPage(idx),
-      ...init,
-      id: `page_${nanoid(6)}`,
-      path: init?.path ?? (`/page-${idx + 1}` as RoutePath),
-      title: init?.title ?? `Page ${idx + 1}`,
-      tree: init?.tree ?? [],
-      bindings: init?.bindings ?? {},
-      pageOverrides: { theme: init?.pageOverrides?.theme ?? {} },
-    }
+      const page: Page = {
+        ...defaultPage(idx),
+        ...init,
+        id: `page_${nanoid(6)}`,
+        path: init?.path ?? (`/page-${idx + 1}` as RoutePath),
+        title: init?.title ?? `Page ${idx + 1}`,
+        tree: init?.tree ?? [],
+        bindings: init?.bindings ?? {},
+        pageOverrides: { theme: init?.pageOverrides?.theme ?? {} },
+        version: PAGE_VERSION,
+      }
     set({ pages: [...pages, page], currentPageId: page.id })
     return page.id
   },
@@ -95,15 +100,16 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
     const src = get().pages.find((p) => p.id === id)
     if (!src) return get().currentPageId
     const idx = get().pages.length
-    const newPage: Page = {
-      ...src,
-      id: `page_${nanoid(6)}`,
-      title: `${src.title} Copy`,
-      path: (`/page-${idx + 1}` as RoutePath),
-      tree: JSON.parse(JSON.stringify(src.tree)),
-      bindings: JSON.parse(JSON.stringify(src.bindings)),
-      pageOverrides: JSON.parse(JSON.stringify(src.pageOverrides ?? {})),
-    }
+      const newPage: Page = {
+        ...src,
+        id: `page_${nanoid(6)}`,
+        title: `${src.title} Copy`,
+        path: (`/page-${idx + 1}` as RoutePath),
+        tree: JSON.parse(JSON.stringify(src.tree)),
+        bindings: JSON.parse(JSON.stringify(src.bindings)),
+        pageOverrides: JSON.parse(JSON.stringify(src.pageOverrides ?? {})),
+        version: PAGE_VERSION,
+      }
     set((s) => ({ pages: [...s.pages, newPage], currentPageId: newPage.id }))
     return newPage.id
   },
@@ -155,19 +161,27 @@ export const usePageStore = create<PageState & PageActions>((set, get) => ({
     }))
   },
 
-  exportJSON() {
-    return JSON.stringify(get().pages)
-  },
+    exportJSON() {
+      return JSON.stringify(get().pages)
+    },
 
-  importJSON(json) {
-    try {
-      const pages = JSON.parse(json) as Page[]
-      if (Array.isArray(pages) && pages.length) {
-        set({ pages, currentPageId: pages[0].id })
+    importJSON(json) {
+      try {
+        const parsed = JSON.parse(json)
+        const arr = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray((parsed as any).pages)
+            ? (parsed as any).pages
+            : null
+        if (arr && arr.length) {
+          const pages = arr.map((p: any) => migratePage(p))
+          set({ pages, currentPageId: pages[0].id })
+        } else {
+          throw new Error('Invalid page data')
+        }
+      } catch (e: any) {
+        toast.error(e?.message ?? 'Failed to import pages')
       }
-    } catch {
-      // ignore
-    }
-  },
-}))
+    },
+  }))
 
