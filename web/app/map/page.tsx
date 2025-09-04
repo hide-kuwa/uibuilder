@@ -26,6 +26,17 @@ const OVERLAY_LABELS: Record<OverlayKind, string> = {
   photo: '📷 写真あり',
 };
 
+const BASE_INFO: Record<BaseKind, { icon: string; label: string }> = {
+  visited: { icon: '🏠', label: 'visited' },
+  live: { icon: '🧍', label: 'resident' },
+  notVisited: { icon: '❌', label: 'notVisited' },
+};
+
+const OVERLAY_INFO: Record<OverlayKind, { icon: string; label: string }> = {
+  want: { icon: '✈️', label: 'want' },
+  photo: { icon: '📷', label: 'hasPhotos' },
+};
+
 function NodeCard({
   node,
   faded,
@@ -101,32 +112,42 @@ export default function MapPage() {
     return { x: nx, y: ny };
   };
 
-  const showTip = (id: string, x: number, y: number) => {
+  const renderTipContent = (id: string) => {
     const status = getNodeStatus(id);
-    const baseCfg = cfg.base[status.base];
-    const content = (
-      <div>
-        <table className="text-xs">
-          <tbody>
-            <tr>
-              <td className="pr-2">base</td>
-              <td>{baseCfg.label}</td>
-            </tr>
-            {status.overlays.map((k) => {
-              const oc = cfg.overlays.find((o) => o.key === k);
-              return (
-                <tr key={k}>
-                  <td className="pr-2">{oc?.label ?? k}</td>
-                  <td>
-                    p{oc?.priority}/{oc?.mode}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    const baseInfo = BASE_INFO[status.base];
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <span>{baseInfo.icon}</span>
+          <span>{baseInfo.label}</span>
+        </div>
+        {status.overlays.map((k) => {
+          const oc = cfg.overlays.find((o) => o.key === k);
+          if (!oc) return null;
+          const info = OVERLAY_INFO[k];
+          return (
+            <div key={k} className="flex items-center gap-1">
+              <span>{info.icon}</span>
+              <span>{info.label}</span>
+              <span className="px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 border">
+                p{oc.priority}
+              </span>
+              <span
+                className={`px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 border${
+                  oc.mode === 'glow' ? ' border-amber-400' : ''
+                }`}
+              >
+                {oc.mode}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
+  };
+
+  const showTip = (id: string, x: number, y: number) => {
+    const content = renderTipContent(id);
     const pos = clamp(x + 8, y + 8);
     setTip({ visible: true, x: pos.x, y: pos.y, id, content });
   };
@@ -144,31 +165,7 @@ export default function MapPage() {
   const toggleTip = (id: string, x: number, y: number) => {
     setTip((prev) => {
       if (prev.visible && prev.id === id) return { ...prev, visible: false };
-      const status = getNodeStatus(id);
-      const baseCfg = cfg.base[status.base];
-      const content = (
-        <div>
-          <table className="text-xs">
-            <tbody>
-              <tr>
-                <td className="pr-2">base</td>
-                <td>{baseCfg.label}</td>
-              </tr>
-              {status.overlays.map((k) => {
-                const oc = cfg.overlays.find((o) => o.key === k);
-                return (
-                  <tr key={k}>
-                    <td className="pr-2">{oc?.label ?? k}</td>
-                    <td>
-                      p{oc?.priority}/{oc?.mode}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
+      const content = renderTipContent(id);
       const pos = clamp(x + 8, y + 8);
       return { visible: true, x: pos.x, y: pos.y, id, content };
     });
