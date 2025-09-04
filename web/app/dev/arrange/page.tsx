@@ -67,6 +67,7 @@ export default function ArrangePage() {
   }
 
   const savePositionsToBuilder = () => {
+    record()
     for (const n of nodes) {
       const p = nodePos[n.id]
       if (p) builderStore.getState().updateNode(n.id, (prev: any) => ({
