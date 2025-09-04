@@ -43,10 +43,13 @@ export default function DevPages() {
             <div className="text-sm font-medium mb-2">Mock 切替</div>
             <div className="text-xs text-zinc-500">(placeholder) API モック/実データ切替</div>
           </div>
-          <div className="p-4 rounded-xl border">
+          <Link
+            href="/dev/unused"
+            className="p-4 rounded-xl border hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
             <div className="text-sm font-medium mb-2">未使用コンポ一覧</div>
-            <div className="text-xs text-zinc-500">(placeholder) 自動検出 UI</div>
-          </div>
+            <div className="text-xs text-zinc-500">自動検出 UI</div>
+          </Link>
         </div>
       </section>
     </div>
