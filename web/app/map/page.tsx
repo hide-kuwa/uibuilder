@@ -6,9 +6,8 @@ import { computeBgColor, buildMotionFromStatus } from '@/lib/status-engine'
 export default function MapPage() {
   const sp = useSearchParams()
   const preview = sp.get('preview') === '1'
-  const getMapNodes = useBuilderStore(s=> s.getMapNodes)
+  const nodes = useBuilderStore(s => Object.values(s.getMapNodes(preview)))
   const cfg = useBuilderStore(s=> s.statusConfig)
-  const nodes = Object.values(getMapNodes(preview))
 
   return (
     <div className="p-4">

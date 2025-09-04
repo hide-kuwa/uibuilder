@@ -1,4 +1,5 @@
 import type { NodeStatus, StatusConfig, MotionPresetId } from '@/types/status'
+import type { MotionEffect } from '@/types/motion'
 import { defaultStatusConfig } from '@/types/status'
 
 // 簡易ブレンド（alpha 0.35 固定の乗算風）
@@ -42,11 +43,23 @@ export function buildMotionFromStatus(id: string, status: NodeStatus, cfg?: Stat
   const conf = cfg ?? defaultStatusConfig
   const baseFx = conf.base[status.base]?.effects ?? []
   const overlayFx = status.overlays.flatMap(o => conf.overlay[o]?.effects ?? [])
-  const all: MotionPresetId[] = [...new Set([...baseFx, ...overlayFx])].filter(x => x !== 'none')
+  const mountPresets: MotionPresetId[] = [...new Set([...baseFx, ...overlayFx])].filter(x => x !== 'none')
+  const hoverPresets: MotionPresetId[] = overlayFx.filter(x => x !== 'none')
+
+  const mount: MotionEffect[] = mountPresets.map((p, i) => ({
+    id: `${id}-status-mount-${p}-${i}`,
+    preset: p,
+    runWhen: ['mount'],
+  }))
+  const hoverEnter: MotionEffect[] = hoverPresets.map((p, i) => ({
+    id: `${id}-status-hover-${p}-${i}`,
+    preset: p,
+    runWhen: ['hoverEnter'],
+  }))
 
   return {
-    mount: all,
-    hoverEnter: overlayFx, // 「行きたい」「写真登録」などをホバーで強調したいとき
-    hoverLeave: [],
+    mount,
+    hoverEnter, // 「行きたい」「写真登録」などをホバーで強調したいとき
+    hoverLeave: [] as MotionEffect[],
   }
 }
