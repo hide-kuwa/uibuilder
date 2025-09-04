@@ -21,6 +21,9 @@ import {
 import CodeMirror from '@uiw/react-codemirror'
 import { json as jsonLang } from '@codemirror/lang-json'
 import { safeParse, prettify } from './lib/jsonUtils'
+import { Popover, PopoverTrigger, PopoverContent } from './components/ui/popover'
+import { Calendar } from './components/ui/calendar'
+import { formatDate, formatDateTime } from './utils/date'
 
 interface AutoPropsEditorProps {
   selectedComponentType: string
@@ -226,7 +229,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (binding) {
       return (
         <div className="space-y-1">
-          {/* バインドUI実装部分は省略 */}
+          {/* バインドUI実装はここに */}
         </div>
       )
     }
@@ -246,14 +249,8 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (unionValues) {
       return (
         <select className={common} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)}>
-          <option value="" disabled>
-            Select an option
-          </option>
-          {unionValues.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
+          <option value="" disabled>Select an option</option>
+          {unionValues.map((v) => <option key={v} value={v}>{v}</option>)}
         </select>
       )
     }
@@ -262,6 +259,48 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (prop.type === 'longtext') return <LongTextArea value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
     if (prop.type === 'asset') return <AssetPicker value={value as AssetMeta | undefined} onSelect={(a) => updateProp(prop.name, a)} />
 
+    if (prop.type === 'date' || prop.type === 'datetime') {
+      const date = value ? new Date(value) : new Date()
+      const display = value || (prop.type === 'date' ? formatDate(date) : formatDateTime(date))
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className={common}>{display}</button>
+          </PopoverTrigger>
+          <PopoverContent className="p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(d) => {
+                if (!d) return
+                if (prop.type === 'date') updateProp(prop.name, formatDate(d))
+                else {
+                  const nd = new Date(d)
+                  updateProp(prop.name, formatDateTime(nd))
+                }
+              }}
+            />
+            {prop.type === 'datetime' && (
+              <div className="p-2">
+                <input
+                  type="time"
+                  className="w-full border rounded px-2 py-1"
+                  value={`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`}
+                  onChange={(e) => {
+                    const [h, m] = e.target.value.split(':').map(Number)
+                    const nd = new Date(date)
+                    nd.setHours(h, m, 0, 0)
+                    updateProp(prop.name, formatDateTime(nd))
+                  }}
+                />
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      )
+    }
+
+    // boolean, number, color, text などの処理も追加可能
     return (
       <div className="flex space-x-1">
         <input type="text" className={`${common} flex-1`} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)} />
