@@ -54,11 +54,19 @@ function NodeCard({
 }) {
   const cfg = useBuilderStore((s) => s.statusConfig);
   const getStatus = useBuilderStore((s) => s.getNodeStatus);
-  const { bg, filter } = computeBgColor(getStatus(node.id), cfg);
+  const status = getStatus(node.id);
+  const { bg, filter } = computeBgColor(status, cfg);
+  const baseLabel = cfg.base[status.base]?.label ?? status.base;
+  const overlayLabels = status.overlays
+    .map((k) => cfg.overlays.find((o) => o.key === k)?.label ?? k)
+    .join(' ');
+  const ariaLabel = `${node.name ?? node.id} status ${baseLabel}${
+    overlayLabels ? ` ${overlayLabels}` : ''
+  }`;
 
   return (
     <div
-      className={`rounded-xl p-4 border text-sm shadow-sm transition-[filter,opacity] ${
+      className={`rounded-xl p-4 border text-sm shadow-sm transition-[filter,opacity] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
         faded ? 'opacity-30' : ''
       }`}
       style={{
@@ -70,10 +78,21 @@ function NodeCard({
         background: bg,
         filter,
       }}
+      tabIndex={0}
+      role="button"
+      aria-label={ariaLabel}
       onMouseEnter={(e) => onHover(node.id, e.clientX, e.clientY)}
       onMouseMove={(e) => onMove(node.id, e.clientX, e.clientY)}
       onMouseLeave={onLeave}
       onClick={(e) => onToggle(node.id, e.clientX, e.clientY)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          onToggle(node.id, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+      }}
+      onBlur={onLeave}
     >
       <div className="font-semibold">{node.name ?? node.id}</div>
       <div className="opacity-70 text-xs">id: {node.id}</div>
@@ -282,6 +301,8 @@ export default function MapPage() {
       {tip.visible && (
         <div
           ref={tipRef}
+          role="dialog"
+          aria-live="polite"
           className="pointer-events-none fixed z-50 border rounded bg-white text-xs shadow p-2"
           style={{ left: tip.x, top: tip.y }}
         >
