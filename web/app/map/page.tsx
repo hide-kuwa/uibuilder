@@ -1,31 +1,37 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
 import { useBuilderStore } from '@/stores/builder';
-import { computeBgColor, buildMotionFromStatus } from '@/lib/status-engine';
-import { animate } from 'animejs';
-import { useEffect, useRef } from 'react';
+import { computeBgColor } from '@/lib/status-engine';
 
-function Card({ id, title }: { id: string; title?: string }) {
+type MapNode = {
+  id: string;
+  name?: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+};
+
+function NodeCard({ node }: { node: MapNode }) {
   const cfg = useBuilderStore((s) => s.statusConfig);
-  const status = useBuilderStore((s) => s.getNodeStatus(id));
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { bg, filter } = computeBgColor(status, cfg);
-  const motion = buildMotionFromStatus(status, cfg);
-
-  useEffect(() => {
-    if (!ref.current || !motion) return;
-    const anim = animate({ targets: ref.current, ...motion });
-    return () => anim.pause();
-  }, [motion]);
+  const getStatus = useBuilderStore((s) => s.getNodeStatus);
+  const { bg, filter } = computeBgColor(getStatus(node.id), cfg);
 
   return (
     <div
-      ref={ref}
       className="rounded-xl p-4 border text-sm shadow-sm transition-[filter]"
-      style={{ background: bg, filter }}
+      style={{
+        position: 'absolute',
+        left: node.x,
+        top: node.y,
+        width: node.w,
+        height: node.h,
+        background: bg,
+        filter,
+      }}
     >
-      <div className="font-semibold">{title ?? id}</div>
-      <div className="opacity-70 text-xs">id: {id}</div>
+      <div className="font-semibold">{node.name ?? node.id}</div>
+      <div className="opacity-70 text-xs">id: {node.id}</div>
     </div>
   );
 }
@@ -41,9 +47,9 @@ export default function MapPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">/map {preview ? '(preview)' : '(published)'}</h1>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="relative w-full h-[1000px] overflow-auto">
         {nodes.map((n) => (
-          <Card key={n.id} id={n.id} title={n.name} />
+          <NodeCard key={n.id} node={n} />
         ))}
       </div>
     </div>
