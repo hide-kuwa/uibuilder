@@ -1,4 +1,10 @@
-export type MotionEvent = 'click' | 'doubleClick' | 'mount' | 'inView'
+export type MotionEvent =
+  | 'click'
+  | 'doubleClick'
+  | 'mount'
+  | 'inView'
+  | 'hoverEnter'
+  | 'hoverLeave'
 
 export type NodeTarget =
   | { type: 'nodeId'; value: string }
