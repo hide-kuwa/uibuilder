@@ -112,7 +112,7 @@ export const MOTION_PRESETS: Record<string, MotionPresetDef> = {
       duration: Math.round(lerp(1800, 600, t)),
       easing: 'linear',
     }),
-    defaults: {},
+    defaults: {} as any,
   },
 
   // 弧を描いて拡大しつつフェード
