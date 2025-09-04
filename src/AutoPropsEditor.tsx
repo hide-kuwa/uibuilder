@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDataSources } from './dataSources';
 import { PropBinding, useEditorState, useEditorActions } from './store';
 import { library as componentMeta } from '../lib/registry';
+import AssetPicker, { AssetMeta } from './components/assets/AssetPicker';
 
 interface PropMeta {
   name: string;
@@ -171,6 +172,15 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
             <option key={v} value={v}>{v}</option>
           ))}
         </select>
+      );
+    }
+
+    if (prop.type === 'asset') {
+      return (
+        <AssetPicker
+          value={value as AssetMeta | undefined}
+          onSelect={(a) => updateProp(prop.name, a)}
+        />
       );
     }
 

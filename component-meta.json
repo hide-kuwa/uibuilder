@@ -19,6 +19,12 @@
         "type": "\"info\" | \"warn\"",
         "required": true,
         "description": ""
+      },
+      {
+        "name": "image",
+        "type": "asset",
+        "required": false,
+        "description": ""
       }
     ]
   }
