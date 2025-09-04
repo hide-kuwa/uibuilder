@@ -8,7 +8,15 @@ export interface MenuEditorProps {
   onChange?: (items: NestedMenuItem[]) => void
 }
 
-function EditorNode({ item, depth, update }: { item: NestedMenuItem; depth: number; update: (n: NestedMenuItem) => void }) {
+function EditorNode({
+  item,
+  depth,
+  update,
+}: {
+  item: NestedMenuItem
+  depth: number
+  update: (n: NestedMenuItem) => void
+}) {
   const [label, setLabel] = useState(item.label)
   const [hidden, setHidden] = useState(!!item.hidden)
   const [children, setChildren] = useState(item.children ?? [])
@@ -24,7 +32,7 @@ function EditorNode({ item, depth, update }: { item: NestedMenuItem; depth: numb
     <div style={{ marginLeft: depth * 12 }} className="space-y-1">
       <div className="flex items-center gap-2">
         <input
-          className="border px-1 text-sm"
+          className="border px-1 text-sm flex-1 rounded"
           value={label}
           onChange={(e) => {
             setLabel(e.target.value)
@@ -45,7 +53,12 @@ function EditorNode({ item, depth, update }: { item: NestedMenuItem; depth: numb
       </div>
 
       {children.map((c, i) => (
-        <EditorNode key={c.id} item={c} depth={depth + 1} update={(n) => handleChildChange(i, n)} />
+        <EditorNode
+          key={c.id}
+          item={c}
+          depth={depth + 1}
+          update={(n) => handleChildChange(i, n)}
+        />
       ))}
     </div>
   )
@@ -53,6 +66,7 @@ function EditorNode({ item, depth, update }: { item: NestedMenuItem; depth: numb
 
 export default function MenuEditor({ value, onChange }: MenuEditorProps) {
   const [items, setItems] = useState(value)
+
   const handleUpdate = (idx: number, item: NestedMenuItem) => {
     const next = items.slice()
     next[idx] = item
@@ -63,7 +77,12 @@ export default function MenuEditor({ value, onChange }: MenuEditorProps) {
   return (
     <div className="space-y-2">
       {items.map((it, i) => (
-        <EditorNode key={it.id} item={it} depth={0} update={(n) => handleUpdate(i, n)} />
+        <EditorNode
+          key={it.id}
+          item={it}
+          depth={0}
+          update={(n) => handleUpdate(i, n)}
+        />
       ))}
     </div>
   )

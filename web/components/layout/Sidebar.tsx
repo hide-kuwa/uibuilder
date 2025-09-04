@@ -1,15 +1,70 @@
-import type { NestedMenuItem } from '../../../src/lib/router/scanRoutes'
-import scanRoutes from '../../../src/lib/router/scanRoutes'
-import type { FeatureKey } from '../../../src/stores/rbacStore'
-import SidebarClient from './SidebarClient'
+import fs from 'fs'
+import path from 'path'
 
-export interface SidebarProps {
-  menuItems?: NestedMenuItem[]
-  useAuto?: boolean
-  rbacKeys?: Record<string, FeatureKey>
+export interface NestedMenuItem {
+  id: string            // unique id (path)
+  href: string          // route href
+  label: string         // display label
+  children?: NestedMenuItem[]
+  hidden?: boolean
+  disabled?: boolean
 }
 
-export default function Sidebar({ menuItems, useAuto, rbacKeys }: SidebarProps) {
-  const items = useAuto || !menuItems ? scanRoutes() : menuItems
-  return <SidebarClient items={items ?? []} rbacKeys={rbacKeys} />
+// helper to humanize segment name
+function labelFromSegment(seg: string): string {
+  if (!seg) return 'Home'
+  const s = seg.replace(/^[\[\]\(\)]+|[\[\]\(\)]+$/g, '')
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
+
+function readTitle(file: string, fallback: string): string {
+  try {
+    const content = fs.readFileSync(file, 'utf8')
+    // コメント行から title を抽出（ファイル先頭 or 任意行）
+    const match = content.match(/^\s*\/\/\s*title:\s*(.+)$/m)
+    if (match) return match[1].trim()
+  } catch {
+    // ignore
+  }
+  return fallback
+}
+
+function walk(dir: string, segs: string[]): NestedMenuItem | null {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  const children: NestedMenuItem[] = []
+
+  for (const e of entries) {
+    if (e.isDirectory()) {
+      const child = walk(path.join(dir, e.name), [...segs, e.name])
+      if (child) children.push(child)
+    }
+  }
+
+  const page = entries.find(
+    (e) => e.isFile() && /^page\.(tsx|ts|jsx|js)$/.test(e.name)
+  )
+  if (!page && children.length === 0) return null
+
+  const href = '/' + segs.join('/')
+  const label = page
+    ? readTitle(
+        path.join(dir, page.name),
+        labelFromSegment(segs[segs.length - 1] ?? '')
+      )
+    : labelFromSegment(segs[segs.length - 1] ?? '')
+
+  return {
+    id: href || '/',
+    href: href || '/',
+    label,
+    children: children.length ? children : undefined,
+  }
+}
+
+export function scanRoutes(root = path.join(process.cwd(), 'src/app')): NestedMenuItem[] {
+  if (!fs.existsSync(root)) return []
+  const rootNode = walk(root, [])
+  return rootNode?.children ?? []
+}
+
+export default scanRoutes
