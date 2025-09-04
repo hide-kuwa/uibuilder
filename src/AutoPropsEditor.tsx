@@ -4,6 +4,13 @@ import { PropBinding, useEditorState, useEditorActions } from './store'
 import { library as componentMeta } from '../lib/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
+import { groupProps, type PropMeta } from './lib/groupProps'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './components/ui/accordion'
 import { useEnumOptions } from './hooks/useEnumOptions'
 import {
   Tooltip,
@@ -14,15 +21,6 @@ import {
 import CodeMirror from '@uiw/react-codemirror'
 import { json as jsonLang } from '@codemirror/lang-json'
 import { safeParse, prettify } from './lib/jsonUtils'
-
-interface PropMeta {
-  name: string
-  type: string
-  required: boolean
-  defaultValue?: string
-  description: string
-  options?: string[] | { source: string; endpoint: string }
-}
 
 interface AutoPropsEditorProps {
   selectedComponentType: string
@@ -194,6 +192,12 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     selectedComponentType,
   ])
 
+  const groupedProps = useMemo(() => {
+    if (!meta) return {}
+    const props = meta.props.filter((p) => p.name !== 'className')
+    return groupProps(props)
+  }, [meta])
+
   const updateProp = (name: string, value: any) => {
     setLocalProps((prev) => ({ ...prev, [name]: value }))
   }
@@ -222,7 +226,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (binding) {
       return (
         <div className="space-y-1">
-          {/* バインドUI */}
+          {/* バインドUI実装部分は省略 */}
         </div>
       )
     }
@@ -258,8 +262,6 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (prop.type === 'longtext') return <LongTextArea value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
     if (prop.type === 'asset') return <AssetPicker value={value as AssetMeta | undefined} onSelect={(a) => updateProp(prop.name, a)} />
 
-    // boolean, number, color, text ...（省略）
-
     return (
       <div className="flex space-x-1">
         <input type="text" className={`${common} flex-1`} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)} />
@@ -272,26 +274,39 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
   return (
     <div className="space-y-4 p-2">
       {meta ? (
-        <TooltipProvider>
-          {meta.props.filter((p) => p.name !== 'className').map((prop) => {
-            const value = localProps[prop.name]
-            const missing = prop.required && (value === undefined || value === '')
-            const label = <label className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}>{prop.name}</label>
-            return (
-              <div key={prop.name} className="flex items-center space-x-2">
-                {prop.description ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{label}</TooltipTrigger>
-                    <TooltipContent>{prop.description}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  label
-                )}
-                <div className="flex-1">{renderControl(prop, missing)}</div>
-              </div>
-            )
-          })}
-        </TooltipProvider>
+        <Accordion type="multiple" defaultValue={['General']}>
+          {Object.entries(groupedProps).map(([group, props]) => (
+            <AccordionItem key={group} value={group}>
+              <AccordionTrigger>{group}</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                {props.map((prop) => {
+                  const value = localProps[prop.name]
+                  const missing = prop.required && (value === undefined || value === '')
+                  const label = (
+                    <label className={`w-32 text-sm ${missing ? 'text-red-600' : ''}`}>
+                      {prop.name}
+                    </label>
+                  )
+                  return (
+                    <div key={prop.name} className="flex items-center space-x-2">
+                      {prop.description ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>{label}</TooltipTrigger>
+                            <TooltipContent>{prop.description}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        label
+                      )}
+                      <div className="flex-1">{renderControl(prop, missing)}</div>
+                    </div>
+                  )
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       ) : (
         <div className="text-sm text-gray-500">No props info</div>
       )}
