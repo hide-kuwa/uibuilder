@@ -5,6 +5,7 @@ import { useBuilderStore } from '@/stores/builder';
 import { computeBgColor } from '@/lib/status-engine';
 import ZoomPanCanvas from '@/components/canvas/ZoomPanCanvas';
 import type { BaseKind, OverlayKind } from '@/types/status';
+import { isFlagOn } from '@/lib/flags';
 
 type MapNode = {
   id: string;
@@ -107,6 +108,8 @@ export default function MapPage() {
   const getNodeStatus = useBuilderStore((s) => s.getNodeStatus);
   const nodes = getMapNodes(preview);
   const cfg = useBuilderStore((s) => s.statusConfig);
+  const legendOff = isFlagOn('legendOff');
+  const tooltipOff = isFlagOn('tooltipOff');
 
   const [keyword, setKeyword] = useState('');
   const [base, setBase] = useState<BaseKind | 'all'>('all');
@@ -198,6 +201,8 @@ export default function MapPage() {
     }
   }, [tip.x, tip.y, tip.visible]);
 
+  const noop = () => {};
+
   const toggleOverlay = (o: OverlayKind) =>
     setOverlays((cur) =>
       cur.includes(o) ? cur.filter((c) => c !== o) : [...cur, o]
@@ -270,35 +275,37 @@ export default function MapPage() {
               key={node.id}
               node={node}
               faded={!match && showNonMatch}
-              onHover={showTip}
-              onMove={moveTip}
-              onLeave={hideTip}
-              onToggle={toggleTip}
+              onHover={tooltipOff ? noop : showTip}
+              onMove={tooltipOff ? noop : moveTip}
+              onLeave={tooltipOff ? noop : hideTip}
+              onToggle={tooltipOff ? noop : toggleTip}
             />
           );
         })}
       </ZoomPanCanvas>
-      <div className="fixed bottom-4 left-4 bg-white/80 p-4 rounded-xl shadow text-sm space-y-1">
-        {Object.entries(cfg.base).map(([k, v]) => (
-          <div key={k} className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-full"
-              style={{ backgroundColor: v.color }}
-            />
-            <span>{BASE_LABELS[k as BaseKind]}</span>
-          </div>
-        ))}
-        {cfg.overlays.map((o) => (
-          <div key={o.key} className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-full"
-              style={{ backgroundColor: o.color }}
-            />
-            <span>{OVERLAY_LABELS[o.key]}</span>
-          </div>
-        ))}
-      </div>
-      {tip.visible && (
+      {!legendOff && (
+        <div className="fixed bottom-4 left-4 bg-white/80 p-4 rounded-xl shadow text-sm space-y-1">
+          {Object.entries(cfg.base).map(([k, v]) => (
+            <div key={k} className="flex items-center gap-1">
+              <span
+                className="inline-block w-3 h-3 rounded-full"
+                style={{ backgroundColor: v.color }}
+              />
+              <span>{BASE_LABELS[k as BaseKind]}</span>
+            </div>
+          ))}
+          {cfg.overlays.map((o) => (
+            <div key={o.key} className="flex items-center gap-1">
+              <span
+                className="inline-block w-3 h-3 rounded-full"
+                style={{ backgroundColor: o.color }}
+              />
+              <span>{OVERLAY_LABELS[o.key]}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {!tooltipOff && tip.visible && (
         <div
           ref={tipRef}
           role="dialog"
