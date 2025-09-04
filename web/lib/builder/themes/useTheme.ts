@@ -25,7 +25,7 @@ export const useTheme = (options?: {
   const { theme, setTheme } = useThemeContext();
   const pageTheme = usePageStore((s) => {
     const p = s.pages.find((p) => p.id === s.currentPageId);
-    return p?.theme;
+    return p?.pageOverrides?.theme;
   });
 
   useEffect(() => {
@@ -35,9 +35,9 @@ export const useTheme = (options?: {
   }, [options?.override, options?.scope, setTheme, theme]);
 
   return useMemo(() => {
-    const withPage = resolveTheme(theme, pageTheme);
-    const merged = resolveTheme(withPage, options?.override);
-    return mergeTheme(defaultTheme, merged);
+    const withLayout = mergeTheme(defaultTheme, theme);
+    const withPage = mergeTheme(withLayout, pageTheme);
+    return mergeTheme(withPage, options?.override);
   }, [theme, pageTheme, options?.override]);
 };
 
