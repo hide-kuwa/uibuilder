@@ -19,21 +19,19 @@ export default function ArrangePage() {
   // レイヤー操作
   const bringToFront = () => {
     if (!selectedIds.length) return
-    const maxZ = Math.max(0, ...nodes.map(n => n.z ?? 0))
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, z: maxZ + 1 }))
+      builderStore.getState().bringToFront(id)
     }
   }
   const sendToBack = () => {
     if (!selectedIds.length) return
-    const minZ = Math.min(0, ...nodes.map(n => n.z ?? 0))
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, z: minZ - 1 }))
+      builderStore.getState().sendToBack(id)
     }
   }
   const lockToggle = (lock: boolean) => {
     for (const id of selectedIds) {
-      builderStore.getState().updateNode(id, (prev:any)=> ({ ...prev, locked: lock }))
+      builderStore.getState().setLocked(id, lock)
     }
   }
 
@@ -60,14 +58,15 @@ export default function ArrangePage() {
   }
 
   const savePositionsToBuilder = () => {
+    const patches = [] as any[]
     for (const n of nodes) {
       const p = nodePos[n.id]
-      if (p) builderStore.getState().updateNode(n.id, (prev: any) => ({
-        ...prev,
-        position: p,
-        size: prev.size ?? { w: 160, h: 96 }, // 既存に無ければ初期値
-      }))
+      if (p) {
+        const sz = n.size ?? { w: 160, h: 96 }
+        patches.push({ id: n.id, x: p.x, y: p.y, w: sz.w, h: sz.h })
+      }
     }
+    if (patches.length) builderStore.getState().updateMany(patches)
   }
 
   return (
@@ -104,7 +103,7 @@ export default function ArrangePage() {
               size={n.size ?? { w: 160, h: 96 }}
               z={n.z ?? 0}
               locked={!!n.locked}
-              onCommit={(xy, sz)=> builderStore.getState().updateNode(n.id, (prev:any)=> ({ ...prev, position: xy, size: sz ?? prev.size })) }
+              onCommit={(xy, sz)=> builderStore.getState().updateMany([{ id: n.id, x: xy.x, y: xy.y, ...(sz ? { w: sz.w, h: sz.h } : {}) }]) }
             />
           ))}
         </ZoomPanCanvas>

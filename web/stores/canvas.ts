@@ -11,6 +11,7 @@ type CanvasState = {
   ty: number
   nodePos: Record<string, XY>
   nodeSize: Record<string, Size>
+  initialPos: Record<string, XY>
 
   // 選択
   selectedIds: string[]
@@ -31,6 +32,8 @@ type CanvasState = {
 
   setTransform: (p: Partial<Pick<CanvasState, 'scale' | 'tx' | 'ty'>>) => void
   setNodePos: (id: string, xy: XY) => void
+  setInitialPos: (id: string, xy: XY) => void
+  clearInitialPos: () => void
   moveNodes: (ids: string[], dx: number, dy: number) => void
   setNodeSize: (id: string, sz: Size) => void
   resetView: () => void
@@ -42,6 +45,7 @@ export const useCanvasStore = create<CanvasState>()(
       scale: 1, tx: 0, ty: 0,
       nodePos: {},
       nodeSize: {},
+      initialPos: {},
 
       selectedIds: [],
       setSelectedIds: (ids) => set({ selectedIds: ids }),
@@ -63,10 +67,13 @@ export const useCanvasStore = create<CanvasState>()(
 
       setTransform: (p) => set({ ...get(), ...p }),
       setNodePos: (id, xy) => set({ nodePos: { ...get().nodePos, [id]: xy } }),
+      setInitialPos: (id, xy) => set({ initialPos: { ...get().initialPos, [id]: xy } }),
+      clearInitialPos: () => set({ initialPos: {} }),
       moveNodes: (ids, dx, dy) => {
         const next = { ...get().nodePos }
+        const base = get().initialPos
         for (const id of ids) {
-          const cur = next[id] ?? { x: 0, y: 0 }
+          const cur = next[id] ?? base[id] ?? { x: 0, y: 0 }
           next[id] = { x: cur.x + dx, y: cur.y + dy }
         }
         set({ nodePos: next })
