@@ -1,11 +1,14 @@
 'use client'
 
-import TriggersCard from './TriggersCard'
+import TriggersPanel from './TriggersCard'
 import ActionsCard from './ActionsCard'
 import EffectsCard from './EffectsCard'
 import MotionEffectsPanel from '@/components/panels/MotionEffectsPanel'
 import PresetsSidebar from '@/components/panels/PresetsSidebar'
 import PreviewPane from '@/components/panels/PreviewPane'
+import NodeStatusPanel from '@/components/panels/NodeStatusPanel'
+import StatusConfigPanel from '@/components/panels/StatusConfigPanel'
+import type { NodeStatusState } from '@/types/status'
 
 import { builderStore, useBuilderStore } from '@/store/builderStore'
 import type { MotionEffect } from '@/types/motion'
@@ -27,6 +30,10 @@ export default function DevActionsPage() {
       }
     })
   }
+
+  const nodeStatus: NodeStatusState = selectedNode?.status ?? { base: 'notVisited', overlays: [] }
+  const setNodeStatus = (next: NodeStatusState) =>
+    updateSelectedNode((prev: any) => ({ ...prev, status: next }))
 
   const motion: MotionEffect[] = selectedNode?.effects?.motion ?? []
   const setMotion = (next: MotionEffect[]) =>
@@ -76,13 +83,17 @@ export default function DevActionsPage() {
           onUpdate={updatePrimary}
           openLabHref={`/dev/motion?p=${encodeURIComponent(preset)}&s=${strength}`}
         />
+        <div className="mt-4">
+          <StatusConfigPanel />
+        </div>
       </aside>
 
       {/* 中央：2×2 グリッド */}
       <main className="grid gap-4 lg:grid-cols-2">
-        {/* 左上：Triggers */}
-        <section className="rounded-2xl border bg-white p-4">
-          <TriggersCard />
+        {/* 左上：Triggers + NodeStatus */}
+        <section className="rounded-2xl border bg-white p-4 space-y-4">
+          <TriggersPanel />
+          <NodeStatusPanel value={nodeStatus} onChange={setNodeStatus} />
         </section>
         {/* 右上：Actions */}
         <section className="rounded-2xl border bg-white p-4">
