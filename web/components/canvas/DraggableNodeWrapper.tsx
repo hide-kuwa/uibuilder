@@ -1,24 +1,27 @@
 'use client'
 
-import { useEffect, useRef, memo, useMemo } from 'react'
+import { useEffect, useRef, memo, useMemo, cloneElement, Children } from 'react'
 import type React from 'react'
 import { useBuilderStore } from '@/stores/builder'
 import { computeBgColor, buildMotionFromStatus } from '@/lib/status-engine'
 import { animate } from 'animejs'
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
+interface Props {
   id: string
-  children: React.ReactNode
+  children: React.ReactElement
 }
 
 const DEFAULT_STATUS = { base: 'notVisited', overlays: [] as string[] }
 
 const DraggableNodeWrapper = memo(
-  function DraggableNodeWrapper({ id, style, className, children, ...rest }: Props) {
+  function DraggableNodeWrapper({ id, children }: Props) {
+    const status = useBuilderStore((s) => {
+      const cur = s.getNodeStatus(id)
+      return cur.base === DEFAULT_STATUS.base && cur.overlays.length === 0
+        ? DEFAULT_STATUS
+        : cur
+    })
     const cfg = useBuilderStore((s) => s.statusConfig)
-    const base = useBuilderStore((s) => s.statuses[id]?.base ?? DEFAULT_STATUS.base)
-    const overlays = useBuilderStore((s) => s.statuses[id]?.overlays ?? DEFAULT_STATUS.overlays)
-    const status = useMemo(() => ({ base, overlays }), [base, overlays])
     const ref = useRef<HTMLDivElement>(null)
     const { bg, filter } = useMemo(() => computeBgColor(status, cfg), [status, cfg])
     const motion = useMemo(() => buildMotionFromStatus(id, status, cfg), [id, status, cfg])
@@ -31,43 +34,35 @@ const DraggableNodeWrapper = memo(
     }, [motion])
 
     // flash animation on status change
-    const prev = useRef<{ base: string; overlays: string[] }>()
+    const prev = useRef<typeof status>()
     useEffect(() => {
-      const cur = { base, overlays }
       let a: ReturnType<typeof animate> | undefined
-      if (ref.current && prev.current) {
-        if (prev.current.base !== cur.base || prev.current.overlays !== cur.overlays) {
-          a = animate({
-            targets: ref.current,
-            scale: [1, 1.05],
-            opacity: [1, 0.6],
-            direction: 'alternate',
-            duration: 200,
-            easing: 'easeOutSine',
-          })
-        }
+      if (
+        ref.current &&
+        prev.current &&
+        (prev.current.base !== status.base || prev.current.overlays !== status.overlays)
+      ) {
+        a = animate({
+          targets: ref.current,
+          scale: [1, 1.05],
+          opacity: [1, 0.6],
+          direction: 'alternate',
+          duration: 200,
+          easing: 'easeOutSine',
+        })
       }
-      prev.current = cur
+      prev.current = status
       return () => a?.pause()
-    }, [base, overlays])
+    }, [status])
 
-    return (
-      <div
-        ref={ref}
-        data-node-id={id}
-        style={{ background: bg, filter, ...style }}
-        className={className}
-        {...rest}
-      >
-        {children}
-      </div>
-    )
+    const child = Children.only(children)
+    return cloneElement(child, {
+      ref,
+      'data-node-id': id,
+      style: { background: bg, filter, ...child.props.style },
+    })
   },
-  (prev, next) =>
-    prev.id === next.id &&
-    prev.children === next.children &&
-    prev.className === next.className &&
-    prev.style === next.style,
+  (prev, next) => prev.id === next.id && prev.children === next.children,
 )
 
 export default DraggableNodeWrapper
