@@ -1,6 +1,69 @@
-import Link from 'next/link';
+"use client";
+
+import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { animate } from "animejs";
+import { useBuilderStore } from "@/stores/builder";
+import { computeBgColor, buildMotionFromStatus } from "@/lib/status-engine";
+
+type MapNode = {
+  id: string;
+  name?: string;
+};
+
+function NodeViewer({ node }: { node: MapNode }) {
+  const cfg = useBuilderStore((s) => s.statusConfig);
+  const getStatus = useBuilderStore((s) => s.getNodeStatus);
+  const status = getStatus(node.id);
+  const { bg, filter } = computeBgColor(status, cfg);
+  const motion = buildMotionFromStatus(node.id, status, cfg);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current || !motion) return;
+    const inst = animate({ targets: ref.current, loop: true, ...motion });
+    return () => inst.pause();
+  }, [motion]);
+
+  return (
+    <div
+      ref={ref}
+      className="flex w-[300px] h-[200px] flex-col items-center justify-center rounded-xl border p-6 shadow-sm"
+      style={{ background: bg, filter }}
+    >
+      <div className="font-semibold">{node.name ?? node.id}</div>
+      <div className="mt-2 text-xs opacity-70">id: {node.id}</div>
+    </div>
+  );
+}
 
 export default function SharePage() {
+  const sp = useSearchParams();
+  const id = sp.get("id");
+  const getMapNodes = useBuilderStore((s) => s.getMapNodes);
+  const nodes = getMapNodes(true);
+  const node = id ? nodes.find((n) => n.id === id) : undefined;
+
+  if (id) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">共有ビュー</h1>
+          <Link href="/map" className="text-sm underline">
+            ← /map
+          </Link>
+        </div>
+
+        {node ? (
+          <NodeViewer node={node} />
+        ) : (
+          <p className="text-sm text-zinc-500">該当ノードが見つかりません</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -15,10 +78,7 @@ export default function SharePage() {
       </p>
 
       <div className="grid max-w-md gap-3 sm:grid-cols-2">
-        <Link
-          href="/map"
-          className="rounded-xl border p-4 hover:bg-zinc-50"
-        >
+        <Link href="/map" className="rounded-xl border p-4 hover:bg-zinc-50">
           <div className="font-medium">Map (published)</div>
           <div className="break-all text-xs text-zinc-500">/map</div>
         </Link>
