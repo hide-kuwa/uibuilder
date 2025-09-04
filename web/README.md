@@ -47,3 +47,14 @@ pnpm -C web dev
 pnpm -C web build
 ```
 
+### よくある質問（FAQ）
+
+- **Q.** Publishしても `/map` に反映されない  
+  **A.** `/map` が `preview=1` か `published` かを確認。`/builder` の「/map は公開版を使用」トグルも確認。
+
+- **Q.** 表示が重い  
+  **A.** `/dev/flags` で `glowOff` / `heavyAnimationOff` を ON に。大量ノードは `/dev/generate-many` で検証。
+
+- **Q.** JSON Importでエラーになる  
+  **A.** `nodes/statuses/statusConfig` のキー構成を確認。`/dev/export` で出力した形式を使うのが安全。
+
