@@ -161,22 +161,23 @@ export default function DraggableNode({
   )
 
   return (
-    <DraggableNodeWrapper
-      id={id}
-      style={{
-        width: curSize.w,
-        height: curSize.h,
-        transform: `translate(${pos.x}px, ${pos.y}px)`,
-        touchAction: 'none',
-        zIndex: z,
-      }}
-      className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''} ${locked ? 'opacity-70' : ''}`}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-    >
-      {content}
+    <DraggableNodeWrapper id={id}>
+      <div
+        style={{
+          width: curSize.w,
+          height: curSize.h,
+          transform: `translate(${pos.x}px, ${pos.y}px)`,
+          touchAction: 'none',
+          zIndex: z,
+        }}
+        className={`absolute select-none rounded-xl border p-3 text-sm shadow-sm ${selected ? 'ring-2 ring-indigo-400' : ''} ${locked ? 'opacity-70' : ''}`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        {content}
+      </div>
     </DraggableNodeWrapper>
   )
 }
