@@ -16,6 +16,6 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm -C web install --frozen-lockfile
+      - run: pnpm -C web lint
       - run: pnpm -C web build
-      # typecheck スクリプトがあれば以下を追加（なければスキップ可）
-      # - run: pnpm -C web typecheck
+      - run: pnpm -C web typecheck
