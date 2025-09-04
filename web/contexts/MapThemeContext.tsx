@@ -6,14 +6,17 @@ const Ctx = createContext<{paletteId: string; vars: React.CSSProperties}>({ pale
 
 export const MapThemeProvider = ({ id = 'default', children }: { id?: string; children: React.ReactNode }) => {
   const pal = getMapPalette(id)
-  const vars = useMemo(() => ({
-    // @ts-ignore
-    ['--map-none']: pal.none,
-    ['--map-want']: pal.want,
-    ['--map-visited']: pal.visited,
-    ['--map-lived']: pal.lived,
-    ['--map-stroke']: pal.stroke,
-  }), [id])
+  const vars = useMemo(
+    () =>
+      ({
+        ['--map-none']: pal.none,
+        ['--map-want']: pal.want,
+        ['--map-visited']: pal.visited,
+        ['--map-lived']: pal.lived,
+        ['--map-stroke']: pal.stroke,
+      } as React.CSSProperties),
+    [id],
+  )
   return (
     <Ctx.Provider value={{ paletteId: id, vars }}>
       <div style={vars}>{children}</div>

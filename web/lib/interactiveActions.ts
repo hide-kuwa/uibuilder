@@ -2,9 +2,9 @@ import type { ActionDef, WhenFlags } from '@/types/presets-ui'
 
 // 未指定 when 対策：アクションで when が空なら「click」を既定に。
 export function getEffectiveWhen(a: ActionDef, fallback?: WhenFlags): WhenFlags {
-  const w: WhenFlags = a.when ?? fallback ?? {}
+  const w: WhenFlags = (a.when ?? fallback ?? {}) as WhenFlags
   const hasAny = !!(w.click || w.doubleClick || w.mount || w.inView || w.delayMs)
-  return hasAny ? w : { click: true }
+  return hasAny ? w : ({ click: true } as WhenFlags)
 }
 let jsonLogic: any = null
 export const ensureJsonLogic = async () => {
