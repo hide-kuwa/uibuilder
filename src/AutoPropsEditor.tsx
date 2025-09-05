@@ -226,16 +226,82 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     const binding = localBindings[prop.name]
     const common = `w-full border rounded px-2 py-1 ${missing ? 'border-red-500' : 'border-gray-300'}`
 
+    const wrapBind = (node: React.ReactNode) => (
+      <div className="flex space-x-1">
+        <div className="flex-1">{node}</div>
+        <button
+          className="text-xs text-blue-600"
+          onClick={() =>
+            updateBinding(prop.name, {
+              source: sources[0]?.name || '',
+              endpoint: '',
+              path: '',
+              fallback: '',
+            })
+          }
+        >
+          Bind
+        </button>
+      </div>
+    )
+
     if (binding) {
       return (
-        <div className="space-y-1">
-          {/* バインドUI実装はここに */}
+        <div className="space-y-1 border rounded p-2">
+          <div className="flex space-x-1">
+            <select
+              className="w-1/2 border rounded px-2 py-1"
+              value={binding.source}
+              onChange={(e) => updateBinding(prop.name, { ...binding, source: e.target.value })}
+            >
+              <option value="">Source</option>
+              {sources.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              className="flex-1 border rounded px-2 py-1"
+              placeholder="Endpoint"
+              value={binding.endpoint}
+              onChange={(e) => updateBinding(prop.name, { ...binding, endpoint: e.target.value })}
+            />
+          </div>
+          <input
+            type="text"
+            className="w-full border rounded px-2 py-1"
+            placeholder="Path"
+            value={binding.path}
+            onChange={(e) => updateBinding(prop.name, { ...binding, path: e.target.value })}
+          />
+          <input
+            type="text"
+            className="w-full border rounded px-2 py-1"
+            placeholder="Fallback"
+            value={binding.fallback ?? ''}
+            onChange={(e) =>
+              updateBinding(prop.name, {
+                ...binding,
+                fallback: e.target.value || undefined,
+              })
+            }
+          />
+          <div className="text-right">
+            <button
+              className="text-xs text-red-600"
+              onClick={() => updateBinding(prop.name, undefined)}
+            >
+              Remove
+            </button>
+          </div>
         </div>
       )
     }
 
     if (prop.type === 'enum') {
-      return (
+      return wrapBind(
         <EnumSelect
           options={prop.options}
           value={value}
@@ -247,22 +313,37 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
 
     const unionValues = parseLiteralUnion(prop.type)
     if (unionValues) {
-      return (
+      return wrapBind(
         <select className={common} value={value ?? ''} onChange={(e) => updateProp(prop.name, e.target.value)}>
-          <option value="" disabled>Select an option</option>
-          {unionValues.map((v) => <option key={v} value={v}>{v}</option>)}
+          <option value="" disabled>
+            Select an option
+          </option>
+          {unionValues.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
         </select>
       )
     }
 
-    if (prop.type === 'json') return <JsonEditor value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
-    if (prop.type === 'longtext') return <LongTextArea value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
-    if (prop.type === 'asset') return <AssetPicker value={value as AssetMeta | undefined} onSelect={(a) => updateProp(prop.name, a)} />
+    if (prop.type === 'json')
+      return wrapBind(
+        <JsonEditor value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
+      )
+    if (prop.type === 'longtext')
+      return wrapBind(
+        <LongTextArea value={value} onChange={(v) => updateProp(prop.name, v)} missing={missing} />
+      )
+    if (prop.type === 'asset')
+      return wrapBind(
+        <AssetPicker value={value as AssetMeta | undefined} onSelect={(a) => updateProp(prop.name, a)} />
+      )
 
     if (prop.type === 'date' || prop.type === 'datetime') {
       const date = value ? new Date(value) : new Date()
       const display = value || (prop.type === 'date' ? formatDate(date) : formatDateTime(date))
-      return (
+      return wrapBind(
         <Popover>
           <PopoverTrigger asChild>
             <button className={common}>{display}</button>
@@ -301,7 +382,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     }
 
     if (prop.type === 'boolean') {
-      return (
+      return wrapBind(
         <input
           type="checkbox"
           className={`h-4 w-4 ${missing ? 'ring-1 ring-red-500' : ''}`}
@@ -312,7 +393,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     }
 
     if (prop.type === 'number') {
-      return (
+      return wrapBind(
         <input
           type="number"
           className={common}
@@ -326,7 +407,7 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     }
 
     if (prop.type === 'string' && prop.name.toLowerCase().includes('color')) {
-      return (
+      return wrapBind(
         <input
           type="color"
           className={common}
@@ -343,57 +424,37 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
     if (textual) {
       const isI18n = value && typeof value === 'object' && typeof value.key === 'string'
       const textVal = isI18n ? t(value.key) : value ?? ''
-      return (
-        <div className="flex space-x-1">
-          <input
-            type="text"
-            className={`${common} flex-1`}
-            value={textVal}
-            onChange={(e) => {
-              const txt = e.target.value
-              if (!txt) {
-                updateProp(prop.name, undefined)
-                return
-              }
-              if (isI18n) {
-                registerKey(getLanguage(), value.key, txt)
-                updateProp(prop.name, { key: value.key })
-              } else {
-                const key = generateKey(txt)
-                registerKey(getLanguage(), key, txt)
-                updateProp(prop.name, { key })
-              }
-            }}
-          />
-          <button
-            className="text-xs text-blue-600"
-            onClick={() =>
-              updateBinding(prop.name, { source: '', endpoint: '', path: '' })
+      return wrapBind(
+        <input
+          type="text"
+          className={common}
+          value={textVal}
+          onChange={(e) => {
+            const txt = e.target.value
+            if (!txt) {
+              updateProp(prop.name, undefined)
+              return
             }
-          >
-            Bind
-          </button>
-        </div>
+            if (isI18n) {
+              registerKey(getLanguage(), value.key, txt)
+              updateProp(prop.name, { key: value.key })
+            } else {
+              const key = generateKey(txt)
+              registerKey(getLanguage(), key, txt)
+              updateProp(prop.name, { key })
+            }
+          }}
+        />
       )
     }
 
-    return (
-      <div className="flex space-x-1">
-        <input
-          type="text"
-          className={`${common} flex-1`}
-          value={value ?? ''}
-          onChange={(e) => updateProp(prop.name, e.target.value)}
-        />
-        <button
-          className="text-xs text-blue-600"
-          onClick={() =>
-            updateBinding(prop.name, { source: '', endpoint: '', path: '' })
-          }
-        >
-          Bind
-        </button>
-      </div>
+    return wrapBind(
+      <input
+        type="text"
+        className={common}
+        value={value ?? ''}
+        onChange={(e) => updateProp(prop.name, e.target.value)}
+      />
     )
   }
 
@@ -401,6 +462,43 @@ const AutoPropsEditor: React.FC<AutoPropsEditorProps> = ({
 
   return (
     <div className="space-y-4 p-2">
+      <div className="space-y-2">
+        <div className="flex space-x-2">
+          <button
+            className={`px-2 py-1 text-xs rounded ${
+              inspectorTab === 'default' ? 'bg-gray-200' : ''
+            }`}
+            onClick={() => setInspectorTab('default')}
+          >
+            Default
+          </button>
+          <button
+            className={`px-2 py-1 text-xs rounded ${
+              inspectorTab === 'hover' ? 'bg-gray-200' : ''
+            }`}
+            onClick={() => setInspectorTab('hover')}
+          >
+            Hover
+          </button>
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="w-32 text-sm">className</label>
+          <input
+            type="text"
+            className="flex-1 border rounded px-2 py-1"
+            value={
+              inspectorTab === 'hover'
+                ? localVariants.hover?.className ?? ''
+                : localProps.className ?? ''
+            }
+            onChange={(e) =>
+              inspectorTab === 'hover'
+                ? updateVariant(e.target.value)
+                : updateProp('className', e.target.value)
+            }
+          />
+        </div>
+      </div>
       {meta ? (
         <Accordion type="multiple" defaultValue={['General']}>
           {Object.entries(groupedProps).map(([group, props]) => (
