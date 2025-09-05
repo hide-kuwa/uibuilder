@@ -1,155 +1,43 @@
-"use client";
-import { useEffect } from "react";
-import StatusConfigPanel from "@/components/panels/StatusConfigPanel";
-import StatusDropdown from "@/components/panels/StatusDropdown";
-import { useBuilderStore } from "@/stores/builder";
-import { useCanvasStore } from "@/stores/canvas";
-import Link from "next/link";
+'use client';
+import Link from 'next/link';
+import { NodeWrapper } from '@/components/shared/NodeWrapper';
+import { useBuilderLayoutStore } from '@/stores/builderLayout';
+
+const Panel = ({ label }: { label: string }) => (
+  <NodeWrapper nodeId={label}>
+    <div className="p-2 bg-white border rounded text-sm">{label}</div>
+  </NodeWrapper>
+);
+
+const panelMap: Record<string, JSX.Element> = {
+  palette: <Panel label="palette" />,
+  inspector: <Panel label="inspector" />,
+  toolbar: <Panel label="toolbar" />,
+  canvas: <Panel label="canvas" />,
+};
 
 export default function BuilderPage() {
-  const nodes = useBuilderStore((s) => s.nodes);
-  const setNodeStatus = useBuilderStore((s) => s.setNodeStatus);
-  const publishAll = useBuilderStore((s) => s.publishAll);
-  const publishedAt = useBuilderStore((s) => s.publishedSnapshot?.at);
-  const usePublished = useBuilderStore((s) => s.usePublishedOnMap);
-  const setUsePublished = useBuilderStore((s) => s.setUsePublishedOnMap);
-  const undo = useBuilderStore((s) => s.undo);
-  const redo = useBuilderStore((s) => s.redo);
-  const canUndo = useBuilderStore((s) => s.undoStack.length > 0);
-  const canRedo = useBuilderStore((s) => s.redoStack.length > 0);
-  const setSelectedIds = useCanvasStore((s) => s.setSelectedIds);
-
-  const selectAll = () => {
-    const allIds = useBuilderStore.getState().nodes.map((n) => n.id);
-    setSelectedIds(allIds);
-  };
-
-  const resetStatuses = () => {
-    nodes.forEach((n) =>
-      setNodeStatus(n.id, { base: "notVisited", overlays: [] }),
-    );
-  };
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      const mac = navigator.platform.toLowerCase().includes("mac");
-      const mod = mac ? e.metaKey : e.ctrlKey;
-      const key = e.key.toLowerCase();
-      if (mod && key === "z") {
-        e.preventDefault();
-        undo();
-      } else if (mod && key === "y") {
-        e.preventDefault();
-        redo();
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-        if (key === "p") {
-          e.preventDefault();
-          publishAll();
-        } else if (key === "a") {
-          e.preventDefault();
-          selectAll();
-        }
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, { capture: true });
-    return () =>
-      window.removeEventListener("keydown", onKeyDown, {
-        capture: true,
-      } as any);
-  }, [undo, redo, publishAll, selectAll]);
-
+  const layout = useBuilderLayoutStore((s) => s.builderLayout);
+  const center = (['palette', 'inspector', 'toolbar', 'canvas'] as const).find(
+    (p) => !Object.values(layout).includes(p),
+  ) || 'canvas';
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Builder</h1>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={usePublished}
-              onChange={(e) => setUsePublished(e.target.checked)}
-            />
-            <span>/map は公開版を使用</span>
-          </label>
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="px-3 py-2 rounded-lg border disabled:text-zinc-400 disabled:border-zinc-200"
-          >
-            ↩ Undo
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="px-3 py-2 rounded-lg border disabled:text-zinc-400 disabled:border-zinc-200"
-          >
-            ↪ Redo
-          </button>
-          <button onClick={selectAll} className="px-3 py-2 rounded-lg border">
-            全選択
-          </button>
-          <button
-            onClick={resetStatuses}
-            className="px-3 py-2 rounded-lg border"
-          >
-            ステータス初期化
-          </button>
-          <Link href="/map" className="px-3 py-2 rounded-lg border">
-            /map
-          </Link>
-          <Link href="/map?preview=1" className="px-3 py-2 rounded-lg border">
-            /map?preview=1
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-8 space-y-4">
-          <div className="text-sm text-zinc-500">
-            ノードごとのステータス編集
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {nodes.map((n) => (
-              <div
-                key={n.id}
-                className="p-3 rounded-xl border bg-white/70 dark:bg-zinc-900/70"
-              >
-                <div className="mb-2 text-sm font-medium">{n.name ?? n.id}</div>
-                <StatusDropdown nodeId={n.id} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="col-span-4">
-          <StatusConfigPanel />
-        </div>
-      </div>
-
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-1">
-        <button
-          onClick={publishAll}
-          className="rounded-full bg-black text-white px-4 py-2 shadow-lg hover:bg-gray-800"
-        >
-          Publish
-        </button>
-        <div className="text-xs text-zinc-500 flex items-center gap-1">
-          <span>📅 最終公開:</span>
-          <span>
-            {publishedAt
-              ? new Date(publishedAt).toLocaleString("ja-JP")
-              : "未公開"}
-          </span>
-        </div>
+    <div className="h-screen grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-2 p-2">
+      {layout.top && (
+        <div className="col-span-3">{panelMap[layout.top]}</div>
+      )}
+      <div>{layout.left && panelMap[layout.left]}</div>
+      <div>{panelMap[center]}</div>
+      <div>{layout.right && panelMap[layout.right]}</div>
+      {layout.bottom && (
+        <div className="col-span-3">{panelMap[layout.bottom]}</div>
+      )}
+      <div className="absolute top-2 right-2">
+        <Link href="/builder/layout" className="text-blue-600 underline text-xs">
+          レイアウト編集
+        </Link>
       </div>
     </div>
   );
 }
+
