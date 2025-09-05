@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { NodeWrapper } from '@/components/shared/NodeWrapper';
-import { useBuilderLayoutStore } from '@/stores/builderLayout';
+import { useBuilderLayout } from '@/stores/builderLayout';
 
 const Panel = ({ label }: { label: string }) => (
   <NodeWrapper nodeId={label}>
@@ -17,7 +17,7 @@ const panelMap: Record<string, JSX.Element> = {
 };
 
 export default function BuilderPage() {
-  const layout = useBuilderLayoutStore((s) => s.builderLayout);
+  const layout = useBuilderLayout((s) => s.layout);
   const center = (['palette', 'inspector', 'toolbar', 'canvas'] as const).find(
     (p) => !Object.values(layout).includes(p),
   ) || 'canvas';

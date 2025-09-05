@@ -9,24 +9,29 @@ export type BuilderLayout = {
   bottom?: string;
 };
 
-type BuilderLayoutState = {
-  builderLayout: BuilderLayout;
-  setBuilderLayout: (layout: BuilderLayout) => void;
-};
+interface BuilderLayoutState {
+  layout: BuilderLayout;
+  setLayout: (next: BuilderLayout) => void;
+  resetLayout: () => void;
+}
 
 const defaultLayout: BuilderLayout = {
   left: 'palette',
   right: 'inspector',
   top: 'toolbar',
+  bottom: 'canvas',
 };
 
-export const useBuilderLayoutStore = create<BuilderLayoutState>()(
+export const useBuilderLayout = create<BuilderLayoutState>()(
   persist(
     (set) => ({
-      builderLayout: defaultLayout,
-      setBuilderLayout: (layout) => set({ builderLayout: layout }),
+      layout: defaultLayout,
+      setLayout: (next) => set({ layout: next }),
+      resetLayout: () => set({ layout: defaultLayout }),
     }),
-    { name: 'builder-layout' }
+    {
+      name: 'builder-layout',
+    }
   )
 );
 

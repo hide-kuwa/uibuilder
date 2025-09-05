@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
 import { NodeWrapper } from '@/components/shared/NodeWrapper';
-import { useBuilderLayoutStore, type BuilderLayout } from '@/stores/builderLayout';
+import { useBuilderLayout, type BuilderLayout } from '@/stores/builderLayout';
 
 const PANELS = ['palette', 'inspector', 'toolbar', 'canvas'] as const;
 const ZONES = ['top', 'left', 'center', 'right', 'bottom'] as const;
@@ -44,8 +44,8 @@ function DropZone({ id, children }: { id: Zone; children?: React.ReactNode }) {
 }
 
 export default function LayoutEditorPage() {
-  const { builderLayout, setBuilderLayout } = useBuilderLayoutStore();
-  const [draft, setDraft] = useState<BuilderLayout>(builderLayout);
+  const { layout, setLayout } = useBuilderLayout();
+  const [draft, setDraft] = useState<BuilderLayout>(layout);
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -92,7 +92,7 @@ export default function LayoutEditorPage() {
       </DndContext>
       <div className="flex gap-2">
         <button
-          onClick={() => setBuilderLayout(draft)}
+          onClick={() => setLayout(draft)}
           className="px-4 py-2 rounded border bg-white"
         >
           保存
