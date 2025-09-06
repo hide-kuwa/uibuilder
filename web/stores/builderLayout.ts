@@ -1,26 +1,26 @@
-'use client';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+'use client'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type BuilderLayout = {
-  left: string;
-  right: string;
-  top?: string;
-  bottom?: string;
-};
+  left: string | ''
+  right: string | ''
+  top?: string | ''
+  bottom?: string | ''
+}
 
 interface BuilderLayoutState {
-  layout: BuilderLayout;
-  setLayout: (next: BuilderLayout) => void;
-  resetLayout: () => void;
+  layout: BuilderLayout
+  setLayout: (next: BuilderLayout) => void
+  resetLayout: () => void
 }
 
 const defaultLayout: BuilderLayout = {
   left: 'palette',
   right: 'inspector',
   top: 'toolbar',
-  bottom: 'canvas',
-};
+  bottom: '',
+}
 
 export const useBuilderLayout = create<BuilderLayoutState>()(
   persist(
@@ -29,9 +29,7 @@ export const useBuilderLayout = create<BuilderLayoutState>()(
       setLayout: (next) => set({ layout: next }),
       resetLayout: () => set({ layout: defaultLayout }),
     }),
-    {
-      name: 'builder-layout',
-    }
+    { name: 'builder-layout' }
   )
-);
+)
 

@@ -1,43 +1,51 @@
-'use client';
-import Link from 'next/link';
-import { NodeWrapper } from '@/components/shared/NodeWrapper';
-import { useBuilderLayout } from '@/stores/builderLayout';
+'use client'
 
-const Panel = ({ label }: { label: string }) => (
-  <NodeWrapper nodeId={label}>
-    <div className="p-2 bg-white border rounded text-sm">{label}</div>
-  </NodeWrapper>
-);
-
-const panelMap: Record<string, JSX.Element> = {
-  palette: <Panel label="palette" />,
-  inspector: <Panel label="inspector" />,
-  toolbar: <Panel label="toolbar" />,
-  canvas: <Panel label="canvas" />,
-};
+import { useBuilderLayout } from '@/stores/builderLayout'
 
 export default function BuilderPage() {
-  const layout = useBuilderLayout((s) => s.layout);
-  const center = (['palette', 'inspector', 'toolbar', 'canvas'] as const).find(
-    (p) => !Object.values(layout).includes(p),
-  ) || 'canvas';
+  const { layout } = useBuilderLayout()
+
   return (
-    <div className="h-screen grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-2 p-2">
-      {layout.top && (
-        <div className="col-span-3">{panelMap[layout.top]}</div>
-      )}
-      <div>{layout.left && panelMap[layout.left]}</div>
-      <div>{panelMap[center]}</div>
-      <div>{layout.right && panelMap[layout.right]}</div>
-      {layout.bottom && (
-        <div className="col-span-3">{panelMap[layout.bottom]}</div>
-      )}
-      <div className="absolute top-2 right-2">
-        <Link href="/builder/layout" className="text-blue-600 underline text-xs">
-          レイアウト編集
-        </Link>
+    <div className="grid grid-rows-[48px_minmax(0,1fr)_48px] grid-cols-[260px_1fr_280px] h-[calc(100vh-64px)]">
+      {/* Top */}
+      <div className="col-span-3 border-b border-zinc-800">
+        {layout.top === 'toolbar' ? <Toolbar /> : null}
+      </div>
+
+      {/* Left */}
+      <div className="border-r border-zinc-800">
+        {layout.left === 'palette' ? <Palette /> : layout.left === 'inspector' ? <Inspector /> : null}
+      </div>
+
+      {/* Center = Canvas 固定 */}
+      <div className="overflow-hidden">
+        <Canvas />
+      </div>
+
+      {/* Right */}
+      <div className="border-l border-zinc-800">
+        {layout.right === 'inspector' ? <Inspector /> : layout.right === 'palette' ? <Palette /> : null}
+      </div>
+
+      {/* Bottom */}
+      <div className="col-span-3 border-t border-zinc-800">
+        {layout.bottom === 'toolbar' ? <Toolbar /> : null}
       </div>
     </div>
-  );
+  )
+}
+
+// ここは実アプリのものに置き換えてね
+function Toolbar() {
+  return <div className="h-full px-3 flex items-center text-sm">Toolbar</div>
+}
+function Palette() {
+  return <div className="h-full p-3 text-sm">Palette</div>
+}
+function Inspector() {
+  return <div className="h-full p-3 text-sm">Inspector</div>
+}
+function Canvas() {
+  return <div className="h-full bg-zinc-900/30">Canvas</div>
 }
 
