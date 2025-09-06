@@ -1,0 +1,35 @@
+{
+  "id": "map-home",
+  "title": "地図コレTOP",
+  "frameId": "frame-basic",
+  "content": [
+    { "id": "hero", "type": "Hero", "props": { "title": "地図で集める旅" } },
+    {
+      "id": "label1",
+      "type": "Text",
+      "bindings": {
+        "text": {
+          "inputs": [{ "scope": "page", "path": "prefCode" }],
+          "formula": { "expr": "`都道府県コード: ${$0}`" }
+        }
+      }
+    },
+    {
+      "id": "label2",
+      "type": "Text",
+      "bindings": {
+        "text": {
+          "inputs": [
+            { "scope": "page", "path": "prefCode" },
+            { "scope": "api", "path": "prefStats" }
+          ],
+          "formula": { "expr": "`${$1[$0]?.name ?? 'N/A'}：${$1[$0]?.population ?? '-'}人`" }
+        }
+      }
+    }
+  ],
+  "slotAssignments": {
+    "header": [{ "id": "nav", "type": "TopNav" }],
+    "sidebar": [{ "id": "list", "type": "PrefList" }]
+  }
+}

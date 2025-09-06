@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/types": ["packages/types/src/index.ts"],
+      "@chizu/types": ["packages/chizu-types/src/index.ts"],
+      "@chizu/registry": ["packages/chizu-registry/src/index.ts"],
+      "@chizu/renderer": ["packages/chizu-renderer/src/index.ts"],
+      "@chizu/ui": ["packages/chizu-ui/src/index.ts"]
+    }
+  }
+}

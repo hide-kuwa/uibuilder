@@ -1,0 +1,25 @@
+{
+  "name": "preview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "gen:sample": "tsx scripts/gen-sample.ts",
+    "prepare": "pnpm -r --filter @chizu/* build"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@chizu/renderer": "workspace:*",
+    "@chizu/registry": "workspace:*",
+    "@chizu/types": "workspace:*",
+    "swr": "2.2.5"
+  },
+  "devDependencies": {
+    "tsx": "4.16.2",
+    "typescript": "5.5.4"
+  }
+}

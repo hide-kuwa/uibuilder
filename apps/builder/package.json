@@ -1,0 +1,22 @@
+{
+  "name": "builder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prepare": "pnpm -r --filter @chizu/* build"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@chizu/types": "workspace:*",
+    "@chizu/renderer": "workspace:*",
+    "@chizu/registry": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

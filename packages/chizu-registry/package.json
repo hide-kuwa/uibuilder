@@ -1,0 +1,12 @@
+{
+  "name": "@chizu/registry",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@chizu/types": "workspace:*", "react": "^18.3.1" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

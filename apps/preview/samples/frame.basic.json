@@ -1,0 +1,10 @@
+{
+  "id": "frame-basic",
+  "name": "Basic",
+  "slots": [
+    { "name": "header" },
+    { "name": "sidebar" },
+    { "name": "content", "required": true },
+    { "name": "footer" }
+  ]
+}
