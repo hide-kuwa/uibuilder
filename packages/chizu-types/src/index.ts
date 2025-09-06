@@ -58,3 +58,11 @@ export interface RegistryEntry {
   slotSchema?: SlotSpec[]
   render: (props: any, slots?: Record<SlotName, ComponentNode[]>) => ReactNode
 }
+
+export interface HoverPreset {
+  id: string
+  name: string
+  base?: React.CSSProperties
+  hover?: React.CSSProperties
+  transition?: string // e.g. 'transform 0.2s ease, box-shadow 0.2s ease'
+}

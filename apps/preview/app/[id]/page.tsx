@@ -12,8 +12,24 @@ export default function Page({ params, searchParams }: { params: { id: string },
     ? (dynamic(() => import(`../../generated/pages/${file}`).then((m) => (m as any).default), { ssr: false }) as any)
     : (() => null)
   const prefCode = searchParams?.pref ?? '13'
+  const PREFS: Record<string,{ name:string; population:number }> = {
+    '01': { name: '北海道', population: 5224614 },
+    '13': { name: '東京都', population: 14047594 }
+  }
+  const HOVER_PRESETS = {
+    subtleLift: {
+      base: { transform:'translateY(0px)' },
+      hover: { transform:'translateY(-2px)', boxShadow:'0 4px 12px rgba(0,0,0,0.08)' },
+      transition: 'transform .15s ease, box-shadow .15s ease'
+    },
+    glow: {
+      base: { boxShadow:'0 0 0 rgba(0,0,0,0)' },
+      hover: { boxShadow:'0 0 0 4px rgba(99,102,241,0.2)' },
+      transition: 'box-shadow .15s ease'
+    }
+  }
   return (
-    <RuntimeProvider value={{ page: { prefCode } }}>
+    <RuntimeProvider value={{ page: { prefCode }, api: { prefStats: PREFS, hoverPresets: HOVER_PRESETS } }}>
       {file ? (
         <C />
       ) : (

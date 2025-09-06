@@ -100,10 +100,10 @@ function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string
   const slotDiffs = slots.map(slot=>{
     const o = getSlotNodes(oldP, slot)
     const n = getSlotNodes(newP, slot)
-    const { added, removed, same } = diffArrays(ids(o), ids(n))
+    const oIds = ids(o); const nIds = ids(n)
+    const { added, removed, same } = diffArrays(oIds, nIds)
     const oldMap = indexById(o); const newMap = indexById(n)
     const moved: string[] = []
-    const oIds = ids(o); const nIds = ids(n)
     same.forEach(id=>{ if (oIds.indexOf(id) !== nIds.indexOf(id)) moved.push(id) })
     const modified = same
       .map(id => ({ id, changes: diffPropsBindings(oldMap.get(id), newMap.get(id)) }))
@@ -118,18 +118,66 @@ function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string
 function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:any)=>void}){
   const schema = (REG as any).getSchema?.(node.type) as any
   if(!schema?.properties) return <div>Propsなし</div>
+  // fetch hover preset options
+  const { data: hoverList } = useSWR<{ items: Array<{ id: string; name: string }> }>(
+    '/api/hover',
+    fetcher
+  )
+  const options = hoverList?.items ?? []
   return (
     <div style={{display:'grid', gap:10}}>
-      {Object.entries(schema.properties).map(([key, spec]: any)=> (
-        <div key={key}>
-          <div style={{fontSize:12,color:'#666'}}>{key}</div>
-          <input
-            value={(node.props as any)?.[key] ?? spec.default ?? ''}
-            onChange={e=>onChange(key, (e.target as HTMLInputElement).value)}
-            style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
-          />
-        </div>
-      ))}
+      {Object.entries(schema.properties).map(([key, spec]: any)=>{
+        // single select
+        if (key === 'hoverPresetId') {
+          const val = (node.props as any)?.[key] ?? spec.default ?? ''
+          return (
+            <div key={key}>
+              <div style={{fontSize:12,color:'#666'}}>{spec.title || key}</div>
+              <select
+                value={val}
+                onChange={e=>onChange(key, (e.target as HTMLSelectElement).value)}
+                style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
+              >
+                <option value="">（なし）</option>
+                {options.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+              </select>
+            </div>
+          )
+        }
+        // multi select
+        if (key === 'hoverPresetIds') {
+          const val: string[] = (node.props as any)?.[key] ?? spec.default ?? []
+          return (
+            <div key={key}>
+              <div style={{fontSize:12,color:'#666'}}>{spec.title || key}</div>
+              <select
+                multiple
+                value={val}
+                onChange={e=>{
+                  const selected = Array.from((e.currentTarget as HTMLSelectElement).selectedOptions).map(o=>o.value)
+                  onChange(key, selected)
+                }}
+                size={Math.min(6, Math.max(3, options.length))}
+                style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
+              >
+                {options.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+              </select>
+              <div style={{fontSize:12, color:'#666', marginTop:4}}>選択順＝合成順（後の方が上書き）</div>
+            </div>
+          )
+        }
+        // default input
+        return (
+          <div key={key}>
+            <div style={{fontSize:12,color:'#666'}}>{spec.title || key}</div>
+            <input
+              value={(node.props as any)?.[key] ?? spec.default ?? ''}
+              onChange={e=>onChange(key, (e.target as HTMLInputElement).value)}
+              style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -313,7 +361,11 @@ export default function Builder() {
   const [inspectorTab, setInspectorTab] = useState<'props'|'bindings'>('props')
   const [lastSaved, setLastSaved] = useState<string>('')
   const [dirty, setDirty] = useState<boolean>(true)
-  const [showDiff, setShowDiff] = useState(false)
+  const [showDiff, setShowDiff] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const v = localStorage.getItem('chizu:showDiff')
+    return v === '1'
+  })
   const parsedLast = useMemo(() => {
     try { return JSON.parse(lastSaved || '{}') as { page?:Page; frameId?:string } } catch { return {} as any }
   }, [lastSaved])
@@ -321,6 +373,17 @@ export default function Builder() {
     if (!(parsedLast as any)?.page) return null as any
     return diffPage((parsedLast as any).page as Page, page, ((parsedLast as any).frameId as string) ?? 'frame-basic', frameId)
   }, [parsedLast, page, frameId])
+
+  useEffect(() => {
+    localStorage.setItem('chizu:showDiff', showDiff ? '1' : '0')
+  }, [showDiff])
+
+  const diffCount = useMemo(() => {
+    const d: any = diffs as any
+    if (!d) return 0
+    const base = d.slotDiffs.reduce((acc: number, s: any) => acc + s.added.length + s.removed.length + s.moved.length + s.modified.length, 0)
+    return base + (d.titleChanged ? 1 : 0) + (d.frameChanged ? 1 : 0)
+  }, [diffs])
   const push = (next: Page) => { setHistory(h=>[...h.slice(-49), page]); setPage(next) }
 
   const { data: list } = useSWR<{ ids: string[] }>(
@@ -563,6 +626,8 @@ export default function Builder() {
 
   // auto open diff when dirty
   useEffect(()=>{ if (dirty) setShowDiff(true) }, [dirty])
+  // optionally close on save completion
+  useEffect(()=>{ if (!dirty && showDiff) setShowDiff(false) }, [dirty, showDiff])
 
   const newPage = () => {
     const id = prompt('新しい pageId を入力してください（例：map-about）','map-about')
@@ -595,7 +660,13 @@ export default function Builder() {
               show(`Renamed → ${j.id}`)
             }}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>Rename</button>
-          <button onClick={()=>setShowDiff(v=>!v)} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>変更点を見る</button>
+          <button
+            onClick={()=>setShowDiff(v=>!v)}
+            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
+            title="ページのDraftとPublishedの差分を表示"
+          >
+            変更点を見る{diffCount>0 ? `（${diffCount}）` : ''}
+          </button>
           <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '●' : '✓'}</button>
 
           <select
@@ -769,14 +840,17 @@ export default function Builder() {
                   <div style={{color:'#888'}}>変更なし</div>
                 ) : (
                   <div style={{display:'grid', gap:4}}>
-                    {s.added.map((id:string)=> <button key={`a-${id}`} onClick={()=>{setSelSlot(s.slot); setSelId(id)}} style={{textAlign:'left'}}>＋ 追加: {id}</button>)}
+                    {s.added.map((id:string)=> <button key={`a-${id}`} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===id); if (!exists) return; setSelSlot(s.slot); setSelId(id) }} style={{textAlign:'left'}}>＋ 追加: {id}</button>)}
                     {s.removed.map((id:string)=> <div key={`r-${id}`}>－ 削除: {id}</div>)}
-                    {s.moved.map((id:string)=> <button key={`m-${id}`} onClick={()=>{setSelSlot(s.slot); setSelId(id)}} style={{textAlign:'left'}}>↕ 並び替え: {id}</button>)}
-                    {s.modified.map((m:any) => (
-                      <button key={`c-${m.id}`} onClick={()=>{setSelSlot(s.slot); setSelId(m.id)}} style={{textAlign:'left'}}>
-                        ✎ 変更: {m.id}（{m.changes.map((c:any)=> (c.kind==='prop'?`prop:${c.key}`:`binding:${c.key}`)).join(', ')}）
-                      </button>
-                    ))}
+                    {s.moved.map((id:string)=> <button key={`m-${id}`} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===id); if (!exists) return; setSelSlot(s.slot); setSelId(id) }} style={{textAlign:'left'}}>↕ 並び替え: {id}</button>)}
+                    {s.modified.map((m:any) => {
+                      const onlyBinding = m.changes.length>0 && m.changes.every((c:any) => c.kind === 'binding')
+                      return (
+                        <button key={`c-${m.id}`} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===m.id); if (!exists) return; setSelSlot(s.slot); setSelId(m.id); if (onlyBinding) setInspectorTab('bindings') }} style={{textAlign:'left'}}>
+                          ✎ 変更: {m.id}（{m.changes.map((c:any)=> (c.kind==='prop'?`prop:${c.key}`:`binding:${c.key}`)).join(', ')}）
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </div>

@@ -1,12 +1,22 @@
 import React from 'react'
 import { RegistryEntry, ComponentNode } from '@chizu/types'
+import { applyHoverFlexible } from '@chizu/renderer'
 
-export const entries: Record<string, RegistryEntry> = {
+const CommonHover: any = {
+  hoverPresetId:  { type: 'string', title: 'Hover Preset (single)', default: '' },
+  hoverPresetIds: { type: 'array', title: 'Hover Presets (multi)', items: { type: 'string' }, default: [] },
+}
+
+export const entries: any = {
   Text: {
     id: 'Text',
     displayName: 'Text',
     propsSchema: { type: 'object', properties: { text: { type: 'string', title: 'text', default: '' } } },
-    render: (p) => React.createElement('span', null, p.text ?? '')
+    render: (p: any, _slots?: any, runtime?: any) => {
+      const node = React.createElement('span', { style: { display: 'inline-block' } }, p.text ?? '')
+      const presetArg = (p.hoverPresetIds?.length ? p.hoverPresetIds : p.hoverPresetId) as any
+      return applyHoverFlexible(node, presetArg, runtime?.api?.hoverPresets)
+    }
   },
   Image: {
     id: 'Image',
@@ -18,7 +28,11 @@ export const entries: Record<string, RegistryEntry> = {
     id: 'Hero',
     displayName: 'Hero',
     propsSchema: { type: 'object', properties: { title: { type: 'string', title: 'title', default: '' } } },
-    render: (p) => React.createElement('h1', null, p.title ?? '')
+    render: (p: any, _slots?: any, runtime?: any) => {
+      const node = React.createElement('h1', null, p.title ?? '')
+      const presetArg = (p.hoverPresetIds?.length ? p.hoverPresetIds : p.hoverPresetId) as any
+      return applyHoverFlexible(node, presetArg, runtime?.api?.hoverPresets)
+    }
   },
   TopNav: {
     id: 'TopNav',
@@ -78,3 +92,25 @@ export const entries: Record<string, RegistryEntry> = {
 export const R = new Proxy(entries, { get: (t, p: string) => (t as any)[p]?.render ?? (() => React.createElement('div', null, `Unknown:${p}`)) })
 export default R
 export function getSchema(type: string) { return (entries as any)[type]?.propsSchema }
+export function mergeHoverStyle(
+  el: JSX.Element,
+  preset?: { base?: React.CSSProperties; hover?: React.CSSProperties; transition?: string }
+){
+  if (!preset) return el
+  const props = { ...(el.props||{}) }
+  const style: React.CSSProperties = { ...(props.style||{}), ...(preset.base||{}) }
+  if (preset.transition) style.transition = preset.transition
+  const onMouseEnter = (e:any) => {
+    if (preset.hover) Object.assign(e.currentTarget.style, preset.hover)
+    props.onMouseEnter?.(e)
+  }
+  const onMouseLeave = (e:any) => {
+    if (preset.base) Object.assign(e.currentTarget.style, preset.base)
+    props.onMouseLeave?.(e)
+  }
+  return React.cloneElement(el, { ...props, style, onMouseEnter, onMouseLeave })
+}
+
+// extend schemas with common hover field for Text/Hero
+entries.Text.propsSchema.properties = { ...entries.Text.propsSchema.properties, ...CommonHover }
+entries.Hero.propsSchema.properties = { ...entries.Hero.propsSchema.properties, ...CommonHover }

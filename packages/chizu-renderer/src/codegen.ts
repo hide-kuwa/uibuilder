@@ -87,7 +87,7 @@ export function generatePageCode(opts: CodegenOptions) {
     const propsLit = stablePropsLiteral(n.props)
     const bindingsLit = n.bindings ? JSON.stringify(n.bindings) : '{}'
     factories.push(
-      `const ${varName}=()=>R[${JSON.stringify(n.type)}](resolveBinding(runtime,${JSON.stringify(varName)},${propsLit},${bindingsLit}))`
+      `const ${varName}=()=>R[${JSON.stringify(n.type)}](resolveBinding(runtime,${JSON.stringify(varName)},${propsLit},${bindingsLit}), runtime)`
     )
     return varName
   }
@@ -115,11 +115,10 @@ export function generatePageCode(opts: CodegenOptions) {
     `export default function ${compName}(){`,
     `const runtime=useFlowRuntime()`,
     ...factories,
-    `return R[${JSON.stringify(frameId)}]({${slotLines.join(',')}})`,
+    `return R[${JSON.stringify(frameId)}]({${slotLines.join(',')}} , runtime)`,
     `}`,
   ].join('\n')
 
   const fileName = `${page.id}.${stableKey}.tsx`
   return { tsx: body, fileName, stableKey }
 }
-

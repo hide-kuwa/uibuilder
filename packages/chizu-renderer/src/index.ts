@@ -25,3 +25,34 @@ export function Slot({ nodes }: { nodes: Array<() => React.ReactNode> }) {
     nodes.map((N, i) => React.createElement(React.Fragment, { key: i }, N()))
   )
 }
+
+// Hover preset application (delegates to registry helper to avoid tight coupling)
+export type HoverPresetMap = Record<string, { base?: React.CSSProperties; hover?: React.CSSProperties; transition?: string }>
+
+export function applyHover(el: JSX.Element, hoverPresetId?: string, presets?: HoverPresetMap) {
+  if (!hoverPresetId) return el
+  const preset = presets?.[hoverPresetId]
+  if (!preset) return el
+  // lazy require to avoid circular ESM issues
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const REG = require('@chizu/registry')
+  return REG.mergeHoverStyle(el, preset)
+}
+
+// Accept single or multiple preset ids; apply in order (later wins on overlaps)
+export function applyHoverFlexible(
+  el: JSX.Element,
+  presetIdOrIds: string | string[] | undefined,
+  presets?: HoverPresetMap
+) {
+  if (!presetIdOrIds) return el
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const REG = require('@chizu/registry')
+  const ids = Array.isArray(presetIdOrIds) ? presetIdOrIds : [presetIdOrIds]
+  let node = el
+  for (const id of ids) {
+    const p = presets?.[id]
+    if (p) node = REG.mergeHoverStyle(node, p)
+  }
+  return node
+}
