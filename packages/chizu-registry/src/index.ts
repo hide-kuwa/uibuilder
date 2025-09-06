@@ -46,6 +46,32 @@ export const entries: Record<string, RegistryEntry> = {
         React.createElement('footer', null, S('footer'))
       )
     }
+  },
+  Frame_Toponly: {
+    id: 'Frame_Toponly',
+    displayName: 'Frame TopOnly',
+    propsSchema: { type: 'object', properties: {} },
+    slotSchema: [{ name: 'header' }, { name: 'content', required: true }],
+    render: (_p, slots) => {
+      const S = (name: string) => (slots?.[name] ?? []).map((n, i) => React.createElement('div', { key: i }, `[${(n as ComponentNode).type}]`))
+      return React.createElement(React.Fragment, null,
+        React.createElement('header', null, S('header')),
+        React.createElement('main', null, S('content')),
+      )
+    }
+  },
+  Frame_Wide: {
+    id: 'Frame_Wide',
+    displayName: 'Frame Wide',
+    propsSchema: { type: 'object', properties: {} },
+    slotSchema: [{ name: 'content', required: true }, { name: 'footer' }],
+    render: (_p, slots) => {
+      const S = (name: string) => (slots?.[name] ?? []).map((n, i) => React.createElement('div', { key: i }, `[${(n as ComponentNode).type}]`))
+      return React.createElement(React.Fragment, null,
+        React.createElement('main', null, S('content')),
+        React.createElement('footer', null, S('footer'))
+      )
+    }
   }
 }
 

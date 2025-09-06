@@ -1,10 +1,47 @@
 'use client'
-import { useState } from 'react'
-import * as REG from '@chizu/registry'
+import { useEffect, useMemo, useState } from 'react'
+import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
+import * as REG from '@chizu/registry'
 
-const FRAME: Frame = { id: 'frame-basic', name: 'Basic', slots: [{name:'header'},{name:'sidebar'},{name:'content',required:true},{name:'footer'}] }
-const INITIAL: Page = { id: 'map-home', title: '地図コレTOP', frameId: 'frame-basic', content: [{ id:'hero', type:'Hero', props:{ title:'地図で集める旅' } }], slotAssignments: { header:[{id:'nav',type:'TopNav'}], sidebar:[{id:'list',type:'PrefList'}] } }
+const fetcher = (u: string) => fetch(u).then((r) => r.json())
+
+const FRAMES: Frame[] = [
+  {
+    id: 'frame-basic',
+    name: 'Basic',
+    slots: [
+      { name: 'header' },
+      { name: 'sidebar' },
+      { name: 'content', required: true },
+      { name: 'footer' },
+    ],
+  },
+  {
+    id: 'frame-top',
+    name: 'TopOnly',
+    slots: [
+      { name: 'header' },
+      { name: 'content', required: true },
+    ],
+  },
+  {
+    id: 'frame-wide',
+    name: 'Wide',
+    slots: [
+      { name: 'content', required: true },
+      { name: 'footer' },
+    ],
+  },
+]
+
+const DEFAULT_PAGE = (id = 'map-home'): Page => ({
+  id,
+  title: '新規ページ',
+  frameId: 'frame-basic',
+  content: [],
+  slotAssignments: {}
+})
 
 const CATALOG: Array<{type:string; label:string; defaultProps?:Record<string,any>}> = [
   { type:'Text', label:'Text', defaultProps:{ text:'テキスト' } },
@@ -14,8 +51,72 @@ const CATALOG: Array<{type:string; label:string; defaultProps?:Record<string,any
   { type:'PrefList', label:'PrefList' }
 ]
 
-function PropsEditor({ node, onChange }: { node: ComponentNode; onChange: (k: string, v: any) => void }){
-  const schema: any = (REG as any).getSchema?.(node.type)
+type SlotName = 'header'|'sidebar'|'content'|'footer'
+
+// Builder-side lightweight runtime preview data for bindings
+const PREVIEW_API: Record<string, any> = {
+  prefStats: {
+    '01': { name: '北海道', population: 5224614 },
+    '13': { name: '東京都', population: 14047594 },
+  },
+}
+
+// ---- diff utilities ----
+function indexById(nodes: ComponentNode[] = []) {
+  const m = new Map<string, ComponentNode>()
+  nodes.forEach(n => m.set(n.id, n))
+  return m
+}
+function ids(nodes: ComponentNode[] = []) { return nodes.map(n=>n.id) }
+function diffArrays<T>(oldArr: T[], newArr: T[]) {
+  const oldSet = new Set(oldArr as any[])
+  const newSet = new Set(newArr as any[])
+  const added = [...newSet].filter(x=>!oldSet.has(x))
+  const removed = [...oldSet].filter(x=>!newSet.has(x))
+  const same = [...newSet].filter(x=>oldSet.has(x))
+  return { added, removed, same }
+}
+function shallowEqual(a:any,b:any){ return JSON.stringify(a)===JSON.stringify(b) }
+function diffPropsBindings(oldN?:ComponentNode, newN?:ComponentNode){
+  const changes: Array<{key:string; from:any; to:any; kind:'prop'|'binding'}> = []
+  if (!oldN || !newN) return changes
+  const pKeys = new Set([...(Object.keys(oldN.props??{})), ...(Object.keys(newN.props??{}))])
+  pKeys.forEach(k=>{
+    const ov = (oldN.props as any)?.[k]; const nv = (newN.props as any)?.[k]
+    if (!shallowEqual(ov,nv)) changes.push({ key:k, from:ov, to:nv, kind:'prop' })
+  })
+  const bKeys = new Set([...(Object.keys(oldN.bindings??{})), ...(Object.keys(newN.bindings??{}))])
+  bKeys.forEach(k=>{
+    const ov = (oldN.bindings as any)?.[k]; const nv = (newN.bindings as any)?.[k]
+    if (!shallowEqual(ov,nv)) changes.push({ key:k, from:ov, to:nv, kind:'binding' })
+  })
+  return changes
+}
+function getSlotNodes(p: Page, slot: SlotName): ComponentNode[] {
+  return slot==='content' ? (p.content??[]) : (p.slotAssignments?.[slot] ?? [])
+}
+function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string){
+  const slots: SlotName[] = ['header','sidebar','content','footer']
+  const slotDiffs = slots.map(slot=>{
+    const o = getSlotNodes(oldP, slot)
+    const n = getSlotNodes(newP, slot)
+    const { added, removed, same } = diffArrays(ids(o), ids(n))
+    const oldMap = indexById(o); const newMap = indexById(n)
+    const moved: string[] = []
+    const oIds = ids(o); const nIds = ids(n)
+    same.forEach(id=>{ if (oIds.indexOf(id) !== nIds.indexOf(id)) moved.push(id) })
+    const modified = same
+      .map(id => ({ id, changes: diffPropsBindings(oldMap.get(id), newMap.get(id)) }))
+      .filter(x => x.changes.length>0)
+    return { slot, added, removed, moved, modified }
+  })
+  const titleChanged = !shallowEqual(oldP.title, newP.title)
+  const frameChanged = frameIdOld !== frameIdNew
+  return { titleChanged, frameChanged, slotDiffs }
+}
+
+function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:any)=>void}){
+  const schema = (REG as any).getSchema?.(node.type) as any
   if(!schema?.properties) return <div>Propsなし</div>
   return (
     <div style={{display:'grid', gap:10}}>
@@ -33,78 +134,655 @@ function PropsEditor({ node, onChange }: { node: ComponentNode; onChange: (k: st
   )
 }
 
+function BindingsEditor({
+  node,
+  onChange
+}: {
+  node: ComponentNode
+  onChange: (next: ComponentNode) => void
+}) {
+  const schema: any = REG.getSchema(node.type)
+  const propKeys: string[] = Object.keys(schema?.properties ?? {})
+  const currentBindings = node.bindings ?? {}
+
+  const initialProp =
+    (node.meta as any)?.lastBindingProp ||
+    Object.keys(currentBindings)[0] ||
+    propKeys[0] ||
+    ''
+
+  const [targetProp, setTargetProp] = useState<string>(initialProp)
+
+  const cur = currentBindings[targetProp]
+  const [rows, setRows] = useState<Array<{ scope: 'page'|'api', path: string }>>(
+    cur?.inputs?.length
+      ? cur.inputs.map((r: any) => ({ scope: r.scope, path: r.path }))
+      : [{ scope: 'page', path: 'prefCode' }]
+  )
+  const [expr, setExpr] = useState<string>(
+    cur?.formula?.expr ?? '`値: ${$0}`'
+  )
+
+  // 行操作
+  const addRow = () => setRows(rs => [...rs, { scope: 'page', path: '' }])
+  const delRow = (i: number) => setRows(rs => rs.filter((_, idx) => idx !== i))
+  const moveRow = (i: number, dir: -1|1) => setRows(rs => {
+    const j = i + dir; if (j<0 || j>=rs.length) return rs
+    const a = [...rs]; [a[i], a[j]] = [a[j], a[i]]; return a
+  })
+  const setRow = (i: number, patch: Partial<{scope:'page'|'api', path:string}>) =>
+    setRows(rs => rs.map((r, idx) => idx===i ? { ...r, ...patch } : r))
+
+  // ライブプレビュー：簡易ランタイム
+  const PREVIEW_PAGE = { prefCode: '13' }
+  const PREVIEW_API  = {
+    prefStats: {
+      '01': { name: '北海道', population: 5224614 },
+      '13': { name: '東京都', population: 14047594 }
+    }
+  }
+
+  const inputsPreview: any[] = rows.map(r => {
+    if (r.scope === 'page') {
+      // dot-walk（最小）
+      return r.path.split('.').reduce((acc:any,k)=>acc?.[k], PREVIEW_PAGE)
+    } else {
+      return r.path.split('.').reduce((acc:any,k)=>acc?.[k], PREVIEW_API)
+    }
+  })
+
+  const previewValue = (() => {
+    try {
+      // 安全策：式は文字列＆長さ制限
+      if (typeof expr !== 'string' || expr.length > 500) return '(式が長すぎます)'
+      // eslint-disable-next-line no-new-func
+      const f = new Function(...inputsPreview.map((_,i)=>`$${i}`), `return (${expr})`)
+      return String(f(...inputsPreview))
+    } catch {
+      return '(式エラー)'
+    }
+  })()
+
+  const apply = () => {
+    const nextBindings = {
+      ...(node.bindings ?? {}),
+      [targetProp]: {
+        inputs: rows.map(r => ({ scope: r.scope, path: r.path })),
+        formula: { expr }
+      }
+    }
+    const next: ComponentNode = {
+      ...node,
+      bindings: nextBindings,
+      meta: { ...(node.meta ?? {}), lastBindingProp: targetProp }
+    }
+    onChange(next)
+  }
+
+  const remove = () => {
+    const nb = { ...(node.bindings ?? {}) } as any
+    delete nb[targetProp]
+    const next: ComponentNode = {
+      ...node,
+      bindings: Object.keys(nb).length ? nb : undefined,
+      meta: { ...(node.meta ?? {}), lastBindingProp: targetProp }
+    }
+    onChange(next)
+  }
+
+  // targetProp 変更時にUIを既存値へ
+  useEffect(() => {
+    const b = (node.bindings ?? {})[targetProp] as any
+    setRows(
+      b?.inputs?.length
+        ? b.inputs.map((r: any) => ({ scope: r.scope, path: r.path }))
+        : [{ scope: 'page', path: 'prefCode' }]
+    )
+    setExpr(b?.formula?.expr ?? '`値: ${$0}`')
+  }, [targetProp, node.bindings])
+
+  return (
+    <div style={{display:'grid', gap:10}}>
+      <div>
+        <div style={{fontSize:12,color:'#666'}}>prop</div>
+        <select value={targetProp} onChange={e=>setTargetProp((e.target as HTMLSelectElement).value)} style={{width:'100%'}}>
+          {propKeys.map(k => <option key={k} value={k}>{k}</option>)}
+        </select>
+      </div>
+
+      <div style={{fontSize:12,color:'#666', marginTop:4}}>inputs（$0…$n）</div>
+      <div style={{display:'grid', gap:8}}>
+        {rows.map((r, i) => (
+          <div key={i} style={{display:'grid', gridTemplateColumns:'64px 1fr auto', gap:8, alignItems:'center'}}>
+            <span style={{fontSize:12, color:'#666'}}>${i}</span>
+            <div style={{display:'grid', gridTemplateColumns:'120px 1fr', gap:8}}>
+              <select value={r.scope} onChange={e=>setRow(i, { scope: (e.target as HTMLSelectElement).value as any })}>
+                <option value="page">page</option>
+                <option value="api">api</option>
+              </select>
+              <input value={r.path} onChange={e=>setRow(i, { path: (e.target as HTMLInputElement).value })} placeholder={r.scope==='page'?'prefCode':'prefStats.xxx'} />
+            </div>
+            <div style={{display:'flex', gap:6}}>
+              <button onClick={()=>moveRow(i,-1)} disabled={i===0}>↑</button>
+              <button onClick={()=>moveRow(i, 1)} disabled={i===rows.length-1}>↓</button>
+              <button onClick={()=>delRow(i)}>削除</button>
+            </div>
+          </div>
+        ))}
+        <button onClick={addRow} style={{width:'fit-content'}}>+ input</button>
+      </div>
+
+      <div>
+        <div style={{fontSize:12,color:'#666'}}>expr</div>
+        <textarea value={expr} onChange={e=>setExpr((e.target as HTMLTextAreaElement).value)} rows={3} style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8, fontFamily:'monospace'}} />
+        <div style={{fontSize:12, color:'#666', marginTop:6}}>
+          使い方例：<code>`名前: ${'$'}{$0}</code>、<code>`人口: ${'$'}{$1?.population}`</code>
+        </div>
+      </div>
+
+      <div style={{fontSize:12,color:'#666'}}>preview</div>
+      <div style={{padding:'8px 10px', border:'1px dashed #ccc', borderRadius:8, background:'#fafafa'}}>{previewValue}</div>
+
+      <div style={{display:'flex', gap:8}}>
+        <button onClick={apply} style={{padding:'6px 10px', borderRadius:8, background:'#111', color:'#fff'}}>適用</button>
+        <button onClick={remove} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>解除</button>
+      </div>
+    </div>
+  )
+}
+
 export default function Builder() {
-  const [page,setPage] = useState<Page>(INITIAL)
-  const [sel,setSel] = useState<string|undefined>(page.content[0]?.id)
+  const [page,setPage] = useState<Page>(() => {
+    const p = DEFAULT_PAGE('map-home')
+    p.content.push({ id:'hero_init', type:'Hero', props:{ title:'地図で集める旅' } })
+    p.slotAssignments = { header:[{id:'nav',type:'TopNav'}], sidebar:[{id:'list',type:'PrefList'}] }
+    return p
+  })
+  const [frameId, setFrameId] = useState<string>('frame-basic')
+  const currentFrame = useMemo(() => FRAMES.find(f => f.id === frameId)!, [frameId])
+
+  const [selSlot, setSelSlot] = useState<SlotName>('content')
+  const currentNodes = useMemo(() => {
+    return selSlot === 'content'
+      ? (page.content ?? [])
+      : (page.slotAssignments?.[selSlot] ?? [])
+  }, [page, selSlot])
+
+  const [selId,setSelId] = useState<string|undefined>(undefined)
   const [history,setHistory] = useState<Page[]>([])
+  const [inspectorTab, setInspectorTab] = useState<'props'|'bindings'>('props')
+  const [lastSaved, setLastSaved] = useState<string>('')
+  const [dirty, setDirty] = useState<boolean>(true)
+  const [showDiff, setShowDiff] = useState(false)
+  const parsedLast = useMemo(() => {
+    try { return JSON.parse(lastSaved || '{}') as { page?:Page; frameId?:string } } catch { return {} as any }
+  }, [lastSaved])
+  const diffs = useMemo(()=>{
+    if (!(parsedLast as any)?.page) return null as any
+    return diffPage((parsedLast as any).page as Page, page, ((parsedLast as any).frameId as string) ?? 'frame-basic', frameId)
+  }, [parsedLast, page, frameId])
   const push = (next: Page) => { setHistory(h=>[...h.slice(-49), page]); setPage(next) }
+
+  const { data: list } = useSWR<{ ids: string[] }>(
+    '/api/pages',
+    fetcher,
+    { refreshInterval: 2000 }
+  )
+
+  useEffect(() => {
+    const last = typeof window !== 'undefined' ? localStorage.getItem('chizu:lastPageId') : null
+    if (!last) return
+    fetch(`/api/page?id=${encodeURIComponent(last)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.page) {
+          setPage(j.page as Page)
+          setSelId(undefined)
+          setSelSlot('content')
+          setHistory([])
+          if ((j.page as Page).frameId) setFrameId((j.page as Page).frameId as string)
+          const fid = ((j.page as Page).frameId as string) || 'frame-basic'
+          setLastSaved(JSON.stringify({ page: j.page as Page, frameId: fid }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const loadPage = async (id: string) => {
+    const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`)
+    if (!res.ok) return alert('読み込みに失敗しました')
+    const { page: loaded } = (await res.json()) as { page: Page }
+    setHistory([])
+    setSelId(undefined)
+    setSelSlot('content')
+    setPage(loaded)
+    const fid = loaded.frameId ?? 'frame-basic'
+    setFrameId(fid)
+    setLastSaved(JSON.stringify({ page: loaded, frameId: fid }))
+    localStorage.setItem('chizu:lastPageId', loaded.id)
+  }
+
+  const deletePage = async (id: string) => {
+    if (!confirm(`Delete page "${id}"? この操作は元に戻せません。`)) return
+    const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    if (!res.ok) return alert('削除に失敗しました')
+    if (id === page.id) {
+      setHistory([])
+      setSelId(undefined)
+      setSelSlot('content')
+      setPage(DEFAULT_PAGE('map-home'))
+      setFrameId('frame-basic')
+      localStorage.removeItem('chizu:lastPageId')
+    }
+  }
+
+  const duplicatePage = async (id: string) => {
+    const to = prompt(`複製先の pageId`, `${id}-copy`)
+    if (!to || to===id) return
+    const res = await fetch('/api/duplicate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ sourceId: id, newId: to }) })
+    if (res.status===409) { show('同じ pageId が存在します'); return }
+    if (!res.ok) { show('処理に失敗しました'); return }
+    show('完了しました')
+  }
+
+  const ensureSlot = (p: Page, name: SlotName) => {
+    if (!p.slotAssignments) p.slotAssignments = {}
+    if (!p.slotAssignments[name]) p.slotAssignments[name] = []
+  }
+
+  function getSlotArray(p: Page, slot: SlotName) {
+    return slot === 'content' ? (p.content ?? []) : (p.slotAssignments?.[slot] ?? [])
+  }
+  function setSlotArray(p: Page, slot: SlotName, arr: ComponentNode[]) {
+    if (slot === 'content') p.content = arr
+    else { if(!p.slotAssignments) p.slotAssignments = {}; p.slotAssignments[slot] = arr }
+  }
+
+  function remapSlotsOnFrameChange(p: Page, from: Frame, to: Frame): Page {
+    const keep = new Set(to.slots.map(s => s.name))
+    const out: Page = structuredClone(p)
+    out.frameId = to.id
+
+    const nextAssign: Record<string, ComponentNode[]> = {}
+    if (out.slotAssignments) {
+      for (const [slot, nodes] of Object.entries(out.slotAssignments)) {
+        if (keep.has(slot)) nextAssign[slot] = nodes as ComponentNode[]
+      }
+    }
+
+    const goneNodes: ComponentNode[] = []
+    if (out.slotAssignments) {
+      for (const [slot, nodes] of Object.entries(out.slotAssignments)) {
+        if (!keep.has(slot)) goneNodes.push(...((nodes as ComponentNode[]) ?? []))
+      }
+    }
+    out.content = [...(out.content ?? []), ...goneNodes]
+    out.slotAssignments = nextAssign
+    return out
+  }
 
   const addNode = (type:string) => {
     const id = `${type.toLowerCase()}_${Math.random().toString(36).slice(2,7)}`
     const def = CATALOG.find(c=>c.type===type)?.defaultProps ?? {}
     const n: ComponentNode = { id, type, props: def }
-    push({ ...page, content: [...page.content, n] })
-    setSel(id)
+    if (selSlot === 'content') {
+      push({ ...page, content: [...(page.content ?? []), n] })
+    } else {
+      const next = structuredClone(page)
+      ensureSlot(next, selSlot)
+      next.slotAssignments![selSlot]!.push(n)
+      push(next)
+    }
+    setSelId(id)
   }
 
-  const updateProp = (k:string, v:string) => {
-    push({ ...page, content: page.content.map(n => n.id===sel ? ({ ...n, props: { ...(n.props??{}), [k]: v } }) : n ) })
+  const updateProp = (k:string, v:any) => {
+    if (!selId) return
+    if (selSlot === 'content') {
+      push({ ...page, content: (page.content ?? []).map(n => n.id===selId ? ({ ...n, props: { ...(n.props??{}), [k]: v } }) : n ) })
+    } else {
+      const next = structuredClone(page)
+      ensureSlot(next, selSlot)
+      next.slotAssignments![selSlot] = (next.slotAssignments![selSlot] ?? []).map(n => n.id===selId ? ({ ...n, props: { ...(n.props??{}), [k]: v } }) : n )
+      push(next)
+    }
   }
 
-  const removeSel = ()=> sel && push({ ...page, content: page.content.filter(n=>n.id!==sel) })
-  const moveSel = (dir:-1|1)=>{
-    const i = page.content.findIndex(n=>n.id===sel); if(i<0) return
-    const arr=[...page.content]; const j=i+dir; if(j<0||j>=arr.length) return
-    ;[arr[i],arr[j]]=[arr[j],arr[i]]; push({ ...page, content: arr })
+  const removeSel = () => {
+    if (!selId) return
+    if (selSlot === 'content') {
+      push({ ...page, content: (page.content ?? []).filter(n=>n.id!==selId) })
+    } else {
+      const next = structuredClone(page)
+      ensureSlot(next, selSlot)
+      next.slotAssignments![selSlot] = (next.slotAssignments![selSlot] ?? []).filter(n=>n.id!==selId)
+      push(next)
+    }
+    setSelId(undefined)
   }
-  const undo = ()=>{ const prev = history.at(-1); if(!prev) return; setHistory(h=>h.slice(0,-1)); setPage(prev); setSel(prev.content[0]?.id) }
 
-  const selected = page.content.find(n=>n.id===sel)
+  const moveSel = (dir:-1|1) => {
+    if (!selId) return
+    const arr = selSlot === 'content'
+      ? [...(page.content ?? [])]
+      : [...(page.slotAssignments?.[selSlot] ?? [])]
+    const i = arr.findIndex(n=>n.id===selId); if(i<0) return
+    const j = i + dir; if (j<0 || j>=arr.length) return
+    ;[arr[i],arr[j]]=[arr[j],arr[i]]
+    if (selSlot === 'content') push({ ...page, content: arr })
+    else {
+      const next = structuredClone(page)
+      ensureSlot(next, selSlot)
+      next.slotAssignments![selSlot] = arr
+      push(next)
+    }
+  }
+
+  const duplicateSel = () => {
+    if (!selId) return
+    const list = getSlotArray(page, selSlot)
+    const i = list.findIndex(n=>n.id===selId); if (i<0) return
+    const src = list[i]
+    const copy: ComponentNode = structuredClone(src)
+    copy.id = `${src.type.toLowerCase()}_${Math.random().toString(36).slice(2,7)}`
+    const next = structuredClone(page)
+    const arr = getSlotArray(next, selSlot)
+    arr.splice(i+1, 0, copy)
+    setSlotArray(next, selSlot, arr)
+    push(next); setSelId(copy.id)
+  }
+
+  const moveSelToSlot = (dest: SlotName) => {
+    if (!selId || dest===selSlot) return
+    const next = structuredClone(page)
+    const fromArr = getSlotArray(next, selSlot)
+    const i = fromArr.findIndex(n=>n.id===selId); if (i<0) return
+    const [node] = fromArr.splice(i,1)
+    setSlotArray(next, selSlot, fromArr)
+    const toArr = getSlotArray(next, dest)
+    toArr.push(node)
+    setSlotArray(next, dest, toArr)
+    push(next); setSelSlot(dest)
+  }
+
+  const undo = () => {
+    const prev = history.at(-1); if(!prev) return
+    setHistory(h=>h.slice(0,-1))
+    setPage(prev)
+    setSelId(undefined)
+  }
+
+  const selected = useMemo(() => currentNodes.find(n=>n.id===selId), [currentNodes, selId])
+
+  // keyboard shortcuts
+  const SLOT_ORDER: SlotName[] = ['header','sidebar','content','footer']
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selId) return
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeSel() }
+      if (e.key === 'ArrowUp')  { e.preventDefault(); moveSel(-1) }
+      if (e.key === 'ArrowDown'){ e.preventDefault(); moveSel( 1) }
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault()
+        const idx = SLOT_ORDER.indexOf(selSlot)
+        const nextIdx = e.key === 'ArrowLeft' ? Math.max(0, idx-1) : Math.min(SLOT_ORDER.length-1, idx+1)
+        const dest = SLOT_ORDER[nextIdx]
+        if (dest !== selSlot) moveSelToSlot(dest)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selId, page, selSlot])
+
+  // dirty tracking and save
+  useEffect(()=>{
+    const cur = JSON.stringify({ page, frameId })
+    setDirty(cur !== lastSaved)
+  }, [page, frameId, lastSaved])
 
   const save = async () => {
-    await fetch('/api/save', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ page, frame: FRAME }) })
-    alert('Saved and generated. Open /map-home in Preview app.')
+    if (!dirty) return
+    const frame = currentFrame
+    await fetch('/api/save', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({ page, frame })
+    })
+    const snap = JSON.stringify({ page, frameId })
+    setLastSaved(snap)
+    localStorage.setItem('chizu:lastPageId', page.id)
+  }
+
+  useEffect(()=>{ setLastSaved(JSON.stringify({ page, frameId })) },[]) // initial snapshot
+
+  useEffect(()=>{
+    if (!dirty) return
+    const t = setTimeout(()=>{ save().catch(()=>{}) }, 1500)
+    return ()=>clearTimeout(t)
+  }, [dirty])
+
+  // auto open diff when dirty
+  useEffect(()=>{ if (dirty) setShowDiff(true) }, [dirty])
+
+  const newPage = () => {
+    const id = prompt('新しい pageId を入力してください（例：map-about）','map-about')
+    if (!id) return
+    setHistory([])
+    setSelSlot('content')
+    setSelId(undefined)
+    const np = DEFAULT_PAGE(id)
+    setPage(np)
+    setFrameId('frame-basic')
+    setLastSaved(JSON.stringify({ page: np, frameId: 'frame-basic' }))
   }
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:'260px 1fr 320px', height:'100vh'}}>
-      <div style={{borderRight:'1px solid #eee', padding:12}}>
-        <h3 style={{margin:'8px 0'}}>Components</h3>
-        <div style={{display:'grid', gap:8}}>
-          {CATALOG.map(c => (
-            <button key={c.type} onClick={()=>addNode(c.type)} style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}>{c.label}</button>
-          ))}
+    <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
+      {/* 左ペイン：パレット＋Slot切替 */}
+      <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
+        <div style={{display:'flex', gap:8, alignItems:'center'}}>
+          <button onClick={newPage} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>New Page</button>
+          <button
+            onClick={async()=>{
+              const to = prompt('新しい pageId を入力', page.id)
+              if(!to || to===page.id) return
+              const res = await fetch('/api/rename', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ oldId: page.id, newId: to }) })
+              if (res.status===409) { show('同じ pageId が存在します'); return }
+              if(!res.ok) { show('処理に失敗しました'); return }
+              const j: any = await res.json()
+              await loadPage(j.id)
+              localStorage.setItem('chizu:lastPageId', j.id)
+              show(`Renamed → ${j.id}`)
+            }}
+            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>Rename</button>
+          <button onClick={()=>setShowDiff(v=>!v)} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>変更点を見る</button>
+          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '●' : '✓'}</button>
+
+          <select
+            value={frameId}
+            onChange={(e) => {
+              const nextId = (e.target as HTMLSelectElement).value
+              const nextFrame = FRAMES.find(f => f.id === nextId)!
+              const prevFrame = FRAMES.find(f => f.id === frameId)!
+              const missing = Object.keys(page.slotAssignments ?? {}).filter(s => !nextFrame.slots.some(ns => ns.name===s))
+              if (missing.length) {
+                const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか？`)
+                if (!ok) return
+              }
+              const remapped = remapSlotsOnFrameChange(page, prevFrame, nextFrame)
+              setHistory(h=>[...h.slice(-49), page])
+              setPage(remapped)
+              setFrameId(nextId)
+              setSelSlot('content')
+              setSelId(undefined)
+            }}
+            style={{marginLeft:'auto', padding:'6px 8px', border:'1px solid #ddd', borderRadius:8}}
+            title="Frameを変更（未対応slotはcontentへ退避）"
+          >
+            {FRAMES.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
         </div>
-        <div style={{marginTop:16}}>
-          <button onClick={save} style={{width:'100%', padding:'10px', borderRadius:8, background:'#111', color:'#fff'}}>保存してコード生成</button>
+
+        {/* Pages List */}
+        <div>
+          <h3 style={{margin:'8px 0'}}>Pages</h3>
+          <div style={{maxHeight:180, overflow:'auto', display:'grid', gap:6}}>
+            {list?.ids?.length ? (
+              list.ids.map((id) => (
+                <div key={id} style={{display:'grid', gridTemplateColumns:'1fr auto auto', gap:8}}>
+                  <button
+                    onClick={() => loadPage(id)}
+                    style={{
+                      padding:'6px 8px', border:'1px solid #ddd', borderRadius:8,
+                      background: id===page.id ? '#eef' : '#fff', textAlign:'left'
+                    }}
+                  >
+                    {id}
+                  </button>
+                  <button
+                    onClick={() => duplicatePage(id)}
+                    style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
+                  >
+                    複製
+                  </button>
+                  <button
+                    onClick={() => deletePage(id)}
+                    style={{padding:'6px 8px', border:'1px solid #f0c', color:'#c00', background:'#fff', borderRadius:8}}
+                  >
+                    削除
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div style={{color:'#888'}}>（保存済みページなし）</div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{margin:'8px 0'}}>Slots</h3>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8}}>
+            {(['header','sidebar','content','footer'] as SlotName[]).map(s => (
+              <button key={s} onClick={()=>{setSelSlot(s); setSelId(undefined)}} style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background: selSlot===s ? '#111' : '#fff', color: selSlot===s ? '#fff' : '#111'}}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{margin:'8px 0'}}>Components</h3>
+          <div style={{display:'grid', gap:8}}>
+            {CATALOG.map(c => (
+              <button key={c.type} onClick={()=>addNode(c.type)} style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}>{c.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{display:'flex', gap:8, marginTop:8}}>
+            <button onClick={undo}>Undo</button>
+            <button onClick={()=>moveSel(-1)} disabled={!selId}>↑</button>
+            <button onClick={()=>moveSel(1)} disabled={!selId}>↓</button>
+            <button onClick={removeSel} disabled={!selId}>削除</button>
+          </div>
         </div>
       </div>
+
+      {/* 中央：キャンバス（選択中Slotの中身だけを表示） */}
       <div style={{padding:12}}>
-        <h3 style={{margin:'8px 0'}}>Canvas (content)</h3>
-        <div style={{display:'flex', gap:8, margin:'8px 0'}}>
-          <button onClick={undo}>Undo</button>
-          <button onClick={()=>moveSel(-1)} disabled={!sel}>↑</button>
-          <button onClick={()=>moveSel(1)} disabled={!sel}>↓</button>
-          <button onClick={removeSel} disabled={!sel}>削除</button>
-        </div>
+        <h3 style={{margin:'8px 0'}}>Canvas ({selSlot})</h3>
         <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
-          {page.content.map(n => (
-            <li key={n.id} onClick={()=>setSel(n.id)} style={{padding:'10px', border:'2px solid ' + (n.id===sel ? '#111' : '#ddd'), borderRadius:10, background:'#fafafa', cursor:'pointer'}}>
-              <div style={{fontSize:12,color:'#666'}}>{n.type}</div>
-              <div style={{fontWeight:600}}>{n.type==='Text' ? n.props?.text : n.type==='Hero' ? n.props?.title : `[${n.type}]`}</div>
+          {currentNodes.map(n => (
+            <li
+              key={n.id}
+              onClick={()=>setSelId(n.id)}
+              style={{
+                padding:'10px',
+                border:'2px solid ' + (n.id===selId ? '#111' : '#ddd'),
+                borderRadius:10,
+                background:'#fafafa',
+                cursor:'pointer',
+                outline: n.id===selId ? '2px solid #111' : 'none'
+              }}
+              onMouseEnter={e=>{ if (n.id!==selId) (e.currentTarget.style.outline='2px dashed #bbb') }}
+              onMouseLeave={e=>{ if (n.id!==selId) (e.currentTarget.style.outline='none') }}
+            >
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <div>
+                  <div style={{fontSize:12,color:'#666'}}>{n.type}</div>
+                  <div style={{fontWeight:600}}>{n.type==='Text' ? (n.props as any)?.text : n.type==='Hero' ? (n.props as any)?.title : `[${n.type}]`}</div>
+                </div>
+                <div style={{display:'flex', gap:6}}>
+                  <button onClick={(e)=>{e.stopPropagation(); setSelId(n.id); duplicateSel()}}>複製</button>
+                  <select onClick={e=>e.stopPropagation()} onChange={e=>{setSelId(n.id); moveSelToSlot((e.target as HTMLSelectElement).value as any)}}>
+                    <option value="">→ slot</option>
+                    <option value="header">header</option>
+                    <option value="sidebar">sidebar</option>
+                    <option value="content">content</option>
+                    <option value="footer">footer</option>
+                  </select>
+                </div>
+              </div>
             </li>
           ))}
+          {currentNodes.length===0 && <li style={{color:'#888'}}>（このスロットにはまだ要素がありません）</li>}
         </ul>
       </div>
+
+      {/* 右：Inspector（Props / Bindings タブ） */}
       <div style={{borderLeft:'1px solid #eee', padding:12}}>
         <h3 style={{margin:'8px 0'}}>Inspector</h3>
+        <div style={{display:'flex', gap:8, marginBottom:8}}>
+          <button onClick={()=>setInspectorTab('props')} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background: inspectorTab==='props'?'#111':'#fff', color: inspectorTab==='props'?'#fff':'#111'}}>Props</button>
+          <button onClick={()=>setInspectorTab('bindings')} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background: inspectorTab==='bindings'?'#111':'#fff', color: inspectorTab==='bindings'?'#fff':'#111'}}>Bindings</button>
+        </div>
+
+        <div style={{fontSize:12, color:'#666', marginBottom:8}}>pageId: <b>{page.id}</b> / slot: <b>{selSlot}</b></div>
+        <div style={{fontSize:12, color:'#666', margin:'6px 0 12px'}}>frame: <b>{currentFrame.name}</b> / slots: {currentFrame.slots.map(s=>s.name).join(', ')}</div>
+
         {selected ? (
-          <div style={{display:'grid', gap:10}}>
-            <div><div style={{fontSize:12,color:'#666'}}>id</div><div>{selected.id}</div></div>
-            <div><div style={{fontSize:12,color:'#666'}}>type</div><div>{selected.type}</div></div>
+          inspectorTab==='props' ? (
             <PropsEditor node={selected} onChange={(k,v)=>updateProp(k,v)} />
-          </div>
+          ) : (
+            <BindingsEditor node={selected} onChange={(next)=>{
+              if (selSlot === 'content') {
+                push({ ...page, content: (page.content ?? []).map(n => n.id===selected.id ? next : n) })
+              } else {
+                const draft = structuredClone(page)
+                draft.slotAssignments![selSlot] = (draft.slotAssignments?.[selSlot] ?? []).map(n => n.id===selected.id ? next : n)
+                push(draft)
+              }
+            }} />
+          )
         ) : <div>要素を選択してください</div>}
+
+        {showDiff && diffs && (
+          <div style={{marginTop:16, padding:12, border:'1px solid #eee', borderRadius:10, background:'#fcfcfc'}}>
+            <h4 style={{margin:'0 0 8px'}}>差分プレビュー</h4>
+            {(diffs as any).titleChanged && <div>・タイトルが変更されました</div>}
+            {(diffs as any).frameChanged && <div>・フレームが <b>{(parsedLast as any).frameId as any}</b> → <b>{frameId}</b> に変更</div>}
+            {(diffs as any).slotDiffs.map((s:any) => (
+              <div key={s.slot} style={{marginTop:8}}>
+                <div style={{fontWeight:600}}>[{s.slot}]</div>
+                {s.added.length===0 && s.removed.length===0 && s.moved.length===0 && s.modified.length===0 ? (
+                  <div style={{color:'#888'}}>変更なし</div>
+                ) : (
+                  <div style={{display:'grid', gap:4}}>
+                    {s.added.map((id:string)=> <button key={`a-${id}`} onClick={()=>{setSelSlot(s.slot); setSelId(id)}} style={{textAlign:'left'}}>＋ 追加: {id}</button>)}
+                    {s.removed.map((id:string)=> <div key={`r-${id}`}>－ 削除: {id}</div>)}
+                    {s.moved.map((id:string)=> <button key={`m-${id}`} onClick={()=>{setSelSlot(s.slot); setSelId(id)}} style={{textAlign:'left'}}>↕ 並び替え: {id}</button>)}
+                    {s.modified.map((m:any) => (
+                      <button key={`c-${m.id}`} onClick={()=>{setSelSlot(s.slot); setSelId(m.id)}} style={{textAlign:'left'}}>
+                        ✎ 変更: {m.id}（{m.changes.map((c:any)=> (c.kind==='prop'?`prop:${c.key}`:`binding:${c.key}`)).join(', ')}）
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

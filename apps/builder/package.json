@@ -14,7 +14,8 @@
     "react-dom": "18.3.1",
     "@chizu/types": "workspace:*",
     "@chizu/renderer": "workspace:*",
-    "@chizu/registry": "workspace:*"
+    "@chizu/registry": "workspace:*",
+    "swr": "2.2.5"
   },
   "devDependencies": {
     "typescript": "5.5.4"

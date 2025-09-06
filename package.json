@@ -6,7 +6,8 @@
     "dev": "pnpm -C web dev",
     "build": "pnpm -C web build",
     "start": "pnpm -C web start",
-    "dev:all": "pnpm -r --parallel dev",
+    "dev:libs": "pnpm -r --filter @chizu/* dev",
+    "dev:all": "pnpm -r --parallel --filter @chizu/* --filter preview --filter builder dev",
     "build:all": "pnpm -r --filter @chizu/* build",
     "typecheck:all": "pnpm -r --filter @chizu/* typecheck",
     "lint:all": "pnpm -r lint",
@@ -61,6 +62,8 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@types/node": "^22.7.4",
+    "vitest": "^2.1.4",
     "@playwright/test": "^1.47.0",
     "@types/react": "^18.2.47",
     "jscodeshift": "^0.15.2",

@@ -14,7 +14,16 @@ export default function Page({ params, searchParams }: { params: { id: string },
   const prefCode = searchParams?.pref ?? '13'
   return (
     <RuntimeProvider value={{ page: { prefCode } }}>
-      {file ? <C /> : <div style={{ padding: 12 }}>生成待ち…（Builderで保存してね）</div>}
+      {file ? (
+        <C />
+      ) : (
+        <div style={{ padding: 12 }}>
+          ページがまだ生成されていません（または削除済み）。
+          <br />
+          Builderで保存してください。→{' '}
+          <a href="http://localhost:3000/">Builderへ</a>
+        </div>
+      )}
     </RuntimeProvider>
   )
 }
