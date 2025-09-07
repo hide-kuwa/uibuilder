@@ -77,15 +77,15 @@ var init_src = __esm({
 var require_use_sync_external_store_shim_production = __commonJS({
   "../../node_modules/.pnpm/use-sync-external-store@1.5.0_react@19.1.1/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports2) {
     "use strict";
-    var React9 = require("react");
+    var React13 = require("react");
     function is(x, y) {
       return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
     }
     var objectIs = "function" === typeof Object.is ? Object.is : is;
-    var useState = React9.useState;
-    var useEffect2 = React9.useEffect;
-    var useLayoutEffect2 = React9.useLayoutEffect;
-    var useDebugValue2 = React9.useDebugValue;
+    var useState = React13.useState;
+    var useEffect2 = React13.useEffect;
+    var useLayoutEffect2 = React13.useLayoutEffect;
+    var useDebugValue2 = React13.useDebugValue;
     function useSyncExternalStore$2(subscribe, getSnapshot) {
       var value = getSnapshot(), _useState = useState({ inst: { value, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
       useLayoutEffect2(
@@ -122,7 +122,7 @@ var require_use_sync_external_store_shim_production = __commonJS({
       return getSnapshot();
     }
     var shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
-    exports2.useSyncExternalStore = void 0 !== React9.useSyncExternalStore ? React9.useSyncExternalStore : shim;
+    exports2.useSyncExternalStore = void 0 !== React13.useSyncExternalStore ? React13.useSyncExternalStore : shim;
   }
 });
 
@@ -135,7 +135,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       function useSyncExternalStore$2(subscribe, getSnapshot) {
-        didWarnOld18Alpha || void 0 === React9.startTransition || (didWarnOld18Alpha = true, console.error(
+        didWarnOld18Alpha || void 0 === React13.startTransition || (didWarnOld18Alpha = true, console.error(
           "You are using an outdated, pre-release alpha of React 18 that does not support useSyncExternalStore. The use-sync-external-store shim will not work correctly. Upgrade to a newer pre-release."
         ));
         var value = getSnapshot();
@@ -183,8 +183,8 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React9 = require("react"), objectIs = "function" === typeof Object.is ? Object.is : is, useState = React9.useState, useEffect2 = React9.useEffect, useLayoutEffect2 = React9.useLayoutEffect, useDebugValue2 = React9.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
-      exports2.useSyncExternalStore = void 0 !== React9.useSyncExternalStore ? React9.useSyncExternalStore : shim;
+      var React13 = require("react"), objectIs = "function" === typeof Object.is ? Object.is : is, useState = React13.useState, useEffect2 = React13.useEffect, useLayoutEffect2 = React13.useLayoutEffect, useDebugValue2 = React13.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      exports2.useSyncExternalStore = void 0 !== React13.useSyncExternalStore ? React13.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
   }
@@ -1441,6 +1441,275 @@ var init_GridSheetV2 = __esm({
   }
 });
 
+// src/components/NodeInspectorV2.tsx
+function NodeInspectorV2({ selectedId, showRounding = true }) {
+  const { data } = useLineage();
+  if (!data) return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "text-sm text-gray-500", children: "Loading\u2026" });
+  if (!selectedId) return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "text-sm text-gray-500", children: "\u30CE\u30FC\u30C9\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044" });
+  const meta = data.nodes[selectedId];
+  if (!meta) return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "text-sm text-red-500", children: [
+    "\u672A\u767B\u9332\u30CE\u30FC\u30C9: ",
+    selectedId
+  ] });
+  const connected = (0, import_react9.useMemo)(
+    () => data.edges.filter((edge) => edge.from === selectedId || edge.to === selectedId),
+    [data, selectedId]
+  );
+  const flagsAgg = connected.reduce(
+    (acc, edge) => ({
+      rounded: acc.rounded || !!edge.flags?.rounded,
+      taxAdjust: acc.taxAdjust || !!edge.flags?.taxAdjust,
+      manualAdjust: acc.manualAdjust || !!edge.flags?.manualAdjust
+    }),
+    { rounded: false, taxAdjust: false, manualAdjust: false }
+  );
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "space-y-2 text-sm", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "font-semibold", children: "Node Inspector V2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "opacity-60", children: "ID\uFF1A" }),
+      meta.id
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "opacity-60", children: "Label\uFF1A" }),
+      meta.label ?? "-"
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "opacity-60", children: "Kind\uFF1A" }),
+      meta.kind
+    ] }),
+    meta.tags?.length ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "opacity-60", children: "Tags\uFF1A" }),
+      meta.tags.join(", ")
+    ] }) : null,
+    showRounding && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "pt-2", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "opacity-60 text-xs", children: "Flags" }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("ul", { className: "list-disc list-inside", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { children: [
+          "rounded: ",
+          String(flagsAgg.rounded)
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { children: [
+          "taxAdjust: ",
+          String(flagsAgg.taxAdjust)
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { children: [
+          "manualAdjust: ",
+          String(flagsAgg.manualAdjust)
+        ] })
+      ] })
+    ] })
+  ] });
+}
+var import_react9, import_jsx_runtime5;
+var init_NodeInspectorV2 = __esm({
+  "src/components/NodeInspectorV2.tsx"() {
+    "use strict";
+    "use client";
+    import_react9 = require("react");
+    init_useLineage();
+    import_jsx_runtime5 = require("react/jsx-runtime");
+  }
+});
+
+// src/components/TraceGraph.tsx
+function TraceGraph({ highlightPath = [] }) {
+  const { data } = useLineage();
+  if (!data) return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-sm text-gray-500", children: "Loading lineage\u2026" });
+  const groups = (0, import_react10.useMemo)(() => {
+    const m = /* @__PURE__ */ new Map();
+    for (const id of Object.keys(data.nodes)) {
+      const gid = data.nodes[id]?.groupId || "ungrouped";
+      if (!m.has(gid)) m.set(gid, []);
+      m.get(gid).push(id);
+    }
+    return Array.from(m.entries()).map(([gid, ids]) => ({ gid, ids }));
+  }, [data]);
+  const colCount = groups.length || 1;
+  const itemH = 44;
+  const vGap = 12;
+  const colPad = 12;
+  const pos = (0, import_react10.useMemo)(() => {
+    const p = {};
+    groups.forEach((g, col) => {
+      g.ids.forEach((id, row) => {
+        p[id] = { col, row };
+      });
+    });
+    return p;
+  }, [groups]);
+  const maxRows = (0, import_react10.useMemo)(() => Math.max(1, ...groups.map((g) => g.ids.length)), [groups]);
+  const svgW = 1e3;
+  const svgH = maxRows * itemH + Math.max(0, maxRows - 1) * vGap + 2 * colPad;
+  const hpairs = /* @__PURE__ */ new Set();
+  if (highlightPath.length >= 2) {
+    for (let i = 0; i < highlightPath.length - 1; i++) {
+      hpairs.add(`${highlightPath[i]}->${highlightPath[i + 1]}`);
+    }
+  }
+  function nodeCenter(id) {
+    const { col, row } = pos[id] || { col: 0, row: 0 };
+    const x = (col + 0.5) / colCount * svgW;
+    const y = colPad + row * (itemH + vGap) + itemH / 2;
+    return { x, y };
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "relative", style: { padding: 8 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "grid gap-4", style: { gridTemplateColumns: `repeat(${colCount}, minmax(0,1fr))` }, children: groups.map((g) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-2", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-xs font-semibold opacity-70", children: g.gid }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex flex-col gap-3", children: g.ids.map((id) => {
+        const isHL = highlightPath.includes(id);
+        const meta = data.nodes[id];
+        return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+          "div",
+          {
+            className: `px-2 py-2 rounded border ${isHL ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}`,
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: `text-xs ${isHL ? "font-semibold" : ""}`, children: meta?.label ?? id }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-[10px] opacity-60", children: id })
+            ]
+          },
+          id
+        );
+      }) })
+    ] }, g.gid)) }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      "svg",
+      {
+        width: "100%",
+        height: svgH,
+        viewBox: `0 0 ${svgW} ${svgH}`,
+        className: "pointer-events-none absolute inset-0",
+        children: data.edges.map((e, idx) => {
+          const a = nodeCenter(e.from);
+          const b = nodeCenter(e.to);
+          const key = `${e.from}->${e.to}`;
+          const hl = hpairs.has(key);
+          return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            "line",
+            {
+              x1: a.x,
+              y1: a.y,
+              x2: b.x,
+              y2: b.y,
+              stroke: hl ? "#2563eb" : "#94a3b8",
+              strokeWidth: hl ? 3 : 1.5,
+              strokeOpacity: 0.9
+            },
+            idx
+          );
+        })
+      }
+    )
+  ] });
+}
+var import_react10, import_jsx_runtime6;
+var init_TraceGraph = __esm({
+  "src/components/TraceGraph.tsx"() {
+    "use strict";
+    "use client";
+    import_react10 = require("react");
+    init_useLineage();
+    import_jsx_runtime6 = require("react/jsx-runtime");
+  }
+});
+
+// src/components/TraceLegend.tsx
+function TraceLegend({ graph }) {
+  const groups = Array.from(new Set(Object.values(graph.nodes).map((n) => n.groupId ?? "ungrouped")));
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "text-xs text-gray-600 flex flex-wrap gap-2", children: groups.map((g) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "px-2 py-0.5 rounded border border-gray-300 bg-white", children: g }, g)) });
+}
+var import_jsx_runtime7;
+var init_TraceLegend = __esm({
+  "src/components/TraceLegend.tsx"() {
+    "use strict";
+    "use client";
+    import_jsx_runtime7 = require("react/jsx-runtime");
+  }
+});
+
+// src/components/RecoPanel.tsx
+function RecoPanel({
+  left,
+  right,
+  matches,
+  onConfirm
+}) {
+  const [confirmed, setConfirmed] = import_react11.default.useState(/* @__PURE__ */ new Set());
+  const confirm = (m) => {
+    const key = `${m.leftId}-${m.rightId}`;
+    setConfirmed((s) => new Set(s).add(key));
+    onConfirm?.(m);
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "text-sm space-y-2", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "font-semibold", children: "\u7167\u5408\u5019\u88DC" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("ul", { className: "space-y-1", children: matches.map((m) => {
+      const key = `${m.leftId}-${m.rightId}`;
+      const done = confirmed.has(key);
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("li", { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "px-2 py-0.5 rounded bg-gray-100", children: m.score.toFixed(2) }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+          m.leftId,
+          " \u2194 ",
+          m.rightId
+        ] }),
+        done ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "text-green-600", children: "\u78BA\u5B9A\u6E08" }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { className: "underline", onClick: () => confirm(m), type: "button", children: "\u78BA\u5B9A" })
+      ] }, key);
+    }) })
+  ] });
+}
+var import_react11, import_jsx_runtime8;
+var init_RecoPanel = __esm({
+  "src/components/RecoPanel.tsx"() {
+    "use strict";
+    "use client";
+    import_react11 = __toESM(require("react"), 1);
+    import_jsx_runtime8 = require("react/jsx-runtime");
+  }
+});
+
+// src/components/PublishSummary.tsx
+function PublishSummary({
+  flags,
+  onLockToggle
+}) {
+  const [state, setState] = import_react12.default.useState("Draft");
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "space-y-2 text-sm", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "font-semibold", children: "Publish Summary" }),
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("ul", { className: "list-disc list-inside", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("li", { children: [
+        "rounded: ",
+        String(!!flags.rounded)
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("li", { children: [
+        "taxAdjust: ",
+        String(!!flags.taxAdjust)
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("li", { children: [
+        "manualAdjust: ",
+        String(!!flags.manualAdjust)
+      ] })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "pt-2", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("button", { className: "underline", onClick: () => {
+      const next = state === "Draft" ? "Published" : "Draft";
+      setState(next);
+      onLockToggle?.(next);
+    }, children: [
+      "\u5207\u66FF: ",
+      state,
+      " \u2192 ",
+      state === "Draft" ? "Published" : "Draft"
+    ] }) })
+  ] });
+}
+var import_react12, import_jsx_runtime9;
+var init_PublishSummary = __esm({
+  "src/components/PublishSummary.tsx"() {
+    "use strict";
+    "use client";
+    import_react12 = __toESM(require("react"), 1);
+    import_jsx_runtime9 = require("react/jsx-runtime");
+  }
+});
+
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
@@ -1448,7 +1717,12 @@ __export(index_exports, {
   GridSheet: () => GridSheet,
   GridSheetV2: () => GridSheetV2,
   NodeInspector: () => NodeInspector,
+  NodeInspectorV2: () => NodeInspectorV2,
+  PublishSummary: () => PublishSummary,
   R: () => R,
+  RecoPanel: () => RecoPanel,
+  TraceGraph: () => TraceGraph,
+  TraceLegend: () => TraceLegend,
   default: () => index_default,
   entries: () => entries,
   getSchema: () => getSchema,
@@ -1457,7 +1731,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 function renderSlot(content) {
   if (Array.isArray(content)) {
-    return content.map((n, i) => import_react9.default.createElement("div", { key: i }, n));
+    return content.map((n, i) => import_react13.default.createElement("div", { key: i }, n));
   }
   return content ?? null;
 }
@@ -1477,17 +1751,22 @@ function mergeHoverStyle(el, preset2) {
     if (preset2.base) Object.assign(e.currentTarget.style, preset2.base);
     props.onMouseLeave?.(e);
   };
-  return import_react9.default.cloneElement(el, { ...props, style, onMouseEnter, onMouseLeave });
+  return import_react13.default.cloneElement(el, { ...props, style, onMouseEnter, onMouseLeave });
 }
-var import_react9, CommonHover, entries, R, index_default;
+var import_react13, CommonHover, entries, R, index_default;
 var init_index = __esm({
   "src/index.ts"() {
-    import_react9 = __toESM(require("react"), 1);
+    import_react13 = __toESM(require("react"), 1);
     init_src();
     init_BacklinkList();
     init_NodeInspector();
     init_GridSheet();
     init_GridSheetV2();
+    init_NodeInspectorV2();
+    init_TraceGraph();
+    init_TraceLegend();
+    init_RecoPanel();
+    init_PublishSummary();
     CommonHover = {
       hoverPresetId: { type: "string", title: "Hover Preset (single)", default: "" },
       hoverPresetIds: { type: "array", title: "Hover Presets (multi)", items: { type: "string" }, default: [] }
@@ -1498,7 +1777,7 @@ var init_index = __esm({
         displayName: "Text",
         propsSchema: { type: "object", properties: { text: { type: "string", title: "text", default: "" } } },
         render: (p, _slots, runtime) => {
-          const node = import_react9.default.createElement("span", { style: { display: "inline-block" } }, p.text ?? "");
+          const node = import_react13.default.createElement("span", { style: { display: "inline-block" } }, p.text ?? "");
           const presetArg = p.hoverPresetIds?.length ? p.hoverPresetIds : p.hoverPresetId;
           return applyHoverFlexible(node, presetArg, runtime?.api?.hoverPresets);
         }
@@ -1507,14 +1786,14 @@ var init_index = __esm({
         id: "Image",
         displayName: "Image",
         propsSchema: { type: "object", properties: { src: { type: "string", title: "src", default: "" }, alt: { type: "string", title: "alt", default: "" } } },
-        render: (p) => import_react9.default.createElement("img", { src: p.src, alt: p.alt })
+        render: (p) => import_react13.default.createElement("img", { src: p.src, alt: p.alt })
       },
       Hero: {
         id: "Hero",
         displayName: "Hero",
         propsSchema: { type: "object", properties: { title: { type: "string", title: "title", default: "" } } },
         render: (p, _slots, runtime) => {
-          const node = import_react9.default.createElement("h1", null, p.title ?? "");
+          const node = import_react13.default.createElement("h1", null, p.title ?? "");
           const presetArg = p.hoverPresetIds?.length ? p.hoverPresetIds : p.hoverPresetId;
           return applyHoverFlexible(node, presetArg, runtime?.api?.hoverPresets);
         }
@@ -1523,13 +1802,13 @@ var init_index = __esm({
         id: "TopNav",
         displayName: "TopNav",
         propsSchema: { type: "object", properties: {} },
-        render: () => import_react9.default.createElement("nav", null, "TopNav")
+        render: () => import_react13.default.createElement("nav", null, "TopNav")
       },
       PrefList: {
         id: "PrefList",
         displayName: "PrefList",
         propsSchema: { type: "object", properties: {} },
-        render: () => import_react9.default.createElement("aside", null, "PrefList")
+        render: () => import_react13.default.createElement("aside", null, "PrefList")
       },
       // type helpers for slots
       Frame_Basic: {
@@ -1537,13 +1816,13 @@ var init_index = __esm({
         displayName: "Frame Basic",
         propsSchema: { type: "object", properties: {} },
         slotSchema: [{ name: "header" }, { name: "sidebar" }, { name: "content", required: true }, { name: "footer" }],
-        render: (_p, slots, _runtime) => import_react9.default.createElement(
-          import_react9.default.Fragment,
+        render: (_p, slots, _runtime) => import_react13.default.createElement(
+          import_react13.default.Fragment,
           null,
-          import_react9.default.createElement("header", null, renderSlot(slots.header)),
-          import_react9.default.createElement("aside", null, renderSlot(slots.sidebar)),
-          import_react9.default.createElement("main", null, renderSlot(slots.content)),
-          import_react9.default.createElement("footer", null, renderSlot(slots.footer))
+          import_react13.default.createElement("header", null, renderSlot(slots.header)),
+          import_react13.default.createElement("aside", null, renderSlot(slots.sidebar)),
+          import_react13.default.createElement("main", null, renderSlot(slots.content)),
+          import_react13.default.createElement("footer", null, renderSlot(slots.footer))
         )
       },
       Frame_Toponly: {
@@ -1551,11 +1830,11 @@ var init_index = __esm({
         displayName: "Frame TopOnly",
         propsSchema: { type: "object", properties: {} },
         slotSchema: [{ name: "header" }, { name: "content", required: true }],
-        render: (_p, slots, _runtime) => import_react9.default.createElement(
-          import_react9.default.Fragment,
+        render: (_p, slots, _runtime) => import_react13.default.createElement(
+          import_react13.default.Fragment,
           null,
-          import_react9.default.createElement("header", null, renderSlot(slots.header)),
-          import_react9.default.createElement("main", null, renderSlot(slots.content))
+          import_react13.default.createElement("header", null, renderSlot(slots.header)),
+          import_react13.default.createElement("main", null, renderSlot(slots.content))
         )
       },
       Frame_Wide: {
@@ -1563,15 +1842,15 @@ var init_index = __esm({
         displayName: "Frame Wide",
         propsSchema: { type: "object", properties: {} },
         slotSchema: [{ name: "content", required: true }, { name: "footer" }],
-        render: (_p, slots, _runtime) => import_react9.default.createElement(
-          import_react9.default.Fragment,
+        render: (_p, slots, _runtime) => import_react13.default.createElement(
+          import_react13.default.Fragment,
           null,
-          import_react9.default.createElement("main", null, renderSlot(slots.content)),
-          import_react9.default.createElement("footer", null, renderSlot(slots.footer))
+          import_react13.default.createElement("main", null, renderSlot(slots.content)),
+          import_react13.default.createElement("footer", null, renderSlot(slots.footer))
         )
       }
     };
-    R = new Proxy(entries, { get: (t, p) => t[p]?.render ?? (() => import_react9.default.createElement("div", null, `Unknown:${p}`)) });
+    R = new Proxy(entries, { get: (t, p) => t[p]?.render ?? (() => import_react13.default.createElement("div", null, `Unknown:${p}`)) });
     index_default = R;
     entries.Text.propsSchema.properties = { ...entries.Text.propsSchema.properties, ...CommonHover };
     entries.Hero.propsSchema.properties = { ...entries.Hero.propsSchema.properties, ...CommonHover };
@@ -1584,7 +1863,12 @@ init_index();
   GridSheet,
   GridSheetV2,
   NodeInspector,
+  NodeInspectorV2,
+  PublishSummary,
   R,
+  RecoPanel,
+  TraceGraph,
+  TraceLegend,
   entries,
   getSchema,
   mergeHoverStyle

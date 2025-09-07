@@ -9,12 +9,13 @@
     "prepare": "pnpm -r --filter @chizu/* build"
   },
   "dependencies": {
+    "@chizu/registry": "workspace:*",
+    "@chizu/renderer": "workspace:*",
+    "@chizu/types": "workspace:*",
+    "jszip": "^3.10.1",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "@chizu/types": "workspace:*",
-    "@chizu/renderer": "workspace:*",
-    "@chizu/registry": "workspace:*",
     "swr": "2.2.5"
   },
   "devDependencies": {

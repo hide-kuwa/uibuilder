@@ -3,14 +3,27 @@
   "title": "地図コレTOP",
   "frameId": "frame-basic",
   "content": [
-    { "id": "hero", "type": "Hero", "props": { "title": "地図で集める旅" } },
+    {
+      "id": "hero",
+      "type": "Hero",
+      "props": {
+        "title": "地図で集める旅"
+      }
+    },
     {
       "id": "label1",
       "type": "Text",
       "bindings": {
         "text": {
-          "inputs": [{ "scope": "page", "path": "prefCode" }],
-          "formula": { "expr": "`都道府県コード: ${$0}`" }
+          "inputs": [
+            {
+              "scope": "page",
+              "path": "prefCode"
+            }
+          ],
+          "formula": {
+            "expr": "`都道府県コード: ${$0}`"
+          }
         }
       }
     },
@@ -20,16 +33,49 @@
       "bindings": {
         "text": {
           "inputs": [
-            { "scope": "page", "path": "prefCode" },
-            { "scope": "api", "path": "prefStats" }
+            {
+              "scope": "page",
+              "path": "prefCode"
+            },
+            {
+              "scope": "api",
+              "path": "prefStats"
+            }
           ],
-          "formula": { "expr": "`${$1[$0]?.name ?? 'N/A'}：${$1[$0]?.population ?? '-'}人`" }
+          "formula": {
+            "expr": "`${$1[$0]?.name ?? 'N/A'}：${$1[$0]?.population ?? '-'}人`"
+          }
         }
+      }
+    },
+    {
+      "id": "image_wupca",
+      "type": "Image",
+      "props": {
+        "src": "",
+        "alt": ""
+      }
+    },
+    {
+      "id": "hero_mf8eu",
+      "type": "Hero",
+      "props": {
+        "title": "タイトル"
       }
     }
   ],
   "slotAssignments": {
-    "header": [{ "id": "nav", "type": "TopNav" }],
-    "sidebar": [{ "id": "list", "type": "PrefList" }]
+    "header": [
+      {
+        "id": "nav",
+        "type": "TopNav"
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "list",
+        "type": "PrefList"
+      }
+    ]
   }
 }

@@ -7,10 +7,12 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "import": "./dist/chizu-registry/src/index.js",
       "default": "./dist/index.js"
     },
     "./components/*": {
       "types": "./dist/components/*.d.ts",
+      "import": "./dist/chizu-registry/src/components/*.js",
       "default": "./dist/components/*.js"
     }
   },

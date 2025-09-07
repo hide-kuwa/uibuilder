@@ -10,6 +10,10 @@ const links = [
   { href: '/gridsheet', label: 'gridsheet' },
   { href: '/gridsheet2', label: 'gridsheet2 (V2)' },
   { href: '/tracegraph', label: 'tracegraph' },
+  { href: '/reco', label: 'reco' },
+  { href: '/publish-summary', label: 'publish-summary' },
+  { href: '/reco2', label: 'reco2' },
+  { href: '/publish-summary2', label: 'publish-summary2' },
 ];
 
 export default function Page() {
@@ -26,4 +30,3 @@ export default function Page() {
     </main>
   );
 }
-

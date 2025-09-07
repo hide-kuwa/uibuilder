@@ -3,8 +3,50 @@ export { BacklinkList } from './components/BacklinkList.cjs';
 export { NodeInspector } from './components/NodeInspector.cjs';
 export { GridSheet } from './components/GridSheet.cjs';
 export { GridSheetV2 } from './components/GridSheetV2.cjs';
-import 'react/jsx-runtime';
+import * as react_jsx_runtime from 'react/jsx-runtime';
+import { LineageGraph } from '@chizu/types/lineage';
 import '@chizu/types/gridsheet';
+
+type Props$1 = {
+    selectedId?: string;
+    showRounding?: boolean;
+};
+declare function NodeInspectorV2({ selectedId, showRounding }: Props$1): react_jsx_runtime.JSX.Element;
+
+type Props = {
+    highlightPath?: string[];
+};
+declare function TraceGraph({ highlightPath }: Props): react_jsx_runtime.JSX.Element;
+
+declare function TraceLegend({ graph }: {
+    graph: LineageGraph;
+}): react_jsx_runtime.JSX.Element;
+
+type Row = {
+    id: string;
+    amount: number;
+    memo?: string;
+};
+type Match = {
+    leftId: string;
+    rightId: string;
+    score: number;
+};
+declare function RecoPanel({ left, right, matches, onConfirm, }: {
+    left: Row[];
+    right: Row[];
+    matches: Match[];
+    onConfirm?: (m: Match) => void;
+}): react_jsx_runtime.JSX.Element;
+
+declare function PublishSummary({ flags, onLockToggle, }: {
+    flags: {
+        rounded?: boolean;
+        taxAdjust?: boolean;
+        manualAdjust?: boolean;
+    };
+    onLockToggle?: (next: 'Draft' | 'Published') => void;
+}): react_jsx_runtime.JSX.Element;
 
 declare const entries: any;
 declare const R: any;
@@ -16,4 +58,4 @@ declare function mergeHoverStyle(el: JSX.Element, preset?: {
     transition?: string;
 }): JSX.Element;
 
-export { R, R as default, entries, getSchema, mergeHoverStyle };
+export { NodeInspectorV2, PublishSummary, R, RecoPanel, TraceGraph, TraceLegend, R as default, entries, getSchema, mergeHoverStyle };

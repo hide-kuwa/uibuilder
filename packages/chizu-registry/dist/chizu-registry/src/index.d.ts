@@ -15,3 +15,5 @@ export { GridSheetV2 } from './components/GridSheetV2';
 export { NodeInspectorV2 } from './components/NodeInspectorV2';
 export { TraceGraph } from './components/TraceGraph';
 export { TraceLegend } from './components/TraceLegend';
+export { RecoPanel } from './components/RecoPanel';
+export { PublishSummary } from './components/PublishSummary';

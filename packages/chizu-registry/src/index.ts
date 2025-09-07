@@ -139,3 +139,5 @@ export { NodeInspectorV2 } from './components/NodeInspectorV2'
 export { TraceGraph } from './components/TraceGraph'
 // --- append-only ---
 export { TraceLegend } from './components/TraceLegend'
+export { RecoPanel } from './components/RecoPanel'
+export { PublishSummary } from './components/PublishSummary'
