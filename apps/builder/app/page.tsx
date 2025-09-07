@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
 import * as REG from '@chizu/registry'
+import { AutosaveMountHashed } from '@/components/AutosaveMountHashed'
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json())
 
@@ -520,6 +521,7 @@ function BindingsEditor({
         <button onClick={apply} style={{padding:'6px 10px', borderRadius:8, background:'#111', color:'#fff'}}>適用</button>
         <button onClick={remove} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>解除</button>
       </div>
+      <AutosaveMountHashed page={page} debounceMs={800} />
     </div>
   )
 }

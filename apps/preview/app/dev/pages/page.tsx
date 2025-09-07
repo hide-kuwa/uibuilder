@@ -27,6 +27,9 @@ export default function Page() {
             <Link className="underline" href={l.href}>{l.label}</Link>
           </li>
         ))}
+        <li><a href="/bindings-snippets">/bindings-snippets（スニペット一覧）</a></li>
+        <li><a href="/ds-test">/ds-test（DataSource テスター）</a></li>
+        <li><a href="/events">/events（autosave & reco イベント統合）</a></li>
       </ul>
       {/* --- append-only: link to reco3 --- */}
       <div className="mt-2 text-sm">

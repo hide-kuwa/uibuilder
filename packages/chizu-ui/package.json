@@ -20,6 +20,16 @@
     "./reco/*": {
       "types": "./dist/reco/*.d.ts",
       "default": "./dist/reco/*.js"
+    },
+    "./bindings/*": {
+      "import": "./dist/bindings/*.js",
+      "require": "./dist/bindings/*.cjs",
+      "types": "./dist/bindings/*.d.ts"
+    },
+    "./ds/*": {
+      "import": "./dist/ds/*.js",
+      "require": "./dist/ds/*.cjs",
+      "types": "./dist/ds/*.d.ts"
     }
   },
   "typesVersions": {
@@ -32,6 +42,12 @@
       ],
       "reco/*": [
         "dist/reco/*"
+      ],
+      "bindings/*": [
+        "dist/bindings/*.d.ts"
+      ],
+      "ds/*": [
+        "dist/ds/*.d.ts"
       ],
       "*": [
         "dist/*"
@@ -49,7 +65,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch",
-    "build:subpaths": "tsup src/index.ts src/hooks/useLineage.ts src/lineage/graph.ts src/lineage/flags.ts src/reco/match.ts src/reco/adapter.ts --dts --format esm,cjs --outDir dist"
+    "build:subpaths": "tsup src/index.ts src/hooks/useLineage.ts src/lineage/graph.ts src/lineage/flags.ts src/reco/match.ts src/reco/adapter.ts src/bindings/snippets.ts src/bindings/suggest.ts src/ds/fetcher.ts src/ds/types.ts --dts --format esm,cjs --outDir dist"
   },
   "devDependencies": {
     "react": "^19.1.1",
