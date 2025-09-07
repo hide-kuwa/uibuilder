@@ -12,3 +12,6 @@ export { BacklinkList } from './components/BacklinkList';
 export { NodeInspector } from './components/NodeInspector';
 export { GridSheet } from './components/GridSheet';
 export { GridSheetV2 } from './components/GridSheetV2';
+export { NodeInspectorV2 } from './components/NodeInspectorV2';
+export { TraceGraph } from './components/TraceGraph';
+export { TraceLegend } from './components/TraceLegend';

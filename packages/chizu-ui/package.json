@@ -12,15 +12,28 @@
     "./hooks/*": {
       "types": "./dist/hooks/*.d.ts",
       "default": "./dist/hooks/*.js"
+    },
+    "./lineage/*": {
+      "types": "./dist/lineage/*.d.ts",
+      "default": "./dist/lineage/*.js"
     }
   },
   "typesVersions": {
     "*": {
-      "hooks/*": ["dist/hooks/*"],
-      "*": ["dist/*"]
+      "hooks/*": [
+        "dist/hooks/*"
+      ],
+      "lineage/*": [
+        "dist/lineage/*"
+      ],
+      "*": [
+        "dist/*"
+      ]
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "peerDependencies": {
     "react": "^18.2.0",
     "swr": "^2.2.0"
@@ -29,6 +42,10 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch",
-    "build:subpaths": "tsup src/index.ts src/hooks/useLineage.ts --dts --format esm,cjs --outDir dist"
+    "build:subpaths": "tsup src/index.ts src/hooks/useLineage.ts src/lineage/graph.ts --dts --format esm,cjs --outDir dist"
+  },
+  "devDependencies": {
+    "react": "^19.1.1",
+    "swr": "2.2.5"
   }
 }

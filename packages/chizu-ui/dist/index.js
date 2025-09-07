@@ -1,1 +1,6 @@
-export const noop = () => { };
+// src/index.ts
+var noop = () => {
+};
+export {
+  noop
+};

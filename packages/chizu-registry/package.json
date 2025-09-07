@@ -16,19 +16,31 @@
   },
   "typesVersions": {
     "*": {
-      "components/*": ["dist/components/*"],
-      "*": ["dist/*"]
+      "components/*": [
+        "dist/components/*"
+      ],
+      "*": [
+        "dist/*"
+      ]
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "peerDependencies": {
     "react": "^18.2.0"
   },
-  "dependencies": { "@chizu/types": "workspace:*", "react": "^18.3.1" },
+  "dependencies": {
+    "@chizu/types": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch",
-    "build:subpaths": "tsup src/index.ts src/components/BacklinkList.tsx src/components/NodeInspector.tsx src/components/GridSheet.tsx src/components/GridSheetV2.tsx --dts --format esm,cjs --outDir dist"
+    "build:subpaths": "tsup src/index.ts src/components/BacklinkList.tsx src/components/NodeInspector.tsx src/components/GridSheet.tsx src/components/GridSheetV2.tsx --dts --format esm,cjs --outDir dist",
+    "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit"
+  },
+  "devDependencies": {
+    "react": "^18.3.1"
   }
 }
