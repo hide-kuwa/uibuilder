@@ -66,3 +66,9 @@ export interface HoverPreset {
   hover?: React.CSSProperties
   transition?: string // e.g. 'transform 0.2s ease, box-shadow 0.2s ease'
 }
+
+export interface DataSource {
+  key: string
+  url: string
+  ttlSec?: number
+}

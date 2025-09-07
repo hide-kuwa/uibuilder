@@ -1,5 +1,18 @@
 import React from 'react'
+import type { ReactNode, CSSProperties } from 'react'
 import { RegistryEntry, ComponentNode } from '@chizu/types'
+
+// type helpers
+type SlotName = 'header' | 'sidebar' | 'content' | 'footer'
+type SlotValue = ReactNode[] | React.ReactElement | undefined
+type SlotBag = Partial<Record<SlotName, SlotValue>>
+
+function renderSlot(content: SlotValue): React.ReactNode {
+  if (Array.isArray(content)) {
+    return (content as ReactNode[]).map((n: ReactNode, i: number) => React.createElement('div', { key: i }, n))
+  }
+  return content ?? null
+}
 import { applyHoverFlexible } from '@chizu/renderer'
 
 const CommonHover: any = {
@@ -46,46 +59,45 @@ export const entries: any = {
     propsSchema: { type: 'object', properties: {} },
     render: () => React.createElement('aside', null, 'PrefList')
   },
+  // type helpers for slots
+  
   Frame_Basic: {
     id: 'Frame_Basic',
     displayName: 'Frame Basic',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'header' }, { name: 'sidebar' }, { name: 'content', required: true }, { name: 'footer' }],
-    render: (_p, slots) => {
-      const S = (name: string) => (slots?.[name] ?? []).map((n, i) => React.createElement('div', { key: i }, `[${(n as ComponentNode).type}]`))
-      return React.createElement(React.Fragment, null,
-        React.createElement('header', null, S('header')),
-        React.createElement('aside', null, S('sidebar')),
-        React.createElement('main', null, S('content')),
-        React.createElement('footer', null, S('footer'))
+    render: (_p: any, slots: SlotBag, _runtime?: any) => (
+      React.createElement(React.Fragment, null,
+        React.createElement('header', null, renderSlot(slots.header)),
+        React.createElement('aside',  null, renderSlot(slots.sidebar)),
+        React.createElement('main',   null, renderSlot(slots.content)),
+        React.createElement('footer', null, renderSlot(slots.footer))
       )
-    }
+    )
   },
   Frame_Toponly: {
     id: 'Frame_Toponly',
     displayName: 'Frame TopOnly',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'header' }, { name: 'content', required: true }],
-    render: (_p, slots) => {
-      const S = (name: string) => (slots?.[name] ?? []).map((n, i) => React.createElement('div', { key: i }, `[${(n as ComponentNode).type}]`))
-      return React.createElement(React.Fragment, null,
-        React.createElement('header', null, S('header')),
-        React.createElement('main', null, S('content')),
+    render: (_p: any, slots: SlotBag, _runtime?: any) => (
+      React.createElement(React.Fragment, null,
+        React.createElement('header', null, renderSlot(slots.header)),
+        React.createElement('main',   null, renderSlot(slots.content))
       )
-    }
+    )
   },
   Frame_Wide: {
     id: 'Frame_Wide',
     displayName: 'Frame Wide',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'content', required: true }, { name: 'footer' }],
-    render: (_p, slots) => {
-      const S = (name: string) => (slots?.[name] ?? []).map((n, i) => React.createElement('div', { key: i }, `[${(n as ComponentNode).type}]`))
-      return React.createElement(React.Fragment, null,
-        React.createElement('main', null, S('content')),
-        React.createElement('footer', null, S('footer'))
+    render: (_p: any, slots: SlotBag, _runtime?: any) => (
+      React.createElement(React.Fragment, null,
+        React.createElement('main',   null, renderSlot(slots.content)),
+        React.createElement('footer', null, renderSlot(slots.footer))
       )
-    }
+    )
   }
 }
 
@@ -94,11 +106,11 @@ export default R
 export function getSchema(type: string) { return (entries as any)[type]?.propsSchema }
 export function mergeHoverStyle(
   el: JSX.Element,
-  preset?: { base?: React.CSSProperties; hover?: React.CSSProperties; transition?: string }
+  preset?: { base?: CSSProperties; hover?: CSSProperties; transition?: string }
 ){
   if (!preset) return el
   const props = { ...(el.props||{}) }
-  const style: React.CSSProperties = { ...(props.style||{}), ...(preset.base||{}) }
+  const style: CSSProperties = { ...(props.style||{}), ...(preset.base||{}) }
   if (preset.transition) style.transition = preset.transition
   const onMouseEnter = (e:any) => {
     if (preset.hover) Object.assign(e.currentTarget.style, preset.hover)
@@ -114,3 +126,10 @@ export function mergeHoverStyle(
 // extend schemas with common hover field for Text/Hero
 entries.Text.propsSchema.properties = { ...entries.Text.propsSchema.properties, ...CommonHover }
 entries.Hero.propsSchema.properties = { ...entries.Hero.propsSchema.properties, ...CommonHover }
+
+// --- chizu:registry P0 append ---
+export { BacklinkList } from './components/BacklinkList'
+export { NodeInspector } from './components/NodeInspector'
+export { GridSheet } from './components/GridSheet'
+// --- append-only ---
+export { GridSheetV2 } from './components/GridSheetV2'

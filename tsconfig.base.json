@@ -10,9 +10,11 @@
     "paths": {
       "@repo/types": ["packages/types/src/index.ts"],
       "@chizu/types": ["packages/chizu-types/src/index.ts"],
+      "@chizu/types/*": ["packages/types/src/*"],
       "@chizu/registry": ["packages/chizu-registry/src/index.ts"],
       "@chizu/renderer": ["packages/chizu-renderer/src/index.ts"],
-      "@chizu/ui": ["packages/chizu-ui/src/index.ts"]
+      "@chizu/ui": ["packages/chizu-ui/src/index.ts"],
+      "@chizu/ui/*": ["packages/chizu-ui/src/*"]
     }
   }
 }

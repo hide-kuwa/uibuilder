@@ -1,7 +1,11 @@
 import React from 'react'
 import type { Bindings } from '@chizu/types'
+import { getRef, evalFormula } from './runtime'
 export { generatePageCode } from './codegen'
 export { RuntimeProvider, useFlowRuntime, getRef, evalFormula } from './runtime'
+
+// for require-based fallback (kept minimal; later can switch to static import)
+declare const require: any;
 
 export function resolveBinding(runtime: any, nodeId: string, props: Record<string, any>, bindings?: Bindings) {
   if (!bindings) return props

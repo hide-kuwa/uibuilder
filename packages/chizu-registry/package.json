@@ -4,12 +4,31 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": "./dist/index.js" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "default": "./dist/components/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "components/*": ["dist/components/*"],
+      "*": ["dist/*"]
+    }
+  },
   "files": ["dist"],
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
   "dependencies": { "@chizu/types": "workspace:*", "react": "^18.3.1" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsc -p tsconfig.json --watch"
+    "dev": "tsc -p tsconfig.json --watch",
+    "build:subpaths": "tsup src/index.ts src/components/BacklinkList.tsx src/components/NodeInspector.tsx src/components/GridSheet.tsx src/components/GridSheetV2.tsx --dts --format esm,cjs --outDir dist"
   }
 }

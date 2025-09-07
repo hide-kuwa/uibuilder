@@ -4,11 +4,31 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": "./dist/index.js" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./hooks/*": {
+      "types": "./dist/hooks/*.d.ts",
+      "default": "./dist/hooks/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "hooks/*": ["dist/hooks/*"],
+      "*": ["dist/*"]
+    }
+  },
   "files": ["dist"],
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "swr": "^2.2.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsc -p tsconfig.json --watch"
+    "dev": "tsc -p tsconfig.json --watch",
+    "build:subpaths": "tsup src/index.ts src/hooks/useLineage.ts --dts --format esm,cjs --outDir dist"
   }
 }

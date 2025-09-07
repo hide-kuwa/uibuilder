@@ -139,7 +139,7 @@ function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:
                 style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
               >
                 <option value="">（なし）</option>
-                {options.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+                {options.map(p => <option key={p.id} value={p.id}>{p.id} — {p.name ?? ''}</option>)}
               </select>
             </div>
           )
@@ -160,7 +160,7 @@ function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:
                 size={Math.min(6, Math.max(3, options.length))}
                 style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8}}
               >
-                {options.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+                {options.map(p => <option key={p.id} value={p.id}>{p.id} — {p.name ?? ''}</option>)}
               </select>
               <div style={{fontSize:12, color:'#666', marginTop:4}}>選択順＝合成順（後の方が上書き）</div>
             </div>
@@ -184,14 +184,18 @@ function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:
 
 function BindingsEditor({
   node,
-  onChange
+  onChange,
+  pageRoot,
 }: {
   node: ComponentNode
   onChange: (next: ComponentNode) => void
+  pageRoot: any
 }) {
   const schema: any = REG.getSchema(node.type)
   const propKeys: string[] = Object.keys(schema?.properties ?? {})
   const currentBindings = node.bindings ?? {}
+  const { data: ds } = useSWR<{items:Array<{key:string;url:string;ttlSec?:number}>}>('/api/ds', fetcher)
+  const apiKeys = (ds?.items ?? []).map(x=>x.key)
 
   const initialProp =
     (node.meta as any)?.lastBindingProp ||
@@ -210,6 +214,7 @@ function BindingsEditor({
   const [expr, setExpr] = useState<string>(
     cur?.formula?.expr ?? '`値: ${$0}`'
   )
+  const [suggestIdx, setSuggestIdx] = useState<number>(-1)
 
   // 行操作
   const addRow = () => setRows(rs => [...rs, { scope: 'page', path: '' }])
@@ -250,6 +255,50 @@ function BindingsEditor({
       return '(式エラー)'
     }
   })()
+
+  // API key preview helpers
+  function dottedGet(obj:any, path:string){
+    if(!path) return obj
+    return path.split('.').reduce((a:any,k:string)=>a?.[k], obj)
+  }
+  function pretty(v:any, limit=250){
+    try {
+      const s = JSON.stringify(v, null, 2) ?? 'null'
+      return s.length>limit ? s.slice(0,limit)+'\n…' : s
+    } catch {
+      return String(v)
+    }
+  }
+  // suggest helpers (shared by api/page scopes)
+  function splitPathForSuggest(path: string): { parent: string; token: string } {
+    const safe = String(path || '')
+    // trim accidental leading/trailing dots while keeping intentional trailing dot for empty token
+    const hasTrailingDot = safe.endsWith('.')
+    const trimmed = hasTrailingDot ? safe.slice(0, -1) : safe
+    const parts = trimmed.split('.').filter(Boolean)
+    let parent = parts.slice(0, -1).join('.')
+    let token = parts.length ? parts[parts.length - 1] : ''
+    if (hasTrailingDot) { parent = trimmed; token = '' }
+    return { parent, token }
+  }
+  function getParentObject(root: any, parentPath: string) {
+    if (!parentPath) return root
+    return parentPath.split('.').reduce((acc: any, k: string) => (acc == null ? undefined : acc[k]), root)
+  }
+  function listKeysForSuggest(obj: any): string[] {
+    if (obj == null) return []
+    if (Array.isArray(obj)) {
+      const limit = Math.min(obj.length, 20)
+      const indices = Array.from({ length: limit }, (_, i) => String(i))
+      return ['length', ...indices]
+    }
+    if (typeof obj === 'object') {
+      try { return Object.keys(obj) } catch { return [] }
+    }
+    return []
+  }
+  const activeApiKey = (rows.find(r=>r.scope==='api')?.path?.split('.')?.[0] || '') as string
+  const { data: preview } = useSWR(activeApiKey ? `/api/ds-preview?key=${encodeURIComponent(activeApiKey)}` : null, fetcher, { revalidateOnFocus:false })
 
   const apply = () => {
     const nextBindings = {
@@ -308,7 +357,115 @@ function BindingsEditor({
                 <option value="page">page</option>
                 <option value="api">api</option>
               </select>
-              <input value={r.path} onChange={e=>setRow(i, { path: (e.target as HTMLInputElement).value })} placeholder={r.scope==='page'?'prefCode':'prefStats.xxx'} />
+              {r.scope === 'api' ? (
+                <div style={{position:'relative', display:'grid', gridTemplateColumns:'1fr 140px', gap:8}}>
+                  <input
+                    value={r.path}
+                    onChange={e=>{ setSuggestIdx(-1); setRow(i, { path: (e.target as HTMLInputElement).value }) }}
+                    onKeyDown={e=>{
+                      if (!preview?.data) return
+                      const baseKey = r.path.split('.')[0] || ''
+                      const baseObj = preview.data
+                      if (!baseKey || !baseObj) return
+                      const { parent, token } = splitPathForSuggest(r.path)
+                      const parentObj = getParentObject(preview.data, parent)
+                      const all = listKeysForSuggest(parentObj)
+                      const filtered = all.filter(k => k.toLowerCase().startsWith(token.toLowerCase()))
+                      if (filtered.length===0) return
+
+                      if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIdx(p=> Math.min(filtered.length-1, p+1)); }
+                      if (e.key === 'ArrowUp')   { e.preventDefault(); setSuggestIdx(p=> Math.max(-1, p-1)); }
+                      if (e.key === 'Tab' || e.key === 'Enter') {
+                        const pick = filtered[Math.max(0, suggestIdx)]
+                        if (pick) {
+                          e.preventDefault()
+                          const newPath = parent ? `${parent}.${pick}` : pick
+                          setRow(i, { path: newPath })
+                          setSuggestIdx(-1)
+                        }
+                      }
+                      if (e.key === 'Escape') { setSuggestIdx(-1) }
+                    }}
+                    placeholder="prefStats や prefStats.13.name など"
+                  />
+                  <select value={(r.path.split('.')[0]||'')} onChange={e=>{ const base=(e.target as HTMLSelectElement).value; const rest=r.path.includes('.')?r.path.split('.').slice(1).join('.'):''; setRow(i, { path: rest?`${base}.${rest}`:base }) }}>
+                    <option value="">（apiキー）</option>
+                    {apiKeys.map(k=> <option key={k} value={k}>{k}</option>)}
+                  </select>
+                  {(() => {
+                    if (!preview?.data) return null
+                    const { parent, token } = splitPathForSuggest(r.path)
+                    const parentObj = getParentObject(preview.data, parent)
+                    const all = listKeysForSuggest(parentObj)
+                    const filtered = token ? all.filter(k => k.toLowerCase().startsWith(token.toLowerCase())) : all
+                    if (!filtered.length) return null
+                    return (
+                      <div style={{ position:'absolute', top:'100%', left:0, right:148, zIndex:5, border:'1px solid #ddd', background:'#fff', borderRadius:8, marginTop:4, maxHeight:160, overflow:'auto', boxShadow:'0 6px 20px rgba(0,0,0,.08)' }}>
+                        {filtered.map((k,idx)=> (
+                          <div
+                            key={k}
+                            onMouseDown={(e)=>{ e.preventDefault(); const newPath = parent ? `${parent}.${k}` : k; setRow(i, { path: newPath }); setSuggestIdx(-1) }}
+                            onMouseEnter={()=>setSuggestIdx(idx)}
+                            style={{ padding:'6px 10px', background: idx===suggestIdx ? '#eef' : '#fff', cursor:'pointer', fontFamily:'ui-monospace, Menlo, monospace' }}
+                          >
+                            {k}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              ) : (
+                <div style={{position:'relative'}}>
+                  <input
+                    value={r.path}
+                    onChange={e=>{ setSuggestIdx(-1); setRow(i, { path: (e.target as HTMLInputElement).value }) }}
+                    onKeyDown={e=>{
+                      const PAGE_SUGGEST_ROOT = { id: pageRoot?.id, title: pageRoot?.title, frameId: pageRoot?.frameId, prefCode: (pageRoot as any)?.prefCode ?? '', ...(pageRoot as any) }
+                      const { parent, token } = splitPathForSuggest(r.path)
+                      const parentObj = getParentObject(PAGE_SUGGEST_ROOT, parent)
+                      const all = listKeysForSuggest(parentObj)
+                      const filtered = token ? all.filter(k => k.toLowerCase().startsWith(token.toLowerCase())) : all
+                      if (filtered.length===0) return
+                      if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIdx(p=> Math.min(filtered.length-1, p+1)); }
+                      if (e.key === 'ArrowUp')   { e.preventDefault(); setSuggestIdx(p=> Math.max(-1, p-1)); }
+                      if (e.key === 'Tab' || e.key === 'Enter') {
+                        const pick = filtered[Math.max(0, suggestIdx)]
+                        if (pick) {
+                          e.preventDefault()
+                          const newPath = parent ? `${parent}.${pick}` : pick
+                          setRow(i, { path: newPath })
+                          setSuggestIdx(-1)
+                        }
+                      }
+                      if (e.key === 'Escape') { setSuggestIdx(-1) }
+                    }}
+                    placeholder="prefCode や 任意の page.* パス"
+                  />
+                  {(() => {
+                    const PAGE_SUGGEST_ROOT = { id: pageRoot?.id, title: pageRoot?.title, frameId: pageRoot?.frameId, prefCode: (pageRoot as any)?.prefCode ?? '', ...(pageRoot as any) }
+                    const { parent, token } = splitPathForSuggest(r.path)
+                    const parentObj = getParentObject(PAGE_SUGGEST_ROOT, parent)
+                    const all = listKeysForSuggest(parentObj)
+                    const filtered = token ? all.filter(k => k.toLowerCase().startsWith(token.toLowerCase())) : all
+                    if (!filtered.length) return null
+                    return (
+                      <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:5, border:'1px solid #ddd', background:'#fff', borderRadius:8, marginTop:4, maxHeight:160, overflow:'auto', boxShadow:'0 6px 20px rgba(0,0,0,.08)' }}>
+                        {filtered.map((k,idx)=> (
+                          <div
+                            key={k}
+                            onMouseDown={(e)=>{ e.preventDefault(); const { parent } = splitPathForSuggest(r.path); const newPath = parent ? `${parent}.${k}` : k; setRow(i, { path: newPath }); setSuggestIdx(-1) }}
+                            onMouseEnter={()=>setSuggestIdx(idx)}
+                            style={{ padding:'6px 10px', background: idx===suggestIdx ? '#eef' : '#fff', cursor:'pointer', fontFamily:'ui-monospace, Menlo, monospace' }}
+                          >
+                            {k}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
             <div style={{display:'flex', gap:6}}>
               <button onClick={()=>moveRow(i,-1)} disabled={i===0}>↑</button>
@@ -319,6 +476,34 @@ function BindingsEditor({
         ))}
         <button onClick={addRow} style={{width:'fit-content'}}>+ input</button>
       </div>
+
+      {activeApiKey && (
+        <div style={{border:'1px solid #eee', borderRadius:8, padding:10, background:'#fafafa'}}>
+          <div style={{fontSize:12, color:'#666', marginBottom:6}}>
+            プレビュー: <b>api.{activeApiKey}</b>
+          </div>
+          <pre style={{margin:0, whiteSpace:'pre-wrap'}}>
+            {pretty(dottedGet(preview?.data, (rows.find(r=>r.scope==='api')?.path?.split('.').slice(1).join('.') ?? '')))}
+          </pre>
+        </div>
+      )}
+
+      {rows.some(x=>x.scope==='page') && (
+        (() => {
+          const PAGE_SUGGEST_ROOT = { id: pageRoot?.id, title: pageRoot?.title, frameId: pageRoot?.frameId, prefCode: (pageRoot as any)?.prefCode ?? '', ...(pageRoot as any) }
+          const firstPageRow = rows.find(x=>x.scope==='page')!
+          const tail = firstPageRow.path
+          const val = dottedGet(PAGE_SUGGEST_ROOT, tail)
+          return (
+            <div style={{border:'1px solid #eee', borderRadius:8, padding:10, background:'#fafafa', marginTop:8}}>
+              <div style={{fontSize:12, color:'#666', marginBottom:6}}>
+                プレビュー: <b>page.{tail || '(empty)'}</b>
+              </div>
+              <pre style={{margin:0, whiteSpace:'pre-wrap'}}>{pretty(val)}</pre>
+            </div>
+          )
+        })()
+      )}
 
       <div>
         <div style={{fontSize:12,color:'#666'}}>expr</div>
@@ -816,7 +1001,7 @@ export default function Builder() {
           inspectorTab==='props' ? (
             <PropsEditor node={selected} onChange={(k,v)=>updateProp(k,v)} />
           ) : (
-            <BindingsEditor node={selected} onChange={(next)=>{
+            <BindingsEditor pageRoot={page} node={selected} onChange={(next)=>{
               if (selSlot === 'content') {
                 push({ ...page, content: (page.content ?? []).map(n => n.id===selected.id ? next : n) })
               } else {

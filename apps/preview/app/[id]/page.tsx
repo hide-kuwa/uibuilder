@@ -28,8 +28,11 @@ export default function Page({ params, searchParams }: { params: { id: string },
       transition: 'box-shadow .15s ease'
     }
   }
+
+  // aggregated server-side fetch with TTL cache
+  const { data: apiData } = useSWR<Record<string,any>>('/api/ds-fetch', fetcher, { refreshInterval: 5000, revalidateOnFocus: false })
   return (
-    <RuntimeProvider value={{ page: { prefCode }, api: { prefStats: PREFS, hoverPresets: HOVER_PRESETS } }}>
+    <RuntimeProvider value={{ page: { prefCode }, api: { prefStats: PREFS, hoverPresets: HOVER_PRESETS, ...(apiData||{}) } }}>
       {file ? (
         <C />
       ) : (
