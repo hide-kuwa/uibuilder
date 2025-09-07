@@ -2,17 +2,26 @@
   "name": "@chizu/registry",
   "version": "0.0.1",
   "type": "module",
+  "module": "./dist/index.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/chizu-registry/src/index.js",
+      "require": "./dist/index.cjs",
+      "react-server": "./dist/index.js",
+      "browser": "./dist/index.js",
+      "node": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./components/*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/chizu-registry/src/components/*.js",
+      "require": "./dist/components/*.cjs",
+      "react-server": "./dist/components/*.js",
+      "browser": "./dist/components/*.js",
+      "node": "./dist/components/*.js",
       "default": "./dist/components/*.js"
     }
   },

@@ -2,6 +2,8 @@
 'use client'
 import React from 'react'
 import { ExportButton } from '@/components/ExportButton'
+// --- append-only: autosave mount import ---
+import { AutosaveMount } from '@/components/AutosaveMount'
 
 export default function Page() {
   // TODO: replace with builder store; temporary dummy
@@ -10,8 +12,9 @@ export default function Page() {
     <main className="p-6 space-y-3">
       <h1 className="text-lg font-semibold">Export (dev)</h1>
       <ExportButton getPage={getPage} />
+      {/* --- append-only: autosave mount --- */}
+      <AutosaveMount page={getPage()} />
       <p className="text-sm opacity-70">※ ストア接続前の暫定版です。</p>
     </main>
   )
 }
-

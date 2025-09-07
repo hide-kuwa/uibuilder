@@ -141,3 +141,19 @@ export { TraceGraph } from './components/TraceGraph'
 export { TraceLegend } from './components/TraceLegend'
 export { RecoPanel } from './components/RecoPanel'
 export { PublishSummary } from './components/PublishSummary'
+
+// --- append-only: named renderer exports for codegen compatibility ---
+// Components: adapt (props, runtime) to underlying (props, _slots?, runtime)
+export const Text = (props: any, runtime?: any) => (R as any)['Text'](props, undefined, runtime)
+export const Image = (props: any, runtime?: any) => (R as any)['Image'](props, undefined, runtime)
+export const Hero = (props: any, runtime?: any) => (R as any)['Hero'](props, undefined, runtime)
+export const TopNav = (props: any, runtime?: any) => (R as any)['TopNav'](props, undefined, runtime)
+export const PrefList = (props: any, runtime?: any) => (R as any)['PrefList'](props, undefined, runtime)
+
+// Frames: adapt (slots, runtime) to underlying (props, slots, runtime)
+export const Frame_Basic = (slots: any, runtime?: any) => (R as any)['Frame_Basic']({}, slots, runtime)
+export const Frame_Toponly = (slots: any, runtime?: any) => (R as any)['Frame_Toponly']({}, slots, runtime)
+export const Frame_Wide = (slots: any, runtime?: any) => (R as any)['Frame_Wide']({}, slots, runtime)
+
+// --- append-only: alias names for frames/components to absorb naming variants ---
+export const Frame_TopOnly = Frame_Toponly

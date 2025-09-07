@@ -14,6 +14,7 @@ const links = [
   { href: '/publish-summary', label: 'publish-summary' },
   { href: '/reco2', label: 'reco2' },
   { href: '/publish-summary2', label: 'publish-summary2' },
+  { href: '/exports-check2', label: 'exports-check2' },
 ];
 
 export default function Page() {
@@ -27,6 +28,18 @@ export default function Page() {
           </li>
         ))}
       </ul>
+      {/* --- append-only: link to reco3 --- */}
+      <div className="mt-2 text-sm">
+        <a href="/reco3" className="underline">/reco3</a>
+      </div>
+      {/* --- append-only: link to reco-events --- */}
+      <div className="mt-2 text-sm">
+        <a className="underline" href="/reco-events">/reco-events</a>
+      </div>
+      {/* --- append-only: link to autosave-events --- */}
+      <div className="mt-2 text-sm">
+        <a className="underline" href="/autosave-events">/autosave-events</a>
+      </div>
     </main>
   );
 }
