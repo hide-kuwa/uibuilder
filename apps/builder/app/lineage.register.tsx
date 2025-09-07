@@ -72,3 +72,18 @@ if (typeof window !== 'undefined' && window.registerRightPaneTab) {
     render: () => <RecoPanelLivePlus />,
   })
 }
+
+// --- Snippets tab (append-only) ---
+import dynamic from 'next/dynamic'
+const BindingsSnippetsPanel = dynamic(
+  () => import('@/components/rightpane/BindingsSnippetsPanel'),
+  { ssr: false }
+)
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  (window as any).registerRightPaneTab?.({
+    key: 'snippets',
+    label: 'Snippets',
+    render: () => <BindingsSnippetsPanel />
+  })
+}

@@ -30,6 +30,7 @@ export default function Page() {
         <li><a href="/bindings-snippets">/bindings-snippets（スニペット一覧）</a></li>
         <li><a href="/ds-test">/ds-test（DataSource テスター）</a></li>
         <li><a href="/events">/events（autosave & reco イベント統合）</a></li>
+        <li><a href="/bindings-events">/bindings-events（bindings イベント）</a></li>
       </ul>
       {/* --- append-only: link to reco3 --- */}
       <div className="mt-2 text-sm">
