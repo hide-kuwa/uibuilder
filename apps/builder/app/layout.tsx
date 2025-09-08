@@ -34,3 +34,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
  */
 
 // append-only: reserved hook slot
+
+// --- append-only: reset scroll on right-pane tab changes ---
+// data-panel 要素が差し替わった際にスクロール位置をリセットして、常に上部から表示する
+if (typeof window !== 'undefined') {
+  const __rightPaneScrollResetObserver = new MutationObserver(() => {
+    const panels = document.querySelectorAll('[data-panel]')
+    panels.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        // レイアウト確定後にリセット（ちらつき防止）
+        requestAnimationFrame(() => { el.scrollTop = 0 })
+      }
+    })
+  })
+  // パネルは動的に差し替わるため、body 全体を監視（軽量変化のみ）
+  __rightPaneScrollResetObserver.observe(document.body, { childList: true, subtree: true })
+}
