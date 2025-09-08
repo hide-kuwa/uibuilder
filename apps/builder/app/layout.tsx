@@ -14,9 +14,11 @@ import ExportHashBadge from './ExportHashBadge'
 // append-only mount: hotkey helper for exporting hash copy
 import ExportHashCopyHotkey from './ExportHashCopyHotkey'
 import RegisterLineageStickyHighlightOnce from './lineage.highlight.register'
+// append-only mount: /events heartbeat badge
+import EventStreamHealth from './EventStreamHealth'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce />{children}</body></html>
+  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth />{children}</body></html>
 }
 
 /**

@@ -15,7 +15,8 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@chizu/renderer": ["./shims/chizu-renderer-server"]
+      "@chizu/renderer": ["./shims/chizu-renderer-server"],
+      "@/*": ["./*"]
     },
     "plugins": [
       {
