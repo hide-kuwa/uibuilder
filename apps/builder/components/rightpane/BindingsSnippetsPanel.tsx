@@ -7,6 +7,8 @@ export default function BindingsSnippetsPanel() {
   const [cat, setCat] = React.useState<string>('all')
   // append-only: bindings type-hint from focused input
   const wantCtx = (typeof window !== 'undefined' && (window as any).__bindingContext?.want) as string[] | undefined;
+  // append-only: show current context hint
+  const wantHint = Array.isArray(wantCtx) && wantCtx.length > 0 ? wantCtx.join(', ') : null;
   const list = cat === 'all'
     ? suggestSnippets(wantCtx ? { want: wantCtx } : {})
     : suggestSnippets({ want: [cat as any] })
@@ -35,6 +37,25 @@ export default function BindingsSnippetsPanel() {
           <option value="safety">safety</option>
         </select>
       </div>
+      {wantHint && (
+        <div style={{ margin: '6px 0' }}>
+          <span
+            aria-label={`snippet context ${wantHint}`}
+            title={`Snippets filtered by: ${wantHint}`}
+            style={{
+              display: 'inline-block',
+              padding: '2px 8px',
+              border: '1px solid #e5e7eb',
+              borderRadius: 12,
+              fontSize: 12,
+              color: '#111827',
+              background: '#f9fafb'
+            }}
+          >
+            context: {wantHint}
+          </span>
+        </div>
+      )}
       <div style={{ display:'grid', gap:8 }}>
         {list.map((s: any) => (
           <div key={s.key} style={{ border:'1px solid #eee', borderRadius:8, padding:8 }}>
