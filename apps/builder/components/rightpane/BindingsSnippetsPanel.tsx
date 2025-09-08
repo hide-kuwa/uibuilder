@@ -17,6 +17,8 @@ export default function BindingsSnippetsPanel() {
     window.dispatchEvent(new CustomEvent('bindings:insert', { detail }))
     // 軽い監査ログ
     // console.info('[audit]', { op: 'bindings:insert', key })
+    // フォーカス中の入力へ即適用（あれば）
+    ;(window as any).__setBindingFormula?.(formula)
   }
 
   return (
@@ -47,4 +49,3 @@ export default function BindingsSnippetsPanel() {
     </div>
   )
 }
-

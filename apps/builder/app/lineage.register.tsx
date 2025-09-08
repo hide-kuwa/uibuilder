@@ -87,3 +87,23 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
     render: () => <BindingsSnippetsPanel />
   })
 }
+
+// --- DS Test tab (append-only) ---
+import dynamic from 'next/dynamic'
+const DsTestPanel = dynamic(() => import('@/components/rightpane/DsTestPanel'), { ssr: false })
+
+export function RegisterDsTestTabOnce() {
+  React.useEffect(() => {
+    const w = window as any
+    if (w.__dsTestTabRegistered) return
+    w.__dsTestTabRegistered = true
+    if (typeof w.registerRightPaneTab === 'function') {
+      w.registerRightPaneTab?.({
+        key: 'ds',
+        label: 'DS',
+        render: () => <DsTestPanel />
+      })
+    }
+  }, [])
+  return null
+}

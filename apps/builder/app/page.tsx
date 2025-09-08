@@ -508,7 +508,22 @@ function BindingsEditor({
 
       <div>
         <div style={{fontSize:12,color:'#666'}}>expr</div>
-        <textarea value={expr} onChange={e=>setExpr((e.target as HTMLTextAreaElement).value)} rows={3} style={{width:'100%', padding:8, border:'1px solid #ddd', borderRadius:8, fontFamily:'monospace'}} />
+        <textarea
+          value={expr}
+          onChange={e => setExpr((e.target as HTMLTextAreaElement).value)}
+          rows={3}
+          style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'monospace' }}
+
+          /* append-only: bindings auto-apply bridge */
+          onFocus={() => { (window as any).__setBindingFormula = (v: string) => setExpr(v) }}
+          onBlur={() => { if ((window as any).__setBindingFormula) (window as any).__setBindingFormula = undefined }}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+              const d = (window as any).__bindingsInsert
+              if (d?.formula) setExpr(d.formula)
+            }
+          }}
+        />
         <div style={{fontSize:12, color:'#666', marginTop:6}}>
           使い方例：<code>`名前: ${'$'}{$0}</code>、<code>`人口: ${'$'}{$1?.population}`</code>
         </div>

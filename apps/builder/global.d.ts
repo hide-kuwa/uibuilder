@@ -8,3 +8,8 @@ declare global {
   }
 }
 
+// append-only: bindings events typings
+declare interface Window {
+  __bindingsInsert?: { key?: string; formula: string }
+  __setBindingFormula?: (v: string) => void
+}

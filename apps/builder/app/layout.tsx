@@ -6,9 +6,10 @@ import { RecoEventsBridge } from './reco.events-bridge'
 import { AutosaveBadge } from '@/components/AutosaveBadge'
 import RecoPersistBridge from './reco.persist-bridge'
 import BindingsEventsBridge from './bindings.events-bridge'
+import { RegisterDsTestTabOnce } from './lineage.register'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge />{children}</body></html>
+  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce />{children}</body></html>
 }
 
 // append-only: reserved hook slot
