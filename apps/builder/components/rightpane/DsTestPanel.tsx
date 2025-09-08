@@ -1,6 +1,7 @@
 // apps/builder/components/rightpane/DsTestPanel.tsx
 'use client'
 import * as React from 'react'
+import { audit } from '@/src/lib/audit'
 
 export default function DsTestPanel() {
   const [url, setUrl] = React.useState('https://jsonplaceholder.typicode.com/todos/1')
@@ -12,6 +13,7 @@ export default function DsTestPanel() {
     setLoading(true); setError(null)
     try {
       console.info('[audit]', { op: 'ds.fetch', kind: 'direct', url })
+      audit('ds.fetch', { kind: 'direct', url })
       const res = await fetch(url, { cache: 'no-store' })
       const text = await res.text()
       setResult({ ok: res.ok, status: res.status, len: text.length, preview: text.slice(0, 800) })
@@ -26,6 +28,7 @@ export default function DsTestPanel() {
     setLoading(true); setError(null)
     try {
       console.info('[audit]', { op: 'ds.fetch', kind: 'api', url })
+      audit('ds.fetch', { kind: 'api', url })
       const res = await fetch('/api/ds-fetch2', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url }) })
       const json = await res.json()
       setResult(json)
@@ -60,4 +63,3 @@ export default function DsTestPanel() {
     </div>
   )
 }
-

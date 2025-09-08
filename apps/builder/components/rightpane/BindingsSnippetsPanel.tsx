@@ -5,8 +5,10 @@ import { suggestSnippets } from '@chizu/ui/bindings/suggest'
 
 export default function BindingsSnippetsPanel() {
   const [cat, setCat] = React.useState<string>('all')
+  // append-only: bindings type-hint from focused input
+  const wantCtx = (typeof window !== 'undefined' && (window as any).__bindingContext?.want) as string[] | undefined;
   const list = cat === 'all'
-    ? suggestSnippets()
+    ? suggestSnippets(wantCtx ? { want: wantCtx } : {})
     : suggestSnippets({ want: [cat as any] })
 
   const onInsert = (key: string, formula: string) => {

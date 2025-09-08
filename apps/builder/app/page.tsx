@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
 import * as REG from '@chizu/registry'
 import { AutosaveMountHashed } from '@/components/AutosaveMountHashed'
+import { ApplyLastSnippetButton } from '@/components/bindings/ApplyLastSnippetButton'
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json())
 
@@ -518,12 +519,20 @@ function BindingsEditor({
           onFocus={() => { (window as any).__setBindingFormula = (v: string) => setExpr(v) }}
           onBlur={() => { if ((window as any).__setBindingFormula) (window as any).__setBindingFormula = undefined }}
           onKeyDown={(e) => {
+            // IME変換中はスキップ（Enter確定と衝突させない）
+            // @ts-ignore
+            if ((e as any).nativeEvent?.isComposing) return;
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
               const d = (window as any).__bindingsInsert
               if (d?.formula) setExpr(d.formula)
             }
           }}
+          aria-keyshortcuts="Control+Enter Meta+Enter"
+          title="Ctrl(⌘)+Enter で最後の挿入を適用"
         />
+        <div style={{ marginTop: 6 }}>
+          <ApplyLastSnippetButton onApply={(f)=> setExpr(f)} />
+        </div>
         <div style={{fontSize:12, color:'#666', marginTop:6}}>
           使い方例：<code>`名前: ${'$'}{$0}</code>、<code>`人口: ${'$'}{$1?.population}`</code>
         </div>
