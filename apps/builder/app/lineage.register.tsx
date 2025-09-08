@@ -88,6 +88,30 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
   })
 }
 
+// --- append-only: DS+ tab registration ---
+import dynamic from 'next/dynamic'
+import { useEffect } from 'react'
+import React from 'react'
+
+export function RegisterDsTestPlusTabOnce() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    // idempotent guard
+    if ((window as any).__tab_dsplus_registered) return
+    ;(window as any).__tab_dsplus_registered = true
+    const Lazy = dynamic(() => import('@/components/rightpane/DsTestPanelPlus'), { ssr: false })
+    // support object-based register as used elsewhere
+    if (typeof window.registerRightPaneTab === 'function') {
+      try {
+        ;(window as any).registerRightPaneTab?.({ key: 'ds+', label: 'DS+', render: () => <Lazy /> })
+      } catch {
+        try { (window as any).registerRightPaneTab?.('ds+', 'DS+', () => <Lazy />) } catch {}
+      }
+    }
+  }, [])
+  return null
+}
+
 // --- DS Test tab (append-only) ---
 import dynamic from 'next/dynamic'
 const DsTestPanel = dynamic(() => import('@/components/rightpane/DsTestPanel'), { ssr: false })
@@ -107,3 +131,16 @@ export function RegisterDsTestTabOnce() {
   }, [])
   return null
 }
+/**
+ * [append-only] Idempotent register pattern for right-pane tabs
+ *
+ * ▷ 目的：ブラウザの再マウントやホットリロード時でも「タブ登録」が重複しない安心感を担保する。
+ * ▷ ルール：
+ *   - グローバルに `window.__tab_<id>_registered` を置く（boolean）
+ *   - true の場合は registerRightPaneTab を再実行しない
+ *   - registerRightPaneTab は 2 形態を許容：
+ *       1) オブジェクト：{ id, title, component }
+ *       2) 3引数：registerRightPaneTab(id, title, component)
+ * ▷ 実装例：RegisterDsTestPlusTabOnce() 内で上記ガードを確認してから登録する
+ * ▷ 追記のみ：既存行は変更しない（本ブロックはドキュメント用途）
+ */

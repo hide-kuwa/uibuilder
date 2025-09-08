@@ -4,3 +4,16 @@ export function audit(op: string, payload: any) {
   console.info('[audit]', { op, ...payload });
 }
 
+// --- append-only: POST audit helper ---
+export function auditPost(op: string, payload: any) {
+  try {
+    const body = JSON.stringify({ op, ...payload })
+    if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+      const blob = new Blob([body], { type: 'application/json' })
+      ;(navigator as any).sendBeacon('/api/audit', blob)
+    } else {
+      fetch('/api/audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+    }
+  } catch {}
+}
+// --- /append-only ---

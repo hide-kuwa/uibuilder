@@ -1,7 +1,55 @@
 // apps/builder/components/rightpane/BindingsSnippetsPanel.tsx
 'use client'
 import React from 'react'
+import { useState } from 'react' // append-only
 import { suggestSnippets } from '@chizu/ui/bindings/suggest'
+import { audit } from '@/src/lib/audit' // append-only
+
+// --- append-only: snippets insert audit (capture) ---
+function __bindingsSnippetsAuditClick(e: MouseEvent) {
+  try {
+    const t = e.target as HTMLElement | null
+    if (!t) return
+    // 探索：data-snippet-key or data-key を親方向に遡って取得
+    let el: HTMLElement | null = t
+    let key: string | null = null
+    while (el) {
+      const ds: any = (el as any).dataset
+      if (ds && (ds.snippetKey || ds.key)) {
+        key = (ds.snippetKey as string) || (ds.key as string)
+        break
+      }
+      // 「挿入 / Insert」ボタン経由のケース：親行から key を拾う
+      if (el.tagName === 'BUTTON' && /挿入|Insert/i.test(el.textContent || '')) {
+        const row = el.closest('[data-snippet-key],[data-key]') as HTMLElement | null
+        if (row) {
+          const dr: any = (row as any).dataset
+          key = (dr?.snippetKey as string) || (dr?.key as string) || null
+        }
+        break
+      }
+      el = el.parentElement
+    }
+    if (!key) return
+    // フォーミュラ textarea を推定（name/data-role/id のいずれか）
+    const ta =
+      (document.querySelector(
+        'textarea[name="formula"], textarea[data-role="formula"], textarea#formula, textarea.formula'
+      ) as HTMLTextAreaElement | null) ||
+      (t.closest('form')?.querySelector('textarea') as HTMLTextAreaElement | null)
+    const formulaLen = ta?.value?.length ?? 0
+    // 監査ログ（既存 audit() を使用）
+    audit('bindings.insert', { key, formulaLen })
+  } catch {
+    /* noop: 監査失敗はUIに影響させない */
+  }
+}
+
+// グローバル一度きりでキャプチャ登録（append-only）
+if (typeof window !== 'undefined' && !(window as any).__snippetAuditInstalled) {
+  ;(window as any).__snippetAuditInstalled = true
+  document.addEventListener('click', __bindingsSnippetsAuditClick, true) // capture
+}
 
 export default function BindingsSnippetsPanel() {
   const [cat, setCat] = React.useState<string>('all')
@@ -9,6 +57,14 @@ export default function BindingsSnippetsPanel() {
   const wantCtx = (typeof window !== 'undefined' && (window as any).__bindingContext?.want) as string[] | undefined;
   // append-only: show current context hint
   const wantHint = Array.isArray(wantCtx) && wantCtx.length > 0 ? wantCtx.join(', ') : null;
+  const [, setBump] = useState(0) // append-only: rerender trigger for clearing context
+  const clearCtx = () => { // append-only
+    if (typeof window !== 'undefined' && (window as any).__bindingContext) (window as any).__bindingContext = undefined
+    // append-only: audit log for context clear
+    const prev = Array.isArray(wantCtx) && wantCtx.length > 0 ? wantCtx : null
+    audit('bindings.ctx.clear', { prev })
+    setBump(v => v + 1)
+  }
   const list = cat === 'all'
     ? suggestSnippets(wantCtx ? { want: wantCtx } : {})
     : suggestSnippets({ want: [cat as any] })
@@ -36,7 +92,7 @@ export default function BindingsSnippetsPanel() {
           <option value="format">format</option>
           <option value="safety">safety</option>
         </select>
-      </div>
+        </div>
       {wantHint && (
         <div style={{ margin: '6px 0' }}>
           <span
@@ -54,6 +110,27 @@ export default function BindingsSnippetsPanel() {
           >
             context: {wantHint}
           </span>
+          {/* append-only: clear button */}
+          <button
+            type="button"
+            onClick={clearCtx}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); clearCtx() } }}
+            aria-label="clear snippet context"
+            title="コンテキストをクリア"
+            style={{
+              marginLeft: 6,
+              padding: '0 6px',
+              height: 22,
+              border: '1px solid #e5e7eb',
+              borderRadius: 12,
+              background: '#ffffff',
+              cursor: 'pointer',
+              fontSize: 12,
+              lineHeight: '20px'
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
       <div style={{ display:'grid', gap:8 }}>

@@ -31,6 +31,7 @@ export default function Page() {
         <li><a href="/ds-test">/ds-test（DataSource テスター）</a></li>
         <li><a href="/events">/events（autosave & reco イベント統合）</a></li>
         <li><a href="/bindings-events">/bindings-events（bindings イベント）</a></li>
+        <li><a href="/audit">/audit（監査ログ）</a></li>
       </ul>
       {/* --- append-only: link to reco3 --- */}
       <div className="mt-2 text-sm">
@@ -43,6 +44,10 @@ export default function Page() {
       {/* --- append-only: link to autosave-events --- */}
       <div className="mt-2 text-sm">
         <a className="underline" href="/autosave-events">/autosave-events</a>
+      </div>
+      {/* --- append-only: link to ops-notes --- */}
+      <div className="mt-2 text-sm">
+        <a className="underline" href="/dev/ops-notes">/dev/ops-notes</a>
       </div>
     </main>
   );
