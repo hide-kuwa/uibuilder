@@ -1,0 +1,65 @@
+name: test
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+          run_install: true
+
+      - name: Install Playwright browsers
+        run: pnpm -w exec playwright install --with-deps
+
+      - name: Unit tests
+        run: pnpm -w run test:unit
+
+      - name: E2E (dev→wait→test)
+        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+        run: |
+          # 起動（OS別）
+          ${{ matrix.os == 'windows-latest' && "(Start-Process -PassThru pnpm -ArgumentList '--filter','./web','dev') | Out-Null" || "(pnpm --filter ./web dev &)" }}
+          # 待機
+          ${{ matrix.os == 'windows-latest' && "$n=0; while ($n -lt 90) { try { iwr http://localhost:3000 -UseBasicParsing | Out-Null; break } catch {}; Start-Sleep -Seconds 1; $n++ }" || "n=0; until curl -sf http://localhost:3000 >/dev/null || [ $n -gt 90 ]; do n=$((n+1)); sleep 1; done" }}
+          pnpm -w run test:e2e
+        env:
+          NEXT_PUBLIC_E2E: '1'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Upload perf CSV (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-csv
+          path: '**/test-results/**/perf_raw.csv'
+
+      - name: Summarize Perf CSV
+        if: always()
+        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+        run: |
+          node scripts/perf-summary.mjs
+          ${{ matrix.os == 'windows-latest' && "Get-Content perf-summary.md | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append" || "cat perf-summary.md >> \"$GITHUB_STEP_SUMMARY\"" }}
