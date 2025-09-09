@@ -82,7 +82,7 @@ export default function EditPage() {
     <main className="p-4 space-y-3">
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-semibold">Edit Page: {slug}</h1>
-        <button
+        <button data-testid="export-button"
           className="text-xs underline"
           onClick={async () => {
             try {
@@ -100,7 +100,7 @@ export default function EditPage() {
         >
           Export
         </button>
-        <div className="ml-auto"><SaveBadge /></div>
+        <div className="ml-auto"><SaveBadge data-testid="save-badge" /></div>
       </div>
       {meta ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

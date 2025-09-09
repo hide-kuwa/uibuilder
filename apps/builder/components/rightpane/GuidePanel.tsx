@@ -99,7 +99,7 @@ export default function GuidePanel({ slug: initSlug, onApply }: { slug?: string;
         <b>Guide</b>
         <span className="opacity-70">Issues: {issues.length}</span>
         <span className="opacity-60 ml-2">Score:</span>
-        <span className={`font-semibold ${score == null ? 'opacity-50' : ''}`}>{score == null ? '—' : Math.round(score)}</span>
+        <span data-testid="score-badge" data-score={score == null ? '' : String(Math.round(score))} className={`font-semibold ${score == null ? 'opacity-50' : ''}`}>{score == null ? '—' : Math.round(score)}</span>
         <span className="ml-auto opacity-60">slug:</span>
         <input
           value={slug}
@@ -115,18 +115,18 @@ export default function GuidePanel({ slug: initSlug, onApply }: { slug?: string;
             <div className="font-medium text-xs">{i.kind} — <span className="opacity-70">#{i.nodeId}</span></div>
             <div className="text-[11px] opacity-70">{i.message}</div>
             <div className="mt-2 flex gap-2">
-              <button disabled={busy} className={`underline ${busy ? 'opacity-60 pointer-events-none' : ''}`} onClick={() => run(i)}>修正</button>
+              <button data-testid="guide-contrast-apply" disabled={busy} className={`underline ${busy ? 'opacity-60 pointer-events-none' : ''}`} onClick={() => run(i)}>修正</button>
               <button className="underline text-gray-600" onClick={() => select(i.id)}>選択</button>
             </div>
           </li>
         ))}
       </ul>
       {applyResult && (
-        <div className="mt-2">
+        <div className="mt-2" data-testid="diff-modal">
           <div className="text-sm mb-1">差分プレビュー</div>
           <DiffPreview before={applyResult.diffText?.split('@@\n-')[1]?.split('\n+')[0]} after={applyResult.diffText?.split('\n+')[1]} />
           <div className="mt-2 flex items-center gap-2">
-            <button className="underline" onClick={() => navigator.clipboard.writeText(applyResult.diffText || '')}>Copy .diff</button>
+            <button data-testid="diff-approve" className="underline" onClick={() => navigator.clipboard.writeText(applyResult.diffText || '')}>Copy .diff</button>
             <button className="underline text-gray-600" onClick={clearResult}>クリア</button>
           </div>
         </div>
