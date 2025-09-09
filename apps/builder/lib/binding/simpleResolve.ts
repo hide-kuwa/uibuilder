@@ -15,11 +15,16 @@ export function resolveBinding(expr: string, ctx: any): any {
     const left = resolveBinding(l.trim(), ctx)
     if (left !== null && left !== undefined) return left
     const rhs = r.trim()
-    try { return JSON.parse(rhs) } catch {}
+    try {
+      return JSON.parse(rhs)
+    } catch {}
     const num = Number(rhs)
     if (!Number.isNaN(num)) return num
     return rhs.replace(/^['"]|['"]$/g, '')
   }
   return evalPath(expr)
 }
+
+// convenience alias for tests expecting a named simpleResolve
+export const simpleResolve = resolveBinding
 

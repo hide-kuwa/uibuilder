@@ -3,10 +3,18 @@ export type OutboxItem = { id: string; target?: string; body: any }
 export function createOutbox() {
   const q: OutboxItem[] = []
   return {
-    async enqueue(it: OutboxItem) { q.push(it) },
-    async size() { return q.length },
-    async peek() { return q[0] },
-    async shift() { return q.shift() },
+    async enqueue(it: OutboxItem) {
+      q.push(it)
+    },
+    async size() {
+      return q.length
+    },
+    async peek() {
+      return q[0]
+    },
+    async shift() {
+      return q.shift()
+    },
   }
 }
 
