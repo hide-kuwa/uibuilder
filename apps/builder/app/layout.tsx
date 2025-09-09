@@ -19,9 +19,30 @@ import EventStreamHealth from './EventStreamHealth'
 // append-only: provide binding resolve bridge for previews
 import '@/lib/binding/resolve'
 import EnvToggle from '@/components/EnvToggle'
+import PresetsTestIdE2E from '@/components/PresetsTestIdE2E'
+import PerfPanel from '@/components/debug/PerfPanel'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth /><div style={{position:'fixed',top:6,right:8,zIndex:50}}><EnvToggle /></div>{children}</body></html>
+  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth /><div style={{position:'fixed',top:6,right:8,zIndex:50}}><EnvToggle /></div><PresetsTestIdE2E />{process.env.NEXT_PUBLIC_E2E === '1' && <PerfPanel />}{children}</body></html>
+}
+
+// --- append-only: Tag the Presets tab with a test id for E2E
+if (typeof window !== 'undefined') {
+  const tagPresets = () => {
+    try {
+      const tabs = Array.from(document.querySelectorAll('[role="tab"], button, a, div')) as HTMLElement[]
+      for (const el of tabs) {
+        const txt = (el.textContent || '').trim()
+        if (txt === 'Presets' && !el.getAttribute('data-testid')) {
+          el.setAttribute('data-testid', 'tab-presets')
+          break
+        }
+      }
+    } catch {}
+  }
+  const mo = new MutationObserver(() => tagPresets())
+  mo.observe(document.documentElement, { childList: true, subtree: true })
+  setTimeout(tagPresets, 0)
 }
 
 /**

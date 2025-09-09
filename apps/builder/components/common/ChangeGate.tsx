@@ -17,10 +17,9 @@ export default function ChangeGate({ score, onConfirm, onCancel }: { score: numb
         <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" placeholder="Reason (optional)" value={reason} onChange={(e) => setReason(e.target.value)} />
         <div className="mt-3 flex items-center gap-2 justify-end">
           <button className="underline text-gray-600" onClick={onCancel}>Cancel</button>
-          <button className={`underline ${!checked ? 'opacity-60 pointer-events-none' : ''}`} onClick={() => onConfirm(reason)}>Proceed</button>
+          <button data-testid="change-gate-approve" className={`underline ${!checked ? 'opacity-60 pointer-events-none' : ''}`} onClick={() => onConfirm(reason)}>Proceed</button>
         </div>
       </div>
     </div>
   )
 }
-

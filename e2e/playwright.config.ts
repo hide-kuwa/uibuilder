@@ -2,13 +2,12 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './',
-  use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000' },
-  reporter: [['list']],
-  webServer: process.env.E2E_NO_SERVER ? undefined : {
-    command: process.env.E2E_BUILD ? 'pnpm build && pnpm start' : 'pnpm dev',
-    port: 3000,
-    timeout: 120000,
-    reuseExistingServer: !process.env.CI,
+  use: {
+    baseURL: 'http://localhost:3000',
+    headless: true,\n    trace: 'retain-on-failure',\n    screenshot: 'only-on-failure',\n    video: 'retain-on-failure',
   },
+  projects: [{ name: 'chromium' }],\n  reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],,
+  timeout: 60_000,
 })
+
 
