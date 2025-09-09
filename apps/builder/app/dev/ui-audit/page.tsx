@@ -316,6 +316,123 @@ export default async function Page() {
   }
 })()
 
+// --- append-only: E-30 Heatmap sort toggle by issue counts (contrast/spacing/alignment) ---
+;(() => {
+  if (typeof window === 'undefined') return
+
+  type ScoreResp = { issues?: { contrast?: string[]; gridSpacing?: string[]; alignment?: string[] } }
+
+  const getHeatmapGrid = () => {
+    const section = document.querySelector('[data-ui-audit-global]') as HTMLElement | null
+    if (!section) return { section: null as HTMLElement | null, grid: null as HTMLElement | null }
+    // grid directly under the section (created in E-26)
+    const grid = section.querySelector('div.grid.grid-cols-2, div.grid-cols-2, div.grid') as HTMLElement | null
+    return { section, grid }
+  }
+
+  const getCards = (grid: HTMLElement | null): HTMLAnchorElement[] => {
+    if (!grid) return []
+    const cards = Array.from(grid.querySelectorAll('a[href^="/dev/pages?tag="]')) as HTMLAnchorElement[]
+    return cards
+  }
+
+  const parseSlug = (a: HTMLAnchorElement) => {
+    // prefer dataset from E-29
+    const ds = (a as any).dataset?.slug as string | undefined
+    if (ds) return ds
+    try {
+      const u = new URL(a.href, window.location.origin)
+      const tag = u.searchParams.get('tag')
+      if (tag) return tag
+    } catch {}
+    const txt = (a.querySelector('.font-mono')?.textContent || '').trim()
+    return txt || null
+  }
+
+  const fetchIssues = async (slug: string): Promise<ScoreResp | null> => {
+    try {
+      const res = await fetch(`/api/ui-audit/score?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' })
+      if (!res.ok) return null
+      return (await res.json()) as ScoreResp
+    } catch { return null }
+  }
+
+  const ensureIssueCounts = async (cards: HTMLAnchorElement[]) => {
+    const cache = new Map<string, ScoreResp | null>()
+    for (let i = 0; i < cards.length; i++) {
+      const a = cards[i]
+      a.classList.add('ui-audit-card')
+      if (!(a as any).dataset.index) (a as any).dataset.index = String(i)
+      const slug = parseSlug(a)
+      if (!slug) continue
+      if (!(a as any).dataset.slug) (a as any).dataset.slug = slug
+      const already = (a as any).dataset.contrastIssues
+      if (already != null) continue
+      let data = cache.get(slug) ?? null
+      if (!cache.has(slug)) {
+        data = await fetchIssues(slug)
+        cache.set(slug, data)
+      }
+      const c = data?.issues?.contrast?.length ?? 0
+      const s = data?.issues?.gridSpacing?.length ?? 0
+      const al = data?.issues?.alignment?.length ?? 0
+      ;(a as any).dataset.contrastIssues = String(c)
+      ;(a as any).dataset.spacingIssues = String(s)
+      ;(a as any).dataset.alignmentIssues = String(al)
+    }
+  }
+
+  const injectSortSelect = (grid: HTMLElement) => {
+    const already = (grid.parentElement as any)?.__sortInjected
+    if (already) return
+    const controls = document.createElement('div')
+    controls.className = 'mb-2 flex items-center gap-2'
+    const label = document.createElement('label')
+    label.className = 'text-sm'
+    label.textContent = 'Sort by: '
+    const sel = document.createElement('select')
+    sel.className = 'border rounded px-2 py-1 text-sm'
+    ;[
+      { v: 'none', t: '—' },
+      { v: 'contrast', t: 'contrast (desc)' },
+      { v: 'spacing', t: 'spacing (desc)' },
+      { v: 'alignment', t: 'alignment (desc)' },
+    ].forEach(({ v, t }) => {
+      const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o)
+    })
+    controls.appendChild(label)
+    controls.appendChild(sel)
+    grid.parentElement?.insertBefore(controls, grid)
+    ;(grid.parentElement as any).__sortInjected = true
+
+    sel.addEventListener('change', () => {
+      const mode = sel.value as 'none' | 'contrast' | 'spacing' | 'alignment'
+      const cards = getCards(grid)
+      if (mode === 'none') {
+        const arr = cards.slice().sort((a, b) => Number((a as any).dataset.index ?? 0) - Number((b as any).dataset.index ?? 0))
+        arr.forEach((el) => grid.appendChild(el))
+        return
+      }
+      const key = mode === 'contrast' ? 'contrastIssues' : mode === 'spacing' ? 'spacingIssues' : 'alignmentIssues'
+      const arr = cards.slice().sort((a, b) => Number((b as any).dataset[key] ?? -1) - Number((a as any).dataset[key] ?? -1))
+      arr.forEach((el) => grid.appendChild(el))
+    })
+  }
+
+  const init = async () => {
+    const { section, grid } = getHeatmapGrid()
+    if (!section || !grid) return
+    const cards = getCards(grid)
+    if (cards.length === 0) return
+    await ensureIssueCounts(cards)
+    injectSortSelect(grid)
+  }
+
+  const ready = () => { void init() }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready, { once: true })
+  else ready()
+})()
+
 // --- append-only: E-26 filters for heatmap cards (slug/title, reactive) ---
 ;(() => {
   if (typeof window === 'undefined') return

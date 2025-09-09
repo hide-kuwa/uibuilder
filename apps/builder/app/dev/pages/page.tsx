@@ -232,6 +232,99 @@ export default async function Page({ searchParams }: { searchParams?: Record<str
   }
 })()
 
+// --- append-only: E-31 Edit link per row + hidden toggle via API ---
+;(() => {
+  if (typeof window === 'undefined') return
+
+  type Meta = { slug: string; hidden?: boolean }
+
+  const findForm = () => {
+    const h1 = Array.from(document.querySelectorAll('h1')).find((n) => (n.textContent || '').trim() === 'Pages')
+    return (h1?.parentElement?.querySelector('form') as HTMLFormElement | null) || null
+  }
+  const listContainer = () => {
+    const form = findForm()
+    return (form?.nextElementSibling as HTMLElement | null) || null
+  }
+  const findRows = (): HTMLElement[] => {
+    const cont = listContainer()
+    if (!cont) return []
+    return Array.from(cont.querySelectorAll('div.grid')) as HTMLElement[]
+  }
+  const slugFromRow = (row: HTMLElement) => (row.children.item(0)?.textContent || '').trim()
+
+  const injectControls = () => {
+    const form = findForm()
+    if (!form || (form as any).__hiddenToggle) return
+    const wrap = document.createElement('div')
+    wrap.className = 'flex items-center gap-3 text-sm mt-2'
+    const label = document.createElement('label')
+    label.className = 'flex items-center gap-2'
+    const cb = document.createElement('input')
+    cb.type = 'checkbox'
+    cb.name = 'showHiddenUI'
+    const span = document.createElement('span')
+    span.textContent = 'Show hidden'
+    label.appendChild(cb)
+    label.appendChild(span)
+    wrap.appendChild(label)
+    form.appendChild(wrap)
+    const params = new URLSearchParams(window.location.search)
+    const show = params.get('showHidden') === '1'
+    cb.checked = show
+    cb.addEventListener('change', () => {
+      const url = new URL(window.location.href)
+      if (cb.checked) url.searchParams.set('showHidden', '1')
+      else url.searchParams.delete('showHidden')
+      history.replaceState(null, '', url.toString())
+      window.location.reload()
+    })
+    ;(form as any).__hiddenToggle = true
+  }
+
+  const injectEditLinks = () => {
+    const rows = findRows()
+    for (const row of rows) {
+      if (row.querySelector('[data-edit-link]')) continue
+      const slug = slugFromRow(row)
+      const link = document.createElement('a')
+      link.setAttribute('data-edit-link', '1')
+      link.href = `/dev/pages/edit?slug=${encodeURIComponent(slug)}`
+      link.className = 'text-xs underline text-blue-600 hover:text-blue-800'
+      link.textContent = 'Edit'
+      const actionsCell = document.createElement('div')
+      actionsCell.className = 'text-right'
+      actionsCell.appendChild(link)
+      row.appendChild(actionsCell)
+    }
+  }
+
+  const applyHiddenFilter = async () => {
+    const show = new URLSearchParams(window.location.search).get('showHidden') === '1'
+    if (show) return
+    try {
+      const res = await fetch('/api/pages?showHidden=1', { cache: 'no-store' })
+      const j = await res.json()
+      if (!j?.ok || !Array.isArray(j.items)) return
+      const hiddenSet = new Set<string>(j.items.filter((m: Meta) => m.hidden).map((m: Meta) => m.slug))
+      const rows = findRows()
+      for (const row of rows) {
+        const slug = slugFromRow(row)
+        if (hiddenSet.has(slug)) row.style.display = 'none'
+      }
+    } catch {}
+  }
+
+  const init = () => {
+    injectControls()
+    injectEditLinks()
+    void applyHiddenFilter()
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true })
+  else init()
+})()
+
 // --- append-only: E-28 Audit Issue Rankings (contrast / spacing / alignment) ---
 ;(() => {
   if (typeof window === 'undefined') return

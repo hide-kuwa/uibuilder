@@ -16,9 +16,12 @@ import ExportHashCopyHotkey from './ExportHashCopyHotkey'
 import RegisterLineageStickyHighlightOnce from './lineage.highlight.register'
 // append-only mount: /events heartbeat badge
 import EventStreamHealth from './EventStreamHealth'
+// append-only: provide binding resolve bridge for previews
+import '@/lib/binding/resolve'
+import EnvToggle from '@/components/EnvToggle'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth />{children}</body></html>
+  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth /><div style={{position:'fixed',top:6,right:8,zIndex:50}}><EnvToggle /></div>{children}</body></html>
 }
 
 /**

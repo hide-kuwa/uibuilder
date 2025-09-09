@@ -145,6 +145,38 @@ export function RegisterDsTestTabOnce() {
  * ▷ 追記のみ：既存行は変更しない（本ブロックはドキュメント用途）
 */
 
+// --- append-only: Guide tab (UI-Audit fixes) ---
+import DynGuide from 'next/dynamic'
+const GuidePanel = DynGuide(() => import('@/components/rightpane/GuidePanel'), { ssr: false })
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  ;(window as any).registerRightPaneTab?.({
+    key: 'guide',
+    label: 'Guide',
+    render: () => <GuidePanel />,
+  })
+}
+
+// --- append-only: Data tab (bindings) ---
+import DynData from 'next/dynamic'
+const DataPanel = DynData(() => import('@/components/rightpane/DataPanel'), { ssr: false })
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  ;(window as any).registerRightPaneTab?.({
+    key: 'data',
+    label: 'Data',
+    render: () => <DataPanel />,
+  })
+}
+
+// --- append-only: Presets tab ---
+import DynPresets from 'next/dynamic'
+const PresetsPanel = DynPresets(() => import('@/components/rightpane/PresetsPanel'), { ssr: false })
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  ;(window as any).registerRightPaneTab?.({ key: 'presets', label: 'Presets', render: () => <PresetsPanel /> })
+}
+
 // --- append-only: mark alias imports as “used” to satisfy some ESLint configs ---
 // 一部の設定では DynRecoPlus/DynSnippets/DynDsPlus/DynDs を未使用とみなすことがあるため、
 // 無害な参照を置いて警告を抑制する（実行副作用なし）。
