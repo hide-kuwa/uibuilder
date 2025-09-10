@@ -3,6 +3,8 @@ import { useFigmaStore } from '../../lib/figma/store'
 import InlineTextEditor from './InlineTextEditor'
 import type { Node } from '../../lib/figma/model'
 import { useMemo } from 'react'
+import { useState } from 'react'
+import { useFigmaDevStore, type FigmaDevNode } from '../../lib/figma/store'
 
 function NodeBox({ node }: { node: Node }) {
   const select = useFigmaStore((s) => s.select)
@@ -65,6 +67,71 @@ export default function Canvas() {
         boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.08)',
       }}>
         <NodeBox node={root} />
+      </div>
+    </div>
+  )
+}
+
+function DevNodeBox({ node }: { node: FigmaDevNode }) {
+  const selectNode = useFigmaDevStore((s) => s.selectNode)
+  const selectedId = useFigmaDevStore((s) => s.selectedId)
+  const updateNode = useFigmaDevStore((s) => s.updateNode)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(node.text ?? '')
+  const isSelected = selectedId === node.id
+  const onDoubleClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    e.stopPropagation()
+    if (node.type === 'TEXT') {
+      setEditing(true)
+      setDraft(node.text ?? '')
+    }
+  }
+  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter') {
+      updateNode(node.id, { text: draft })
+      setEditing(false)
+    } else if (e.key === 'Escape') {
+      setEditing(false)
+      setDraft(node.text ?? '')
+    }
+  }
+  return (
+    <div
+      data-node-id={node.id}
+      style={{ position: 'absolute', left: node.x, top: node.y, width: node.w, height: node.h }}
+      onClick={(e) => {
+        e.stopPropagation()
+        selectNode(node.id)
+      }}
+      onDoubleClick={onDoubleClick}
+      className={isSelected ? 'outline outline-1 outline-blue-500' : ''}
+    >
+      {node.type === 'TEXT' && (
+        editing ? (
+          <input
+            className="w-full h-full text-sm"
+            value={draft}
+            autoFocus
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+          />
+        ) : (
+          <div className="text-sm select-none cursor-text">{node.text}</div>
+        )
+      )}
+    </div>
+  )
+}
+
+export function DevCanvas() {
+  const nodes = useFigmaDevStore((s) => s.nodes)
+  const selectNode = useFigmaDevStore((s) => s.selectNode)
+  return (
+    <div className="flex-1 overflow-auto bg-white" onClick={() => selectNode(null)}>
+      <div className="relative w-[2000px] h-[2000px]">
+        {nodes.map((n) => (
+          <DevNodeBox key={n.id} node={n} />
+        ))}
       </div>
     </div>
   )
