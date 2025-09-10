@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { installPerfTap, summarizeP95, exportPerfCSV } from '@/lib/perfTap'
+import { summarizeP95, exportPerfCSV } from '@/lib/perfTap'
 
 type Row = { label: string; count: number; p50: number; p95: number; max: number }
 
@@ -9,7 +9,6 @@ export default function PerfPanel() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    installPerfTap()
     const id = setInterval(() => setRows(summarizeP95()), 800)
     return () => clearInterval(id)
   }, [])
