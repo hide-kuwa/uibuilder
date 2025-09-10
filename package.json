@@ -36,7 +36,8 @@
         "routes:gen": "ts-node --project tsconfig.json scripts/gen_route_helpers.ts",
         "routes:check": "ts-node --project tsconfig.json scripts/check_dynamic_hrefs.ts",
         "prebuild": "pnpm routes:gen && pnpm routes:check",
-        "export:pages": "ts-node scripts/export-pages.ts"
+        "export:pages": "ts-node scripts/export-pages.ts",
+        "perf:baseline:stdin": "node scripts/ci/append-p95-from-stdin.mjs"
     },
     "bin": {
         "json2tsx": "./scripts/json2tsx.js"
