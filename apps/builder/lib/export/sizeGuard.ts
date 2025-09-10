@@ -1,5 +1,6 @@
+const LIMIT_BYTES = 2 * 1024 * 1024
+
 export function sizeGuardOk(bytes: number): boolean {
-  const limit = 2 * 1024 * 1024
-  return bytes <= limit
+  return bytes <= LIMIT_BYTES
 }
 

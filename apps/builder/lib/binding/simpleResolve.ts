@@ -25,6 +25,5 @@ export function resolveBinding(expr: string, ctx: any): any {
   return evalPath(expr)
 }
 
-// convenience alias for tests expecting a named simpleResolve
 export const simpleResolve = resolveBinding
 

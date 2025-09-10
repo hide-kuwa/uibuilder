@@ -26,6 +26,7 @@ export function contentHash(obj: any): string {
   return crypto.createHash('sha256').update(stableStringify(obj)).digest('hex')
 }
 
+<<<<<<< HEAD
 // append-only
 export function contentHashBytes(bytes: Uint8Array): string {
   const hex = (x: number) => x.toString(16).padStart(2, '0')
@@ -33,3 +34,5 @@ export function contentHashBytes(bytes: Uint8Array): string {
   return contentHash(s)
 }
 
+=======
+>>>>>>> origin/test/fastwin-unit-6d
