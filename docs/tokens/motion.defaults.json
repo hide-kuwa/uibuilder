@@ -1,0 +1,13 @@
+{
+  "motion.duration.short": 180,
+  "motion.duration.medium": 280,
+  "motion.duration.long": 400,
+  "motion.distance.xs": 8,
+  "motion.distance.sm": 16,
+  "motion.distance.md": 24,
+  "motion.distance.lg": 40,
+  "motion.stagger.step": 60,
+  "motion.ease.standard": "cubic-bezier(0.2,0,0,1)",
+  "motion.ease.emphasized": "cubic-bezier(0.2,0,0,1)",
+  "motion.ease.decelerate": "cubic-bezier(0,0,0,1)"
+}
