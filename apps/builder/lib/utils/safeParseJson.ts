@@ -1,0 +1,8 @@
+export function safeParseJson<T = unknown>(text: string, fallback: T): T {
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return fallback
+  }
+}
+

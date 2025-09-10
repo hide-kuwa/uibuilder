@@ -62,7 +62,7 @@ export default function DataPanel() {
         <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="user.name" className="border rounded px-2 py-1 text-xs" />
       </div>
       <div className="flex gap-2">
-        <button className="underline" onClick={onAdd}>Apply</button>
+        <button data-testid="binding-apply" className="underline" onClick={onAdd}>Apply</button>
         <button className="underline text-gray-600" onClick={onClear}>Clear</button>
         <button className="underline text-blue-600" onClick={onTest}>Test</button>
       </div>
@@ -82,6 +82,7 @@ export default function DataPanel() {
         </div>
         <div className="flex gap-2 mt-1">
           <button
+            data-testid="repeat-wrap"
             className="underline"
             onClick={() => {
               if (!selectedNodeId) return
@@ -95,6 +96,7 @@ export default function DataPanel() {
             Wrap with Repeat
           </button>
           <button
+            data-testid="repeat-unwrap"
             className="underline text-gray-600"
             onClick={() => {
               if (!selectedNodeId) return

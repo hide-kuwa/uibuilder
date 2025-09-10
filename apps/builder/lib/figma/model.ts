@@ -1,13 +1,41 @@
 export type TokenRef = { $token: string }
 
-export type Style = { fill?: TokenRef; text?: TokenRef; radius?: number; opacity?: number }
+export type Constraints = {
+  horizontal: 'LEFT' | 'RIGHT' | 'CENTER' | 'SCALE'
+  vertical: 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE'
+}
+
+export type Style = {
+  fill?: TokenRef
+  text?: TokenRef
+  radius?: number
+  opacity?: number
+}
 
 // --- Motion types (v0 stub) ---
 export type MotionRef = { $motion: string }
 export type MotionInline = {
   engine?: 'framer' | 'anime'
-  preset?: 'fadeIn' | 'fadeOut' | 'slideInUp' | 'slideInDown' | 'slideInLeft' | 'slideInRight' | 'scaleIn' | 'pop' | 'flipY' | 'staggerChildren'
-  trigger?: 'appear' | 'enter' | 'exit' | 'hover' | 'press' | 'focus' | 'loop' | 'scroll'
+  preset?:
+    | 'fadeIn'
+    | 'fadeOut'
+    | 'slideInUp'
+    | 'slideInDown'
+    | 'slideInLeft'
+    | 'slideInRight'
+    | 'scaleIn'
+    | 'pop'
+    | 'flipY'
+    | 'staggerChildren'
+  trigger?:
+    | 'appear'
+    | 'enter'
+    | 'exit'
+    | 'hover'
+    | 'press'
+    | 'focus'
+    | 'loop'
+    | 'scroll'
   options?: {
     duration?: number | { $token: string }
     delay?: number | { $token: string }
@@ -20,11 +48,16 @@ export type MotionInline = {
   }
 }
 
-export type Constraints = Record<string, unknown>
-
 export type NodeBase = {
   id: string
-  type: 'FRAME' | 'STACK' | 'RECT' | 'TEXT' | 'IMAGE' | 'COMPONENT' | 'INSTANCE'
+  type:
+    | 'FRAME'
+    | 'STACK'
+    | 'RECT'
+    | 'TEXT'
+    | 'IMAGE'
+    | 'COMPONENT'
+    | 'INSTANCE'
   name?: string
   visible?: boolean
   x: number
@@ -37,24 +70,37 @@ export type NodeBase = {
   motion?: MotionRef | MotionInline
 }
 
-export type Node = NodeBase & {
-  children?: Node[]
-  text?: string
+export type Stack = NodeBase & {
+  type: 'STACK'
+  direction: 'H' | 'V'
+  spacing: number
+  padding: { t: number; r: number; b: number; l: number }
+  align: 'START' | 'CENTER' | 'END' | 'SPACE_BETWEEN'
+  children: Node[]
 }
 
-export type Page = { id: string; name: string; root: Node }
-
-export type Document = { pages: Page[] }
-
-export type RectPatch = Partial<Pick<NodeBase, 'x' | 'y' | 'width' | 'height'>>
-
-export function findNode(root: Node, id: string): Node | null {
-  if (root.id === id) return root
-  if (root.children) {
-    for (const child of root.children) {
-      const found = findNode(child, id)
-      if (found) return found
-    }
+export type Text = NodeBase & {
+  type: 'TEXT'
+  content: string
+  font?: {
+    family: string
+    size: number
+    weight?: number
+    lineHeight?: number
   }
-  return null
+}
+
+export type Frame = NodeBase & { type: 'FRAME'; children: Node[] }
+export type Rect = NodeBase & { type: 'RECT' }
+export type Image = NodeBase & { type: 'IMAGE'; src?: string }
+
+export type Node = Frame | Stack | Text | Rect | Image | NodeBase
+
+export type Page = { id: string; name: string; root: Frame }
+
+export type Document = {
+  id: string
+  name: string
+  pages: Page[]
+  tokens?: Record<string, string | number>
 }

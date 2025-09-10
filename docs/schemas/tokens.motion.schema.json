@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MotionTokens",
+  "type": "object",
+  "properties": {
+    "motion.duration.short": { "type": "number" },
+    "motion.duration.medium": { "type": "number" },
+    "motion.duration.long": { "type": "number" },
+    "motion.ease.standard": { "type": "string" },
+    "motion.ease.emphasized": { "type": "string" },
+    "motion.ease.decelerate": { "type": "string" },
+    "motion.distance.xs": { "type": "number" },
+    "motion.distance.sm": { "type": "number" },
+    "motion.distance.md": { "type": "number" },
+    "motion.distance.lg": { "type": "number" },
+    "motion.stagger.step": { "type": "number" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NodeMotion",
+  "type": "object",
+  "properties": {
+    "$motion": { "type": "string" },
+    "engine": { "type": "string", "enum": ["framer", "anime"] },
+    "preset": {
+      "type": "string",
+      "enum": [
+        "fadeIn",
+        "fadeOut",
+        "slideInUp",
+        "slideInDown",
+        "slideInLeft",
+        "slideInRight",
+        "scaleIn",
+        "pop",
+        "flipY",
+        "staggerChildren"
+      ]
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "appear",
+        "enter",
+        "exit",
+        "hover",
+        "press",
+        "focus",
+        "loop",
+        "scroll"
+      ]
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "object", "properties": { "$token": { "type": "string" } }, "required": ["$token"], "additionalProperties": false }
+          ]
+        },
+        "delay": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "object", "properties": { "$token": { "type": "string" } }, "required": ["$token"], "additionalProperties": false }
+          ]
+        },
+        "easeToken": { "type": "object", "properties": { "$token": { "type": "string" } }, "required": ["$token"], "additionalProperties": false },
+        "distance": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "object", "properties": { "$token": { "type": "string" } }, "required": ["$token"], "additionalProperties": false }
+          ]
+        },
+        "direction": { "type": "string", "enum": ["up", "down", "left", "right"] },
+        "repeat": { "oneOf": [ { "type": "number", "minimum": 0 }, { "type": "string", "enum": ["infinite"] } ] },
+        "staggerStep": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "object", "properties": { "$token": { "type": "string" } }, "required": ["$token"], "additionalProperties": false }
+          ]
+        },
+        "disabledOnReducedMotion": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

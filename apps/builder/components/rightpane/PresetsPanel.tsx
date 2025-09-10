@@ -58,7 +58,7 @@ export default function PresetsPanel({ slug }: { slug?: string }) {
   }
 
   return (
-    <div className="p-2 space-y-2 text-sm">
+    <div data-testid="presets-ready" className="p-2 space-y-2 text-sm">
       <div className="flex items-center gap-2">
         <b>Presets</b>
         <select value={name} onChange={(e) => setName(e.target.value)} className="border rounded px-2 py-0.5 text-xs">
@@ -68,9 +68,14 @@ export default function PresetsPanel({ slug }: { slug?: string }) {
             </option>
           ))}
         </select>
-        <button className={`underline ${loading ? 'opacity-60 pointer-events-none' : ''}`} onClick={onApply}>
+        <button data-testid="gallery-apply-first" className={`underline ${loading ? 'opacity-60 pointer-events-none' : ''}`} onClick={onApply}>
           Apply
         </button>
+        {process.env.NEXT_PUBLIC_E2E === '1' && (
+          <button data-testid="gallery-apply-first-low" className={`underline ${loading ? 'opacity-60 pointer-events-none' : ''}`} onClick={onApply}>
+            Apply (low)
+          </button>
+        )}
       </div>
       {diff && (
         <div>
