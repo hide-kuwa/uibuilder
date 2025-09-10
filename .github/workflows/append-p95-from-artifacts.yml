@@ -1,0 +1,99 @@
+name: Append P95 Baseline from Artifacts (RC)
+
+on:
+  workflow_run:
+    workflows: ["test"] # ← リポの実ワークフロー名に合わせて必要なら変更
+    types: [completed]
+
+# デフォルトは読み取りのみ。書き込みはジョブ側で限定付与
+permissions:
+  contents: read
+
+jobs:
+  append_p95_from_artifacts:
+    name: Append P95 Baseline (workflow_run)
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'release/rc-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read   # 他workflowのartifact取得に必要
+    concurrency:
+      group: append-p95-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout RC branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm -w install --frozen-lockfile
+      - name: Download perf-csv artifact (from triggering run)
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-csv
+          path: artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          repository: ${{ github.repository }}
+      - name: Flatten perf_raw.csv to workspace root
+        shell: bash
+        run: |
+          set -e
+          echo "Searching for perf_raw.csv under ./artifacts"
+          find artifacts -type f -name 'perf_raw.csv' -print || true
+          FIRST=$(find artifacts -type f -name 'perf_raw.csv' | head -n1 || true)
+          if [ -n "$FIRST" ]; then
+            cp "$FIRST" ./perf_raw.csv
+          fi
+      - name: Verify perf_raw.csv
+        id: locate
+        shell: bash
+        run: |
+          set +e
+          ls -la perf_raw.csv || true
+          node -e "console.log(require('fs').existsSync('perf_raw.csv'))"
+          if [ ! -f "perf_raw.csv" ]; then
+            echo "::notice title=perf_raw.csv not found::Skip appending baseline (no artifact)."
+            mkdir -p /tmp/diag && echo "artifact missing" > /tmp/diag/why.txt
+            echo "has_csv=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_csv=true" >> "$GITHUB_OUTPUT"
+      - name: Build P95 table (Markdown)
+        if: ${{ steps.locate.outputs.has_csv == 'true' }}
+        run: node scripts/perf-summary.mjs --md > /tmp/ci_p95.md
+      - name: Append to docs/testing.md
+        if: ${{ steps.locate.outputs.has_csv == 'true' }}
+        run: pnpm -w run perf:baseline:stdin < /tmp/ci_p95.md
+      - name: Commit & Push docs
+        if: ${{ steps.locate.outputs.has_csv == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/testing.md
+          git commit -m "docs(testing): append P95 Baseline from CI artifacts (auto)" || echo "no changes"
+          git push
+      - name: Upload diag (no artifact)
+        if: ${{ steps.locate.outputs.has_csv != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: append-p95-diag
+          path: /tmp/diag
+      - name: Upload diag on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: append-p95-diag-failure
+          path: |
+            /tmp/ci_p95.md
+            docs/testing.md
