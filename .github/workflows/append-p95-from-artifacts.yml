@@ -1,6 +1,9 @@
 name: Append P95 Baseline from Artifacts (RC)
 
 on:
+  push:
+    branches:
+      - 'release/rc-*'
   workflow_run:
     workflows: ["test"] # ← リポの実ワークフロー名に合わせて必要なら変更
     types: [completed]
@@ -12,7 +15,7 @@ permissions:
 jobs:
   append_p95_from_artifacts:
     name: Append P95 Baseline (workflow_run)
-    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'release/rc-') }}
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'release/rc-')) || (github.event_name == 'push' && startsWith(github.ref_name, 'release/rc-')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,7 +27,7 @@ jobs:
       - name: Checkout RC branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
           fetch-depth: 0
           persist-credentials: true
       - name: Setup pnpm
@@ -38,12 +41,28 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm -w install --frozen-lockfile
-      - name: Download perf-csv artifact (from triggering run)
+      - name: Set TARGET_RUN_ID from workflow_run
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: echo "TARGET_RUN_ID=${{ github.event.workflow_run.id }}" >> $GITHUB_ENV
+
+      - name: Resolve TARGET_RUN_ID by polling (push)
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: test.yml   # ← 必要なら実ファイル名に変更
+          BRANCH: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          node scripts/ci/find-successful-run.mjs > /tmp/run_id.txt
+          echo "TARGET_RUN_ID=$(cat /tmp/run_id.txt)" >> $GITHUB_ENV
+
+      - name: Download perf-csv artifact (from target run)
         uses: actions/download-artifact@v4
         with:
           name: perf-csv
           path: artifacts
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ env.TARGET_RUN_ID }}
           repository: ${{ github.repository }}
       - name: Flatten perf_raw.csv to workspace root
         shell: bash
