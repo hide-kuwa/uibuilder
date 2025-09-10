@@ -42,3 +42,16 @@ export async function flushQueue(
   }
 }
 
+// append-only: optional cancel-aware helper (既存APIは不変)
+export type CancelToken = { cancelled: boolean }
+export const createCancelToken = (): CancelToken => ({ cancelled: false })
+export async function flushQueueCancellable<T>(
+  items: T[],
+  consume: (x: T) => Promise<void> | void,
+  token: CancelToken
+) {
+  for (const it of items) {
+    if (token.cancelled) break
+    await consume(it)
+  }
+}
