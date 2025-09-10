@@ -26,3 +26,11 @@ export function planZipSplit(files: Part[], limit: number): Part[][] {
   return out
 }
 
+// append-only: naming & manifest helpers
+export const partName = (i: number, bytes: number) => `p${String(i + 1).padStart(2, '0')}-${bytes}b`
+
+export function toSplitManifest(parts: { size: number }[]) {
+  const named = parts.map((p, i) => ({ name: partName(i, p.size), size: p.size }))
+  const totalSize = named.reduce((a, b) => a + b.size, 0)
+  return { parts: named, totalSize }
+}
