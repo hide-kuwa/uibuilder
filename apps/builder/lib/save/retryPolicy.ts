@@ -7,3 +7,13 @@ export function nextDelay(attempt: number, policy: RetryPolicy): number {
   return Math.min(cap, Math.floor(val))
 }
 
+// append-only
+export function withJitter(ms: number, opt: { jitter?: number } = {}) {
+  const j = Math.max(0, Math.min(1, opt.jitter ?? 0))
+  if (j === 0) return ms
+  const delta = ms * j
+  const low = ms - delta,
+    high = ms + delta
+  return Math.round(low + Math.random() * (high - low))
+}
+

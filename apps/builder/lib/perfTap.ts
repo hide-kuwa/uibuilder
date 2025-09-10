@@ -1,29 +1,33 @@
 export type PerfEvent = { label: string; ms: number; t: number }
 
-export function percentile(values: number[], p: number) {
-  if (!values || values.length === 0) return 0
-  const arr = [...values].sort((a, b) => a - b)
-  const idx = Math.max(0, Math.min(arr.length - 1, Math.ceil((p / 100) * arr.length) - 1))
-  return arr[idx]
+export function percentile(arr: number[], p: number): number {
+  if (!Array.isArray(arr) || arr.length === 0) return 0
+  const a = [...arr].sort((x, y) => x - y)
+  const i = Math.max(0, Math.min(a.length - 1, Math.ceil((p / 100) * a.length) - 1))
+  return a[i]
 }
 
 export function summarizeP95() {
   const w: any = (globalThis as any).window
-  const list: PerfEvent[] = (w && w.__perf) || []
+  const list: Array<{ label: string; ms: number; t?: number }> = (w && w.__perf) || []
   const by: Record<string, number[]> = {}
-  for (const e of list) (by[e.label] ??= []).push(e.ms)
-  return Object.entries(by).map(([label, list]) => ({
+  for (const r of list) {
+    if (!r || typeof r.ms !== 'number' || !Number.isFinite(r.ms)) continue
+    ;(by[r.label] ??= []).push(r.ms)
+  }
+  const rows = Object.entries(by).map(([label, arr]) => ({
     label,
-    count: list.length,
-    p50: percentile(list, 50),
-    p95: percentile(list, 95),
-    max: Math.max(...list),
+    count: arr.length,
+    p50: percentile(arr, 50),
+    p95: percentile(arr, 95),
+    max: Math.max(...arr),
   }))
+  return rows
 }
 
 export function exportPerfCSV(): string {
   const rows = summarizeP95()
   const header = 'label,count,p50,p95,max'
-  return [header, ...rows.map((r) => [r.label, r.count, r.p50, r.p95, r.max].join('\n'))].join('\n')
+  return [header, ...rows.map((r) => [r.label, r.count, r.p50, r.p95, r.max].join(','))].join('\n')
 }
 
