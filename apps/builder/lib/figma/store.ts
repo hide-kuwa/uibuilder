@@ -152,3 +152,32 @@ export const useFigmaStore = create<State>((set, get) => ({
     /* stub */
   },
 }))
+
+export type FigmaDevNode = {
+  id: string
+  type: 'TEXT' | 'RECT'
+  x: number
+  y: number
+  w: number
+  h: number
+  text?: string
+}
+
+type FigmaDevState = {
+  nodes: FigmaDevNode[]
+  selectedId: string | null
+  addNode: (node: FigmaDevNode) => void
+  updateNode: (id: string, patch: Partial<FigmaDevNode>) => void
+  selectNode: (id: string | null) => void
+}
+
+export const useFigmaDevStore = create<FigmaDevState>((set) => ({
+  nodes: [],
+  selectedId: null,
+  addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
+  updateNode: (id, patch) =>
+    set((s) => ({
+      nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+    })),
+  selectNode: (id) => set({ selectedId: id }),
+}))
