@@ -1,5 +1,7 @@
 'use client'
 import { useFigmaStore } from '../../lib/figma/store'
+import type { Node } from '../../lib/figma/model'
+import MotionPanel from './MotionPanel'
 
 function NumberInput({ label, value, onChange }:{
   label:string; value:number; onChange:(n:number)=>void
@@ -17,6 +19,8 @@ function NumberInput({ label, value, onChange }:{
 export default function RightPanel() {
   const selected = useFigmaStore((s)=>s.selectedNode)
   const setNodeRect = useFigmaStore((s)=>s.setNodeRect)
+  const wrapInStack = useFigmaStore((s)=>s.wrapInStack)
+  const setStackProps = useFigmaStore((s)=>s.setStackProps)
 
   if (!selected) {
     return <div className="p-4 text-sm text-gray-500">
@@ -42,12 +46,67 @@ export default function RightPanel() {
         <NumberInput label="W" value={selected.width} onChange={(n)=>setNodeRect(selected.id,{width:n})}/>
         <NumberInput label="H" value={selected.height} onChange={(n)=>setNodeRect(selected.id,{height:n})}/>
       </div>
+
+      {/* Stack wrap / props */}
+      {selected.type === 'STACK' ? (
+        <div className="space-y-1">
+          <div className="text-xs uppercase tracking-wider text-gray-400">Stack</div>
+          <label className="flex items-center justify-between py-1 text-sm">
+            <span className="text-gray-500">Direction</span>
+            <select
+              className="w-28 rounded border border-gray-200 px-2 py-1 text-sm"
+              value={(selected as any).direction}
+              onChange={(e)=>setStackProps(selected.id,{direction: e.target.value as any})}
+            >
+              <option value="H">Horizontal</option>
+              <option value="V">Vertical</option>
+            </select>
+          </label>
+          <NumberInput label="Spacing" value={(selected as any).spacing ?? 0} onChange={(n)=>setStackProps(selected.id,{spacing:n})}/>
+          <div className="grid grid-cols-2 gap-1">
+            <NumberInput label="Pad T" value={(selected as any).padding?.t ?? 0} onChange={(n)=>setStackProps(selected.id,{padding:{...((selected as any).padding||{t:0,r:0,b:0,l:0}),t:n}})}/>
+            <NumberInput label="Pad R" value={(selected as any).padding?.r ?? 0} onChange={(n)=>setStackProps(selected.id,{padding:{...((selected as any).padding||{t:0,r:0,b:0,l:0}),r:n}})}/>
+            <NumberInput label="Pad B" value={(selected as any).padding?.b ?? 0} onChange={(n)=>setStackProps(selected.id,{padding:{...((selected as any).padding||{t:0,r:0,b:0,l:0}),b:n}})}/>
+            <NumberInput label="Pad L" value={(selected as any).padding?.l ?? 0} onChange={(n)=>setStackProps(selected.id,{padding:{...((selected as any).padding||{t:0,r:0,b:0,l:0}),l:n}})}/>
+          </div>
+          <label className="flex items-center justify-between py-1 text-sm">
+            <span className="text-gray-500">Align</span>
+            <select
+              className="w-28 rounded border border-gray-200 px-2 py-1 text-sm"
+              value={(selected as any).align}
+              onChange={(e)=>setStackProps(selected.id,{align: e.target.value as any})}
+            >
+              <option value="START">Start</option>
+              <option value="CENTER">Center</option>
+              <option value="END">End</option>
+              <option value="SPACE_BETWEEN">Space Between</option>
+            </select>
+          </label>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="text-xs uppercase tracking-wider text-gray-400">AutoLayout-lite</div>
+          <div className="flex gap-2">
+            <button
+              className="rounded bg-gray-900 text-white px-2 py-1 text-xs"
+              onClick={()=>wrapInStack('H')}
+              title="Wrap selection into Horizontal Stack"
+            >Wrap in Stack (H)</button>
+            <button
+              className="rounded bg-gray-900 text-white px-2 py-1 text-xs"
+              onClick={()=>wrapInStack('V')}
+              title="Wrap selection into Vertical Stack"
+            >Wrap in Stack (V)</button>
+          </div>
+        </div>
+      )}
       <div className="space-y-1 opacity-50 pointer-events-none">
         <div className="text-xs uppercase tracking-wider text-gray-400">Style (v0 stub)</div>
         <NumberInput label="Radius" value={selected.style?.radius ?? 0} onChange={()=>{}}/>
         <NumberInput label="Opacity" value={selected.style?.opacity ?? 1} onChange={()=>{}}/>
       </div>
+
+      <MotionPanel />
     </div>
   )
 }
-

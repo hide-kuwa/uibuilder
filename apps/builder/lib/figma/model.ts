@@ -7,6 +7,23 @@ export type Constraints = {
 
 export type Style = { fill?: TokenRef; text?: TokenRef; radius?: number; opacity?: number }
 
+export type MotionRef = { $motion: string }
+export type MotionInline = {
+  engine?: 'framer' | 'anime'
+  preset?: 'fadeIn' | 'fadeOut' | 'slideInUp' | 'slideInDown' | 'slideInLeft' | 'slideInRight' | 'scaleIn' | 'pop' | 'flipY' | 'staggerChildren'
+  trigger?: 'appear' | 'enter' | 'exit' | 'hover' | 'press' | 'focus' | 'loop' | 'scroll'
+  options?: {
+    duration?: number | { $token: string }
+    delay?: number | { $token: string }
+    easeToken?: { $token: string }
+    distance?: number | { $token: string }
+    direction?: 'up' | 'down' | 'left' | 'right'
+    repeat?: number | 'infinite'
+    staggerStep?: number | { $token: string }
+    disabledOnReducedMotion?: boolean
+  }
+}
+
 export type NodeBase = {
   id: string
   type: 'FRAME' | 'STACK' | 'RECT' | 'TEXT' | 'IMAGE' | 'COMPONENT' | 'INSTANCE'
@@ -19,6 +36,7 @@ export type NodeBase = {
   rotation?: number
   constraints?: Constraints
   style?: Style
+  motion?: MotionRef | MotionInline
 }
 
 export type Stack = NodeBase & {
@@ -45,4 +63,3 @@ export type Node = Frame | Stack | Text | Rect | Image | NodeBase
 export type Page = { id: string; name: string; root: Frame }
 
 export type Document = { id: string; name: string; pages: Page[]; tokens?: Record<string, string | number> }
-
