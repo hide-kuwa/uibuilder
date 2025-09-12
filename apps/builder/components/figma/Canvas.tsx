@@ -106,8 +106,7 @@ export default function Canvas() {
   const root = page.root
   const clearSelect = useFigmaStore((s) => s.clearSelect)
   const selected = useFigmaStore((s) => s.selectedNode)
-  // Prefer updateNode if present; fallback to setNodeRect for compatibility
-  const updateNode = useFigmaStore((s) => (s as any).updateNode ?? s.setNodeRect)
+  const updateNode = useFigmaStore((s) => s.updateNode)
   const cancelGhost = useFigmaStore((s) => s.cancelGhost)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -146,4 +145,3 @@ export default function Canvas() {
     </div>
   )
 }
-

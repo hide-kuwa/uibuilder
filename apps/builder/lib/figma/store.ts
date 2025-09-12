@@ -54,6 +54,7 @@ type State = {
   stopEditingText: () => void
   setTextContent: (id: string, value: string) => void
   setNodeRect: (id: string, patch: RectPatch) => void
+  updateNode: (id: string, patch: RectPatch) => void
   beginTransform: (id: string, handle?: string) => void
   setGhostRect: (rect: { id: string; x: number; y: number; width: number; height: number }) => void
   commitGhost: () => void
@@ -98,6 +99,21 @@ export const useFigmaStore = create<State>((set, get) => ({
       if (typeof patch.y === 'number') node.y = patch.y
       if (typeof patch.width === 'number') node.width = patch.width
       if (typeof patch.height === 'number') node.height = patch.height
+    }
+    return { doc: { ...s.doc } }
+  }),
+  updateNode: (id, patch) => set((s) => {
+    const page = s.doc.pages[0]
+    const node = findNode(page.root, id)
+    if (node) {
+      if (typeof patch.x === 'number') node.x = patch.x
+      if (typeof patch.y === 'number') node.y = patch.y
+      if (typeof patch.width === 'number') node.width = patch.width
+      if (typeof patch.height === 'number') node.height = patch.height
+      // generic shallow merge for other fields
+      const rest: any = { ...patch }
+      delete rest.x; delete rest.y; delete rest.width; delete rest.height
+      Object.assign(node as any, rest)
     }
     return { doc: { ...s.doc } }
   }),
