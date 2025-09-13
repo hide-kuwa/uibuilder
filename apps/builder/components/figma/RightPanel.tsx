@@ -18,7 +18,7 @@ function NumberInput({ label, value, onChange }:{
 
 export default function RightPanel() {
   const selected = useFigmaStore((s)=>s.selectedNode)
-  const setNodeRect = useFigmaStore((s)=>s.setNodeRect)
+  const updateNode = useFigmaStore((s)=>s.updateNode)
   const wrapInStack = useFigmaStore((s)=>s.wrapInStack)
   const setStackProps = useFigmaStore((s)=>s.setStackProps)
 
@@ -38,13 +38,13 @@ export default function RightPanel() {
       </div>
       <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">Position</div>
-        <NumberInput label="X" value={selected.x} onChange={(n)=>setNodeRect(selected.id,{x:n})}/>
-        <NumberInput label="Y" value={selected.y} onChange={(n)=>setNodeRect(selected.id,{y:n})}/>
+        <NumberInput label="X" value={selected.x} onChange={(n)=>updateNode(selected.id,{x:n})}/>
+        <NumberInput label="Y" value={selected.y} onChange={(n)=>updateNode(selected.id,{y:n})}/>
       </div>
       <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">Size</div>
-        <NumberInput label="W" value={selected.width} onChange={(n)=>setNodeRect(selected.id,{width:n})}/>
-        <NumberInput label="H" value={selected.height} onChange={(n)=>setNodeRect(selected.id,{height:n})}/>
+        <NumberInput label="W" value={selected.width} onChange={(n)=>updateNode(selected.id,{width:n})}/>
+        <NumberInput label="H" value={selected.height} onChange={(n)=>updateNode(selected.id,{height:n})}/>
       </div>
 
       {/* Stack wrap / props */}
