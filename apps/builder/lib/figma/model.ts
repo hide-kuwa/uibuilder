@@ -31,6 +31,7 @@ export type NodeStyle = {
   scaleY?: number
   skewXDeg?: number
   skewYDeg?: number
+  transformOrigin?: 'TL' | 'TC' | 'TR' | 'CL' | 'C' | 'CR' | 'BL' | 'BC' | 'BR'
   backgroundImage?: string
   backgroundSize?: string
   backgroundPosition?: string
