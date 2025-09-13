@@ -16,7 +16,21 @@ export type ThemeState = {
   applyUserSkin: (tokens: Partial<ThemeTokens>) => void;
 };
 
+const STORAGE_KEY = 'activeThemeId';
+
 const THEMES: Record<string, ThemeTokens> = {
+  'theme-default': {
+    color: { base: '#ffffff', main: '#111827', accent: '#2563eb' },
+    radius: { sm: 4, md: 8 },
+    spacing: { md: 8, lg: 16 },
+    font: { base: 'Inter, sans-serif' },
+  },
+  'theme-default-dark': {
+    color: { base: '#111827', main: '#f9fafb', accent: '#2563eb' },
+    radius: { sm: 4, md: 8 },
+    spacing: { md: 8, lg: 16 },
+    font: { base: 'Inter, sans-serif' },
+  },
   geokore: {
     color: { primary: '#2563eb' },
     radius: { sm: 4, md: 8 },
@@ -38,11 +52,14 @@ const THEMES: Record<string, ThemeTokens> = {
 };
 
 function detectInitialTheme(): string {
-  if (typeof window === 'undefined') return 'geokore';
+  if (typeof window === 'undefined') return 'theme-default';
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored && THEMES[stored]) return stored;
   const host = window.location.hostname;
   if (host.includes('tamadigi')) return 'tamadigi';
   if (host.includes('tamalogi')) return 'tamalogi';
-  return 'geokore';
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'theme-default-dark' : 'theme-default';
 }
 
 export const useThemeStore = create<ThemeState>((set) => {
@@ -51,7 +68,10 @@ export const useThemeStore = create<ThemeState>((set) => {
     themeId: id,
     themeTokens: THEMES[id],
     setTheme: (nextId) => {
-      const tokens = THEMES[nextId] ?? THEMES.geokore;
+      const tokens = THEMES[nextId] ?? THEMES['theme-default'];
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY, nextId);
+      }
       set({ themeId: nextId, themeTokens: tokens });
     },
     applyUserSkin: (tokens) =>
