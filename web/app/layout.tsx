@@ -6,6 +6,7 @@ import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import ChromeController from '@/components/layout/ChromeController'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import RootHotkeys from '@/components/RootHotkeys'
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()
@@ -20,6 +21,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <SiteHeader />
             <main className="min-h-[calc(100vh-6rem)]">{children}</main>
             <SiteFooter />
+            <RootHotkeys />
           </Providers>
         </ErrorBoundary>
       </body>
