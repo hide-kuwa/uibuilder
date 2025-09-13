@@ -66,6 +66,8 @@ type State = {
   wrapInStack: (direction: 'H'|'V') => void
   setStackProps: (id: string, patch: Partial<{direction:'H'|'V';spacing:number;padding:{t:number;r:number;b:number;l:number};align:'START'|'CENTER'|'END'|'SPACE_BETWEEN'}>) => void
   setNodeMotion: (id: string, patch: Partial<MotionInline & { durationMs?: number; delayMs?: number; easing?: string }>) => void
+  pushShadow?: (id: string, s: { x:number;y:number;blur:number;spread:number;color:string }) => void
+  removeShadowAt?: (id: string, idx: number) => void
   undo: () => void
   redo: () => void
 }
@@ -284,6 +286,21 @@ export const useFigmaStore = create<State>((set, get) => ({
       }
       ;(node as any).motion = merged
     }
+    return { doc: { ...s.doc } }
+  }),
+  pushShadow: (id, sh) => set((s) => {
+    const page = s.doc.pages[0]
+    const node = findNode(page.root, id) as any
+    if (!node) return {}
+    const current: any[] = (node.style?.shadows ?? []) as any
+    node.style = { ...(node.style ?? {}), shadows: [...current, sh] }
+    return { doc: { ...s.doc } }
+  }),
+  removeShadowAt: (id, idx) => set((s) => {
+    const page = s.doc.pages[0]
+    const node = findNode(page.root, id) as any
+    if (!node?.style?.shadows) return {}
+    node.style.shadows = (node.style.shadows as any[]).filter((_, i) => i !== idx)
     return { doc: { ...s.doc } }
   }),
   undo: () => { /* stub */ },

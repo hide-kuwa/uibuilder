@@ -4,6 +4,8 @@ import { useFigmaStore } from '../../lib/figma/store'
 import InlineTextEditor from './InlineTextEditor'
 import type { Node } from '../../lib/figma/model'
 import GuideOverlay from './GuideOverlay'
+import { resolveTokenOrString } from '../../lib/figma/tokenUtils'
+import { buildTransition } from '../../lib/figma/motion'
 import Selection from './Selection'
 
 function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: boolean }) {
@@ -82,9 +84,11 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
   // compute style props from node.style and node.motion
   const styleFromNode: React.CSSProperties = {}
   if (node.type !== 'TEXT') {
-    // background fill (string only)
-    const fillVal = (node as any).style?.fill
-    if (typeof fillVal === 'string' && fillVal.length) styleFromNode.background = fillVal
+    // tokens dict (optional)
+    const tokens = (useFigmaStore.getState().doc as any)?.tokens as Record<string, string | number> | undefined
+    // background fill (TokenRef | string)
+    const bg = resolveTokenOrString((node as any).style?.fill as any, tokens)
+    if (bg) styleFromNode.background = bg
     // stroke
     if ((node as any).style?.stroke) {
       styleFromNode.borderColor = (node as any).style?.stroke
@@ -102,15 +106,18 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
       styleFromNode.opacity = op
     }
     // shadow
-    const sh = (node as any).style?.shadow
-    if (sh && typeof sh === 'object') {
-      styleFromNode.boxShadow = `${sh.x ?? 0}px ${sh.y ?? 0}px ${sh.blur ?? 0}px ${sh.spread ?? 0}px ${sh.color ?? 'rgba(0,0,0,0.2)'}
-      `
+    const shLegacy = (node as any).style?.shadow
+    const shMany = (node as any).style?.shadows ?? []
+    const all = [...(shLegacy ? [shLegacy] : []), ...shMany]
+    if (all.length) {
+      styleFromNode.boxShadow = all
+        .map((sh: any) => `${sh.x ?? 0}px ${sh.y ?? 0}px ${sh.blur ?? 0}px ${sh.spread ?? 0}px ${sh.color ?? 'rgba(0,0,0,0.2)'}`)
+        .join(', ')
     }
   }
-  // lightweight motion via CSS transitions
-  const motion: any = (node as any).motion ?? {}
-  styleFromNode.transition = `all ${motion.durationMs ?? 160}ms ${motion.easing ?? 'ease-out'} ${motion.delayMs ?? 0}ms`
+  // lightweight motion via CSS transitions (union-friendly)
+  const tr = buildTransition((node as any).motion)
+  if (tr) styleFromNode.transition = tr
 
   return (
     <div onClick={onClick} onDoubleClick={onDoubleClick} onPointerDown={onPointerDownMove}

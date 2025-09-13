@@ -1,4 +1,5 @@
-export type TokenRef = { $token: string }
+// Token reference supports both legacy `$token` and new `token/fallback` forms
+export type TokenRef = { $token: string } | { token: string; fallback?: string }
 
 export type Constraints = {
   horizontal: 'LEFT' | 'RIGHT' | 'CENTER' | 'SCALE'
@@ -15,6 +16,7 @@ export type Style = {
   stroke?: string
   strokeWidth?: number
   shadow?: { x: number; y: number; blur: number; spread: number; color: string }
+  shadows?: { x: number; y: number; blur: number; spread: number; color: string }[]
 }
 
 export type MotionRef = { $motion: string }
@@ -47,7 +49,7 @@ export type NodeBase = {
   constraints?: Constraints
   style?: Style
   // Allow simple CSS transition fields in addition to existing motion types
-  motion?: MotionRef | MotionInline | { durationMs?: number; delayMs?: number; easing?: string }
+  motion?: MotionRef | MotionInline | { durationMs?: number; delayMs?: number; easing?: string } | { transition?: { property: string; durationMs?: number; delayMs?: number; easing?: string }[] }
 }
 
 export type Stack = NodeBase & {
