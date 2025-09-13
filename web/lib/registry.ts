@@ -22,6 +22,8 @@ import { MapThemeProvider } from '@/contexts/MapThemeContext';
 import AnimeOnMount from '@/components/anim/AnimeOnMount';
 import AnimeOnView from '@/components/anim/AnimeOnView';
 import InteractiveWrapper from '@/components/interactive/InteractiveWrapper';
+import UiButton from '@/components/defs/ui/Button';
+import UiCardDef from '@/components/defs/ui/Card';
 
 // JapanMap is optional (SVG variant lives in components/domain/maps)
 let JapanMap: any = null;
@@ -83,6 +85,30 @@ DEFAULT_COMPONENTS.forEach((c) => {
     },
     Render: () => null,
   });
+});
+
+register({
+  meta: {
+    id: UiButton.key,
+    displayName: UiButton.meta.displayName,
+    props: [],
+    allowChildren: false,
+    defaultW: UiButton.meta.defaultW,
+    defaultH: UiButton.meta.defaultH,
+  },
+  Render: UiButton.render,
+});
+
+register({
+  meta: {
+    id: UiCardDef.key,
+    displayName: UiCardDef.meta.displayName,
+    props: [],
+    allowChildren: true,
+    defaultW: UiCardDef.meta.defaultW,
+    defaultH: UiCardDef.meta.defaultH,
+  },
+  Render: UiCardDef.render,
 });
 
 register({
@@ -336,6 +362,8 @@ register({
 });
 
 export const REGISTRY = {
+  'ui.button': { component: UiButton.render, displayName: UiButton.meta.displayName },
+  'ui.card': { component: UiCardDef.render, displayName: UiCardDef.meta.displayName },
   Card: { component: Card, displayName: 'Card' },
   PrefShareBar: { component: PrefShareBar, displayName: 'PrefShareBar' },
   PrefGridMap: { component: PrefGridMap, displayName: 'PrefGridMap' },

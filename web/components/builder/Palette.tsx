@@ -3,6 +3,7 @@ import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { registry, type RegistryItem } from '@/lib/registry'
 import { usePresetStore } from '@/store/presetStore'
+import PresetsSection from '../palette/PresetsSection'
 
 function useVisibleDefs() {
   const rules = usePresetStore(s => s.active().palette)
@@ -55,11 +56,14 @@ function Item({ comp }: { comp: RegistryItem }) {
 export function Palette() {
   const defs = useVisibleDefs()
   return (
-    <div className="space-y-2">
-      <div className="text-xs opacity-70">Elements</div>
-      <div className="grid grid-cols-1 gap-2">
-        {defs.map((d) => <Item key={d.meta.id} comp={d} />)}
-      </div>
+    <div className="space-y-6">
+      <section className="space-y-2">
+        <div className="text-xs opacity-70">Elements</div>
+        <div className="grid grid-cols-1 gap-2">
+          {defs.map((d) => <Item key={d.meta.id} comp={d} />)}
+        </div>
+      </section>
+      <PresetsSection />
     </div>
   )
 }

@@ -11,6 +11,50 @@ export const cloneSubtree = (node: ComponentNode): ComponentNode => {
   }
 }
 
+export const template_button: PresetDef = {
+  id: 'template.ui.button',
+  displayName: 'Button',
+  tags: ['common'],
+  tree: {
+    id: newId('n'),
+    type: 'ui.button',
+    props: { label: 'Button', variant: 'primary' } as any,
+  },
+}
+
+export const template_card: PresetDef = {
+  id: 'template.ui.card',
+  displayName: 'Card',
+  tags: ['common', 'card'],
+  tree: {
+    id: newId('n'),
+    type: 'ui.card',
+    props: {
+      title: 'Card title',
+      body: 'Card body',
+      bg: 'token:color.surface',
+      radius: 'token:radius.lg',
+      pad: 'token:space.4',
+    } as any,
+  },
+}
+
+export const template_hero: PresetDef = {
+  id: 'template.hero',
+  displayName: 'Hero',
+  tags: ['common'],
+  tree: {
+    id: newId('n'),
+    type: 'Hero',
+    props: {
+      title: 'Hero title',
+      subtitle: 'Subtitle text',
+      ctaText: 'Get Started',
+      ctaHref: '#',
+    } as any,
+  },
+}
+
 export const preset_japanMapCard_basic: PresetDef = {
   id: 'preset.jpmap.card.basic',
   displayName: 'JapanMap（カード/基本）',
@@ -120,6 +164,9 @@ export const preset_costSplitCard: PresetDef = {
 }
 
 export const PRESETS: PresetDef[] = [
+  template_button,
+  template_card,
+  template_hero,
   preset_japanMapCard_basic,
   preset_tripHeaderCard,
   preset_itineraryTimelineCard,
