@@ -8,6 +8,8 @@ import EventLog from "@/components/dev/EventLog";
 import Devtools from "@/components/dev/Devtools";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import DataProvider from "@/providers/DataProvider";
+// Install persist bootstrap (rehydration)
+import "@/lib/persist/bootstrap";
 
 export default function Providers({
   children,

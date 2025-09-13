@@ -6,11 +6,13 @@ export type Constraints = {
   vertical: 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE'
 }
 
+export type CornerValue = number | TokenRef
+export type CornerRadius = { tl: CornerValue; tr: CornerValue; br: CornerValue; bl: CornerValue }
 export type Style = {
   // Existing tokens/props
   fill?: TokenRef | string
   text?: TokenRef
-  radius?: number
+  radius?: number | TokenRef | CornerRadius
   opacity?: number
   // Extended optional style fields (safe additive)
   stroke?: string
@@ -34,6 +36,12 @@ export type MotionInline = {
     staggerStep?: number | { $token: string }
     disabledOnReducedMotion?: boolean
   }
+}
+
+export type ThemePreset = {
+  id: string
+  name: string
+  tokens: Record<string, string>
 }
 
 export type NodeBase = {
@@ -75,4 +83,11 @@ export type Node = Frame | Stack | Text | Rect | Image | NodeBase
 
 export type Page = { id: string; name: string; root: Frame }
 
-export type Document = { id: string; name: string; pages: Page[]; tokens?: Record<string, string | number> }
+export type Document = {
+  id: string
+  name: string
+  pages: Page[]
+  tokens?: Record<string, string | number>
+  themePresets?: ThemePreset[]
+  activeThemeId?: string
+}

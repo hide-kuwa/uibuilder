@@ -16,6 +16,7 @@ import StatusCenter from '@/components/hud/StatusCenter'
 import ErrorBoundary from '@/components/hud/ErrorBoundary'
 import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
 import ModalHost from '@/components/hud/ModalHost'
+import SelectionCssBridge from '@/components/bridges/SelectionCssBridge'
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   useAlignShortcuts()
@@ -39,6 +40,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       <ErrorBoundary>
         {children}
       </ErrorBoundary>
+      <SelectionCssBridge />
       <StatusCenter />
       <HistoryHotkeys />
       <HistoryTimeline />

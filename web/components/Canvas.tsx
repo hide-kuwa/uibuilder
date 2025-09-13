@@ -1,5 +1,6 @@
 'use client'
 import React, { useRef, useState } from 'react'
+import ErrorBoundary from '@/components/common/ErrorBoundary'
 import { useEditorState, ComponentNode } from './store'
 import SelectionOverlay from './canvas/SelectionOverlay'
 import Viewport from './canvas/Viewport'
@@ -23,11 +24,13 @@ export default function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   return (
-    <ViewportProvider>
-      <RectsProvider>
-        <CanvasInner tree={tree} guides={guides} setGuides={setGuides} canvasRef={canvasRef} />
-      </RectsProvider>
-    </ViewportProvider>
+    <ErrorBoundary>
+      <ViewportProvider>
+        <RectsProvider>
+          <CanvasInner tree={tree} guides={guides} setGuides={setGuides} canvasRef={canvasRef} />
+        </RectsProvider>
+      </ViewportProvider>
+    </ErrorBoundary>
   )
 }
 

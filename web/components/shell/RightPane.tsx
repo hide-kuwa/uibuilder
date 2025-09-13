@@ -2,6 +2,8 @@
 import { RIGHT_PANE_DEFAULT_WIDTH } from '@/lib/layout/constants';
 import { loadLayout, saveLayout } from '@/lib/layout/persist';
 import { useEffect, useRef, useState } from 'react';
+import CopyCssButton from '@/components/actions/CopyCssButton'
+import ErrorBoundary from '@/components/common/ErrorBoundary'
 
 interface Section {
   id: string;
@@ -18,31 +20,52 @@ const SECTIONS: Section[] = [
 export default function RightPane() {
   const persisted = loadLayout().rightSections || {};
   const [open, setOpen] = useState<Record<string, boolean>>({ ...persisted });
+  const onCopied = () => {
+    try {
+      // shadcn/ui style toast if present
+      // @ts-expect-error runtime probing
+      const toast = (globalThis as any)?.useToast?.().toast as undefined | ((opts: { title?: string; description?: string }) => void)
+      if (toast) { toast({ title: 'CSS copied', description: 'Selection styles were copied.' }); return }
+    } catch {}
+    try {
+      // Global toast fallback
+      // @ts-expect-error runtime probing
+      const t = (window as any).__toast as undefined | ((msg: string) => void)
+      if (t) { t('CSS copied'); return }
+    } catch {}
+    // Last resort
+    try { console.info('[Copy CSS] copied') } catch {}
+  }
 
   useEffect(() => {
     saveLayout({ rightSections: open });
   }, [open]);
 
   return (
-    <div
-      className="flex flex-col h-full bg-gray-800 text-white"
-      style={{ width: RIGHT_PANE_DEFAULT_WIDTH }}
-    >
-      <div className="flex-1 overflow-auto text-sm">
-        {SECTIONS.map((sec) => (
-          <Accordion
-            key={sec.id}
-            title={sec.title}
-            open={open[sec.id] ?? true}
-            onToggle={() =>
-              setOpen((s) => ({ ...s, [sec.id]: !(s[sec.id] ?? true) }))
-            }
-          >
-            {sec.content}
-          </Accordion>
-        ))}
+    <ErrorBoundary>
+      <div
+        className="flex flex-col h-full bg-gray-800 text-white"
+        style={{ width: RIGHT_PANE_DEFAULT_WIDTH }}
+      >
+        <div className="flex items-center justify-end gap-2 p-2 border-b border-gray-700">
+          <CopyCssButton onCopied={onCopied} />
+        </div>
+        <div className="flex-1 overflow-auto text-sm">
+          {SECTIONS.map((sec) => (
+            <Accordion
+              key={sec.id}
+              title={sec.title}
+              open={open[sec.id] ?? true}
+              onToggle={() =>
+                setOpen((s) => ({ ...s, [sec.id]: !(s[sec.id] ?? true) }))
+              }
+            >
+              {sec.content}
+            </Accordion>
+          ))}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
 

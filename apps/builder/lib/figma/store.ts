@@ -1,6 +1,7 @@
 'use client'
 import { create } from 'zustand'
-import type { Document, Node, Page, MotionInline } from './model'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import type { Document, Node, Page, MotionInline, ThemePreset } from './model'
 
 function findNode(root: Node, id: string): Node | null {
   if (root.id === id) return root
@@ -36,6 +37,24 @@ const defaultDoc: Document = {
       },
     },
   ],
+  // Theme presets (minimal default)
+  themePresets: [
+    {
+      id: 'theme-default',
+      name: 'Default',
+      tokens: {
+        'color.base': '#F7F7F9',
+        'color.main': '#1F2937',
+        'color.accent': '#3B82F6',
+        'stroke.width.base': '1px',
+        'radius.base': '8px',
+        'font.family.base': 'Inter, system-ui, sans-serif',
+        'font.size.body': '14px',
+        'shadow.elevation1': '0 4px 12px rgba(0,0,0,0.08)'
+      }
+    }
+  ],
+  activeThemeId: 'theme-default',
 }
 
 type RectPatch = Partial<Pick<Node, 'x' | 'y' | 'width' | 'height'>>
@@ -68,11 +87,21 @@ type State = {
   setNodeMotion: (id: string, patch: Partial<MotionInline & { durationMs?: number; delayMs?: number; easing?: string }>) => void
   pushShadow?: (id: string, s: { x:number;y:number;blur:number;spread:number;color:string }) => void
   removeShadowAt?: (id: string, idx: number) => void
+  // Theme presets
+  setActiveTheme: (id: string) => void
+  upsertThemePreset: (preset: ThemePreset) => void
+  removeThemePreset: (id: string) => void
   undo: () => void
   redo: () => void
 }
 
-export const useFigmaStore = create<State>((set, get) => ({
+const memoryStorage = {
+  getItem: (_: string) => null as any,
+  setItem: (_: string, __: string) => {},
+  removeItem: (_: string) => {},
+}
+
+export const useFigmaStore = create<State>()(persist((set, get) => ({
   doc: defaultDoc,
   selectedIds: [],
   editingTextId: null,
@@ -305,4 +334,22 @@ export const useFigmaStore = create<State>((set, get) => ({
   }),
   undo: () => { /* stub */ },
   redo: () => { /* stub */ },
+  // Theme APIs
+  setActiveTheme: (id) => set((s) => ({ doc: { ...s.doc, activeThemeId: id } })),
+  upsertThemePreset: (preset) => set((s) => {
+    const list = s.doc.themePresets ?? []
+    const idx = list.findIndex((p) => p.id === preset.id)
+    const next = idx >= 0 ? list.map((p,i)=> i===idx ? preset : p) : [...list, preset]
+    return { doc: { ...s.doc, themePresets: next } }
+  }),
+  removeThemePreset: (id) => set((s) => {
+    const list = s.doc.themePresets ?? []
+    const next = list.filter((p) => p.id !== id)
+    const nextActive = s.doc.activeThemeId === id ? undefined : s.doc.activeThemeId
+    return { doc: { ...s.doc, themePresets: next, activeThemeId: nextActive } }
+  }),
+}), {
+  name: 'figma-doc',
+  storage: createJSONStorage(() => (typeof window !== 'undefined' && window.localStorage ? window.localStorage : memoryStorage as any)),
+  partialize: (s) => ({ doc: s.doc })
 }))

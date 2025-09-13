@@ -6,6 +6,7 @@ import type { Node } from '../../lib/figma/model'
 import GuideOverlay from './GuideOverlay'
 import { resolveTokenOrString } from '../../lib/figma/tokenUtils'
 import { buildTransition } from '../../lib/figma/motion'
+import ThemeManager from '../ThemeManager'
 import Selection from './Selection'
 
 function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: boolean }) {
@@ -96,9 +97,19 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
       const sw = (node as any).style?.strokeWidth
       styleFromNode.borderWidth = `${typeof sw === 'number' ? sw : 1}px`
     }
-    // radius
-    if (typeof (node as any).style?.radius === 'number') {
-      styleFromNode.borderRadius = (node as any).style?.radius
+    // radius (number, token, or per-corner object)
+    const rad = (node as any).style?.radius
+    if (typeof rad === 'number') {
+      styleFromNode.borderRadius = rad
+    } else if (rad && typeof rad === 'object') {
+      const toCss = (cv: any) => resolveTokenOrString(cv as any, tokens as any) ?? (typeof cv === 'number' ? `${cv}px` : undefined)
+      if ('tl' in rad) {
+        const tl = toCss(rad.tl), tr = toCss(rad.tr), br = toCss(rad.br), bl = toCss(rad.bl)
+        styleFromNode.borderRadius = [tl, tr, br, bl].filter(Boolean).join(' ')
+      } else {
+        const rsv = resolveTokenOrString(rad as any, tokens as any)
+        if (rsv) styleFromNode.borderRadius = rsv
+      }
     }
     // opacity
     if (typeof (node as any).style?.opacity === 'number') {
@@ -173,6 +184,7 @@ export default function Canvas() {
 
   return (
     <div ref={ref} className="relative h-full w-full overflow-auto" onClick={() => clearSelect()}>
+      <ThemeManager />
       <div style={{
         position: 'relative',
         width: root.width, height: root.height, left: root.x, top: root.y,

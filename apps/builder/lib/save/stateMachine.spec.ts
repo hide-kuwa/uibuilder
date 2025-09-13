@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { nextState } from './stateMachine'
 
-describe('save state machine', () => {
-  it('idle→queued→offline→flushing→saved', () => {
-    expect(nextState('idle', 'enqueue')).toBe('queued')
-    expect(nextState('queued', 'offline')).toBe('offline')
-    expect(nextState('offline', 'reconnect')).toBe('flushing')
-    expect(nextState('flushing', 'done')).toBe('saved')
+describe('save state machine (pure mapping)', () => {
+  it('idle → saving → saved, and error/reset flow', () => {
+    expect(nextState('idle', 'start')).toBe('saving')
+    expect(nextState('saving', 'success')).toBe('saved')
+    // saved can start again
+    expect(nextState('saved', 'start')).toBe('saving')
+    // failure path and recovery
+    expect(nextState('saving', 'fail')).toBe('error')
+    expect(nextState('error', 'reset')).toBe('idle')
   })
 })
 

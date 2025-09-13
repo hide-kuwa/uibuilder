@@ -2,6 +2,7 @@
 import { useFigmaStore } from '../../lib/figma/store'
 import type { Node } from '../../lib/figma/model'
 import MotionPanel from './MotionPanel'
+import ThemePanel from '../ThemePanel'
 
 function NumberInput({ label, value, onChange }:{
   label:string; value:number; onChange:(n:number)=>void
@@ -142,7 +143,17 @@ export default function RightPanel() {
         <ColorInput label="Fill" value={(selected as any).style?.fill as any} onChange={(v)=>updateNodeStyle(selected.id,{ fill:v })}/>
         <ColorInput label="Stroke" value={(selected as any).style?.stroke} onChange={(v)=>updateNodeStyle(selected.id,{ stroke:v })}/>
         <NumberInput label="Stroke W" value={(selected as any).style?.strokeWidth ?? 1} onChange={(n)=>updateNodeStyle(selected.id,{ strokeWidth:n })}/>
-        <NumberInput label="Radius" value={(selected as any).style?.radius ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ radius:n })}/>
+        <div className="flex items-center justify-between gap-2">
+          <NumberInput label="Radius" value={typeof (selected as any).style?.radius === 'number' ? (selected as any).style?.radius : 0} onChange={(n)=>updateNodeStyle(selected.id,{ radius:n as any })}/>
+          <button
+            className="rounded bg-gray-100 px-2 py-1 text-xs"
+            title="テーマの半径トークンを適用 (radius.base)"
+            onClick={() => {
+              const current = typeof (selected as any).style?.radius === 'number' ? (selected as any).style?.radius : 8
+              updateNodeStyle(selected.id, { radius: { token: 'radius.base', fallback: `${current}px` } as any })
+            }}
+          >Use theme</button>
+        </div>
         <Slider label="Opacity" value={(selected as any).style?.opacity ?? 1} min={0} max={1} step={0.01}
           onChange={(n)=>updateNodeStyle(selected.id,{ opacity:n })}/>
         {/* Shadow */}
@@ -171,6 +182,7 @@ export default function RightPanel() {
       </div>
 
       <MotionPanel />
+      <ThemePanel />
     </div>
   )
 }

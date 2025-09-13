@@ -5,7 +5,9 @@ type TransitionItem = { property: string; durationMs?: number; delayMs?: number;
 type MotionUnion = Simple | { transition?: TransitionItem[] } | any
 
 export function buildTransition(m?: MotionUnion): string | undefined {
-  if (!m) return undefined
+  if (!m) {
+    return 'all var(--motion-duration-base, 160ms) var(--motion-easing-base, ease-out) var(--motion-delay-base, 0ms)'
+  }
   const arr: TransitionItem[] | undefined = Array.isArray((m as any).transition)
     ? (m as any).transition
     : undefined
@@ -19,4 +21,3 @@ export function buildTransition(m?: MotionUnion): string | undefined {
   const del = (m as Simple).delayMs ?? 0
   return `all ${d}ms ${e} ${del}ms`
 }
-

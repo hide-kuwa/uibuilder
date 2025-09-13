@@ -1,0 +1,12 @@
+:root {
+  /* Selection outline colors (fallbacks also exist in Selection.tsx) */
+  --color-accent: #3b82f6;      /* Normal selection */
+  --color-accent-dup: #10b981;  /* Alt+Drag (duplicate) */
+}
+
+/* Dark theme overrides (Tailwind .dark or data-theme usage assumed) */
+:root.dark, .dark, [data-theme="dark"] {
+  --color-accent: #60a5fa;      /* Slightly brighter blue */
+  --color-accent-dup: #34d399;  /* Slightly brighter green */
+}
+
