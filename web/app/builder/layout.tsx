@@ -18,6 +18,7 @@ import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
 import ModalHost from '@/components/hud/ModalHost'
 import SkipToCanvasLink from '@/components/a11y/SkipToCanvasLink'
 import LangSwitcher from '@/components/actions/LangSwitcher'
+import './bootstrap'
 import SelectionCssBridge from '@/components/bridges/SelectionCssBridge'
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
