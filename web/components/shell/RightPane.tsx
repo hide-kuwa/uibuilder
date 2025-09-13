@@ -3,6 +3,7 @@ import { RIGHT_PANE_DEFAULT_WIDTH } from '@/lib/layout/constants';
 import { loadLayout, saveLayout } from '@/lib/layout/persist';
 import { useEffect, useRef, useState } from 'react';
 import CopyCssButton from '@/components/actions/CopyCssButton'
+import ExportImportButtons from '@/components/actions/ExportImportButtons'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
 
 interface Section {
@@ -48,6 +49,7 @@ export default function RightPane() {
         style={{ width: RIGHT_PANE_DEFAULT_WIDTH }}
       >
         <div className="flex items-center justify-end gap-2 p-2 border-b border-gray-700">
+          <ExportImportButtons />
           <CopyCssButton onCopied={onCopied} />
         </div>
         <div className="flex-1 overflow-auto text-sm">
