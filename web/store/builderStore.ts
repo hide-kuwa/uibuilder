@@ -310,6 +310,11 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
           return;
         }
 
+        if (type === "preset" && meta?.presetId) {
+          get().placePreset(meta.presetId, { x, y });
+          return;
+        }
+
         const legacyMap: Record<string, string> = {
           header: "ui.header",
           footer: "ui.footer",
