@@ -5,6 +5,7 @@ import { useUIStore } from '@/store/uiStore'
 import { usePageStore } from '@/store/pageStore'
 import { toast } from '@/lib/toast'
 import { saveTemplate } from '../../../src/lib/pageTemplates'
+import { ShortcutsHelp } from './ShortcutsHelp'
 
 function IconBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
   const { active, className, ...rest } = props
@@ -37,6 +38,8 @@ export function BuilderHUD() {
     toggleSnap,
   } = useHudStore()
   const { showRulers, toggleRulers } = useUIStore()
+
+  const [showHelp, setShowHelp] = React.useState(false)
 
   const saveAsTemplate = React.useCallback(() => {
     const name = window.prompt('Template name?')
@@ -78,6 +81,7 @@ export function BuilderHUD() {
 
   return (
     <>
+      {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
       <div className="pointer-events-auto fixed left-1/2 top-2 -translate-x-1/2 z-50 flex items-center gap-1">
         <IconBtn onClick={zoomOut}>−</IconBtn>
         <span className="px-2 text-xs text-zinc-300 tabular-nums">{Math.round(zoom * 100)}%</span>
@@ -90,6 +94,7 @@ export function BuilderHUD() {
         <IconBtn active={showOutline} onClick={toggleOutline} title="Outline (O)">Out</IconBtn>
         <IconBtn active={snapToPixel} onClick={toggleSnap} title="Snap (P)">Snap</IconBtn>
         <IconBtn onClick={saveAsTemplate} title="Save as Template">SaveTpl</IconBtn>
+        <IconBtn onClick={() => setShowHelp(true)} title="Shortcuts">Help</IconBtn>
         <div className="mx-1 w-px h-6 bg-zinc-800" />
         <DeviceBtn d="free" label="Free" />
         <DeviceBtn d="desktop" label="Desktop" />

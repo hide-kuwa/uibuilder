@@ -375,6 +375,11 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
   const align = useBuilderStore((s) => s.align)
   const undo = useBuilderStore((s) => s.undo)
   const redo = useBuilderStore((s) => s.redo)
+  const duplicate = useBuilderStore((s) => s.duplicate)
+  const group = useBuilderStore((s) => s.group)
+  const ungroup = useBuilderStore((s) => s.ungroup)
+  const bringForward = useBuilderStore((s) => s.bringForward)
+  const sendBackward = useBuilderStore((s) => s.sendBackward)
   const { setNodeRef } = useDroppable({ id: 'CANVAS' })
   const gridSize = useGridStore((s) => s.size)
   const gridVisible = useGridStore((s) => s.visible)
@@ -429,15 +434,40 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
         else undo()
         return
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        duplicate()
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          if (selectedIds.length === 1) ungroup(selectedIds[0])
+        } else {
+          if (selectedIds.length >= 2) group(selectedIds, { name: 'Group' })
+        }
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === ']') {
+        e.preventDefault()
+        if (selectedIds[0]) bringForward(selectedIds[0])
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '[') {
+        e.preventDefault()
+        if (selectedIds[0]) sendBackward(selectedIds[0])
+        return
+      }
       if (e.altKey && e.shiftKey) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') align('hSpace')
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') align('vSpace')
         return
       }
-      if (e.key === 'ArrowUp') nudge(0, -gridSize)
-      if (e.key === 'ArrowDown') nudge(0, gridSize)
-      if (e.key === 'ArrowLeft') nudge(-gridSize, 0)
-      if (e.key === 'ArrowRight') nudge(gridSize, 0)
+      const delta = e.shiftKey ? 10 : 1
+      if (e.key === 'ArrowUp') nudge(0, -delta)
+      if (e.key === 'ArrowDown') nudge(0, delta)
+      if (e.key === 'ArrowLeft') nudge(-delta, 0)
+      if (e.key === 'ArrowRight') nudge(delta, 0)
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onKey)
@@ -445,7 +475,7 @@ export function Canvas({ canvasRef }: { canvasRef: React.RefObject<HTMLDivElemen
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKey)
     }
-  }, [nudge, align, gridSize, undo, redo, spaceDown])
+  }, [nudge, align, undo, redo, spaceDown, duplicate, group, ungroup, bringForward, sendBackward, selectedIds])
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     if (e.ctrlKey || e.metaKey) {
