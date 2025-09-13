@@ -47,6 +47,7 @@ type State = {
   ghostRect?: { id: string; x: number; y: number; width: number; height: number } | null
   transformHandle?: string | null
   transformStart?: { id: string; x: number; y: number; width: number; height: number } | null
+  transformAlt: boolean
   readonly selectedNode: Node | null
   select: (ids: string[], additive?: boolean) => void
   clearSelect: () => void
@@ -58,6 +59,7 @@ type State = {
   setGhostRect: (rect: { id: string; x: number; y: number; width: number; height: number }) => void
   commitGhost: () => void
   cancelGhost: () => void
+  setTransformAlt: (on: boolean) => void
   applySnap: (rect: { id: string; x: number; y: number; width: number; height: number }) => { id: string; x: number; y: number; width: number; height: number }
   duplicateNode: (id: string) => string | null
   wrapInStack: (direction: 'H'|'V') => void
@@ -74,6 +76,7 @@ export const useFigmaStore = create<State>((set, get) => ({
   ghostRect: null,
   transformHandle: null,
   transformStart: null,
+  transformAlt: false,
   get selectedNode() {
     const ids = get().selectedIds
     if (!ids.length) return null
@@ -114,9 +117,10 @@ export const useFigmaStore = create<State>((set, get) => ({
     if (node) {
       ;(node as any).x = g.x; (node as any).y = g.y; (node as any).width = g.width; (node as any).height = g.height
     }
-    return { doc: { ...s.doc }, ghostRect: null, transformHandle: null, transformStart: null }
+    return { doc: { ...s.doc }, ghostRect: null, transformHandle: null, transformStart: null, transformAlt: false }
   }),
-  cancelGhost: () => set({ ghostRect: null }),
+  cancelGhost: () => set({ ghostRect: null, transformAlt: false }),
+  setTransformAlt: (on) => set({ transformAlt: on }),
   applySnap: (rect) => {
     const s = get()
     const root = s.doc.pages[0].root

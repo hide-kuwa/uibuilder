@@ -11,6 +11,7 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
   const selectedIds = useFigmaStore((s) => s.selectedIds)
   const editingTextId = useFigmaStore((s) => s.editingTextId)
   const beginTransform = useFigmaStore((s) => s.beginTransform)
+  const setTransformAlt = useFigmaStore((s) => s.setTransformAlt)
   const setGhostRect = useFigmaStore((s) => s.setGhostRect)
   const commitGhost = useFigmaStore((s) => s.commitGhost)
   const cancelGhost = useFigmaStore((s) => s.cancelGhost)
@@ -54,6 +55,7 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
     if (e.altKey) {
       // Alt+Drag duplicate
       id = duplicateNode(node.id) ?? node.id
+      setTransformAlt(true)
     }
     select([id], e.shiftKey)
     beginTransform(id)
