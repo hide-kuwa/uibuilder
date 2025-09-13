@@ -16,6 +16,8 @@ import StatusCenter from '@/components/hud/StatusCenter'
 import ErrorBoundary from '@/components/hud/ErrorBoundary'
 import DevConsoleHUD from '@/components/hud/DevConsoleHUD'
 import ModalHost from '@/components/hud/ModalHost'
+import SkipToCanvasLink from '@/components/a11y/SkipToCanvasLink'
+import LangSwitcher from '@/components/actions/LangSwitcher'
 import SelectionCssBridge from '@/components/bridges/SelectionCssBridge'
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +31,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     <div data-actions-enabled="true" suppressHydrationWarning>
       <div className="w-full h-10 px-3 border-b flex items-center gap-3">
         <div className="text-sm font-semibold mr-auto">Builder</div>
+        <LangSwitcher />
         <UndoRedoButtons />
         <LoadFromGitHubMenu />
         <ProjectMetaMenu />
@@ -38,6 +41,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         <SaveIndicator projectId="local" schemaVersion={1} />
       </div>
       <ErrorBoundary>
+        <SkipToCanvasLink />
         {children}
       </ErrorBoundary>
       <SelectionCssBridge />

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import CopyCssButton from '@/components/actions/CopyCssButton'
 import ExportImportButtons from '@/components/actions/ExportImportButtons'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
+import { useRovingFocus } from '@/hooks/useRovingFocus'
+import { t } from '@/lib/i18n/i18n'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
@@ -39,15 +41,15 @@ export default function RightPane() {
 
   useEffect(() => { /* persisted by hook */ }, [open])
 
+  const tools = 3
+  const { refs, onKeyDown } = useRovingFocus(tools)
+
   return (
     <ErrorBoundary>
-      <div
-        className="flex flex-col h-full bg-gray-800 text-white"
-        style={{ width: RIGHT_PANE_DEFAULT_WIDTH }}
-      >
-        <div className="flex items-center justify-end gap-2 p-2 border-b border-gray-700">
-          <ExportImportButtons />
-          <CopyCssButton onCopied={onCopied} />
+      <aside aria-label={t('rightPanel')} className="flex flex-col h-full bg-gray-800 text-white" style={{ width: RIGHT_PANE_DEFAULT_WIDTH }}>
+        <div className="flex items-center justify-end gap-2 p-2 border-b border-gray-700" role="toolbar" aria-label={t('styleTools')} onKeyDown={onKeyDown}>
+          <ExportImportButtons ariaLabelExport={t('export')} ariaLabelImport={t('import')} exportRef={el => refs.current[0] = el} importRef={el => refs.current[1] = el} />
+          <CopyCssButton ref={el => refs.current[2] = el} onCopied={onCopied} ariaLabel={t('copyCss')} />
         </div>
         <div className="flex-1 overflow-auto text-sm">
           {SECTIONS.map((sec) => (
@@ -63,7 +65,7 @@ export default function RightPane() {
             </Accordion>
           ))}
         </div>
-      </div>
+      </aside>
     </ErrorBoundary>
   );
 }
@@ -88,15 +90,20 @@ function Accordion({ title, open, onToggle, children }: AccordionProps) {
     return () => ro.disconnect();
   }, []);
 
+  const contentId = `sec-${title.replace(/\s+/g, '-').toLowerCase()}`
   return (
     <section className="border-b border-gray-700">
       <button
         className="w-full text-left px-2 py-1 hover:bg-gray-700 transition-colors"
         onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={contentId}
+        role="button"
       >
         {title}
       </button>
       <div
+        id={contentId}
         style={{
           maxHeight: open ? height : 0,
           opacity: open ? 1 : 0,

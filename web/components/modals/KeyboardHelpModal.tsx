@@ -1,7 +1,9 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 
 export default function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => { if (open) setTimeout(() => closeRef.current?.focus(), 0) }, [open])
   if (!open) return null
   return (
     <div className="fixed inset-0 grid place-items-center bg-black/50 z-[999]" onClick={onClose}>
@@ -23,10 +25,9 @@ export default function KeyboardHelpModal({ open, onClose }: { open: boolean; on
           {/* TODO: alignment / zoom / theme toggle, etc. */}
         </ul>
         <div className="mt-4 text-right">
-          <button className="btn" onClick={onClose}>Close (Esc)</button>
+          <button ref={closeRef} className="btn" onClick={onClose}>Close (Esc)</button>
         </div>
       </div>
     </div>
   )
 }
-

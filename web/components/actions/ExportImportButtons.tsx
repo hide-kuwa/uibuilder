@@ -2,8 +2,9 @@
 import React, { useRef } from 'react'
 import { exportDocAsFile } from '@/lib/io/exportDoc'
 import { importDocFromFile, type ImportMode } from '@/lib/io/importDoc'
+import { t } from '@/lib/i18n/i18n'
 
-export default function ExportImportButtons() {
+export default function ExportImportButtons({ ariaLabelExport, ariaLabelImport, exportRef, importRef }: { ariaLabelExport?: string; ariaLabelImport?: string; exportRef?: (el: HTMLButtonElement | null) => void; importRef?: (el: HTMLButtonElement | null) => void }) {
   const fileRef = useRef<HTMLInputElement | null>(null)
   const onExport = async () => {
     try { await exportDocAsFile() } catch (e) { console.error(e) }
@@ -23,9 +24,9 @@ export default function ExportImportButtons() {
     }
   }
   return (
-    <div className="flex items-center gap-2">
-      <button className="btn" onClick={onExport}>Export</button>
-      <button className="btn" onClick={onImportClick}>Import</button>
+    <div className="flex items-center gap-2" role="group" aria-label="Export/Import">
+      <button ref={exportRef || undefined} className="btn" onClick={onExport} aria-label={ariaLabelExport || t('export')}>{t('export')}</button>
+      <button ref={importRef || undefined} className="btn" onClick={onImportClick} aria-label={ariaLabelImport || t('import')}>{t('import')}</button>
       <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onFile} />
     </div>
   )
@@ -46,4 +47,3 @@ function toast(title: string, description?: string) {
   } catch {}
   console.info(`[toast] ${title}${description ? ' — ' + description : ''}`)
 }
-

@@ -1,9 +1,10 @@
 'use client'
-import React from 'react'
+import React, { forwardRef } from 'react'
 import { selectionToCss, type StyleLike } from '@/lib/style/selectionToCss'
 import { copyText } from '@/lib/clipboard/copyText'
+import { t } from '@/lib/i18n/i18n'
 
-export default function CopyCssButton({ styles, onCopied }: { styles?: StyleLike[]; onCopied?: (css: string)=>void }) {
+export default forwardRef<HTMLButtonElement, { styles?: StyleLike[]; onCopied?: (css: string)=>void; ariaLabel?: string }>(function CopyCssButton({ styles, onCopied, ariaLabel }, ref) {
   const onClick = async () => {
     let nodes = styles
     if (!nodes) {
@@ -21,7 +22,8 @@ export default function CopyCssButton({ styles, onCopied }: { styles?: StyleLike
   }
   const disabled = !(styles?.length ?? true)
   return (
-    <button className="btn" onClick={onClick} disabled={disabled}>Copy CSS</button>
+    <button ref={ref} className="btn" onClick={onClick} disabled={disabled} aria-label={ariaLabel || t('copyCss')}>
+      {t('copyCss')}
+    </button>
   )
-}
-
+})
