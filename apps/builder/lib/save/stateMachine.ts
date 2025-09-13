@@ -1,19 +1,23 @@
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+export type SaveState = 'idle' | 'queued' | 'offline' | 'flushing' | 'saved'
 
 export function nextState(state: SaveState, event: string): SaveState {
   switch (state) {
     case 'idle':
-      if (event === 'start') return 'saving'
+      if (event === 'enqueue') return 'queued'
       return state
-    case 'saving':
-      if (event === 'success') return 'saved'
-      if (event === 'fail') return 'error'
+    case 'queued':
+      if (event === 'offline') return 'offline'
+      if (event === 'start') return 'flushing'
+      return state
+    case 'offline':
+      if (event === 'reconnect') return 'flushing'
+      return state
+    case 'flushing':
+      if (event === 'done') return 'saved'
+      if (event === 'fail') return 'queued'
       return state
     case 'saved':
-      if (event === 'start') return 'saving'
-      return state
-    case 'error':
-      if (event === 'reset') return 'idle'
+      if (event === 'change') return 'idle'
       return state
     default:
       return state
