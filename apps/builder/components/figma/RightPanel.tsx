@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useFigmaStore } from '../../lib/figma/store'
 import type { Shadow, GradientFill } from '../../lib/figma/model'
 import { buildCss } from '../../lib/figma/css'
@@ -14,15 +14,69 @@ function NumberInput({
   value: number
   onChange: (v: number) => void
 }) {
+  const startX = useRef(0)
+  const startVal = useRef(0)
+  const dragging = useRef(false)
+
+  const startScrub = (e: React.MouseEvent) => {
+    e.preventDefault()
+    startX.current = e.clientX
+    startVal.current = value
+    dragging.current = true
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return
+      const dx = ev.clientX - startX.current
+      const step = ev.shiftKey ? 10 : 1
+      const delta = Math.round(dx / 5) * step
+      onChange(startVal.current + delta)
+    }
+
+    const onUp = () => {
+      dragging.current = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      onChange(value + (e.shiftKey ? 10 : 1))
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      onChange(value - (e.shiftKey ? 10 : 1))
+    } else if (e.key === 'Enter') {
+      ;(e.target as HTMLInputElement).blur()
+    }
+  }
+
   return (
     <label className="flex items-center justify-between py-1 text-sm">
-      <span className="text-gray-500">{label}</span>
-      <input
-        type="number"
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-40 border rounded px-2 py-1 text-right"
-      />
+      <span
+        className="text-gray-500 cursor-ew-resize select-none"
+        onMouseDown={startScrub}
+      >
+        {label}
+      </span>
+      <div className="flex items-center w-40">
+        <input
+          type="number"
+          value={Number.isFinite(value) ? value : 0}
+          onChange={(e) => onChange(Number(e.target.value))}
+          onKeyDown={onKeyDown}
+          className="flex-1 border rounded px-2 py-1 text-right"
+        />
+        <span
+          className="ml-1 cursor-ew-resize text-gray-400 select-none"
+          onMouseDown={startScrub}
+        >
+          ↔
+        </span>
+      </div>
     </label>
   )
 }
@@ -317,8 +371,16 @@ export default function RightPanel() {
         <div className="text-xs uppercase tracking-wider text-gray-400">
           Size
         </div>
-        <NumberInput label="W" value={selected.width} onChange={(n) => updateNode(selected.id, { width: n })} />
-        <NumberInput label="H" value={selected.height} onChange={(n) => updateNode(selected.id, { height: n })} />
+        <NumberInput
+          label="W"
+          value={selected.width}
+          onChange={(n) => updateNode(selected.id, { width: Math.max(1, n) })}
+        />
+        <NumberInput
+          label="H"
+          value={selected.height}
+          onChange={(n) => updateNode(selected.id, { height: Math.max(1, n) })}
+        />
       </div>
       <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">Transform</div>
