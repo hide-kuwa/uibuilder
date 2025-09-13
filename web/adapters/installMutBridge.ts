@@ -37,5 +37,16 @@ export function installMutBridge(opts: {
   }
 
   w.__mut.applyStyle = applyStyle
-}
 
+  // Low-level API to apply style to specific ids
+  w.__mut.applyStyleTo = (ids: string[], patch: any) => {
+    try {
+      if (!ids?.length) return
+      ids.forEach((id: string) => {
+        const node = opts.getNodeById(id)
+        const nextStyle = mergeStyle(node?.style, patch)
+        opts.updateNode(id, { style: nextStyle })
+      })
+    } catch {}
+  }
+}
