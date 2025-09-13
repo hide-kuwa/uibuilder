@@ -5,6 +5,7 @@ import { useRects } from './RectsStore'
 import { getSmartSnap, Guide } from './snap'
 import { useGridStore } from '@/store/gridStore'
 import { useEditorUIStore } from '@/store/editorUIStore'
+import { rafBatch } from '@/lib/perf/rafBatch'
 
 type DragState = { dx:number, dy:number }
 
@@ -80,14 +81,21 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
     })
   }
 
+  const batchedApply = useRef<null | ((stylePatch: any, guides?: Guide[]) => void)>(null)
+  useEffect(() => {
+    batchedApply.current = rafBatch((stylePatch: any, guides?: Guide[]) => {
+      if (guides) setGuides(guides)
+      if (selectedComponentId) setProp(selectedComponentId, 'style', { ...style, position: 'absolute', ...stylePatch })
+    })
+  }, [setGuides, selectedComponentId, setProp, style])
+
   const onPointerMove = useCallback((ev:PointerEvent)=>{
     if(drag && selectedComponentId && rect){
       let left = ev.clientX - drag.dx - (containerRect?.left||0)
       let top  = ev.clientY - drag.dy - (containerRect?.top||0)
       const {dx,dy,guides} = getSmartSnap({x:left,y:top,w:rect.w,h:rect.h}, siblings)
       left += dx; top += dy
-      setGuides(guides)
-      setProp(selectedComponentId, 'style', { ...style, position:'absolute', left, top })
+      batchedApply.current?.({ left, top }, guides)
     } else if(resize && selectedComponentId){
       let {startX,startY,startW,startH,startLeft,startTop,dir}=resize
       let dx = ev.clientX - startX
@@ -97,9 +105,9 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
       if(dir.includes('s')) height = snap(startH + dy)
       if(dir.includes('w')){ width = snap(startW - dx); left = snap(startLeft + dx) }
       if(dir.includes('n')){ height = snap(startH - dy); top = snap(startTop + dy) }
-      setProp(selectedComponentId, 'style', { ...style, position:'absolute', left, top, width, height })
+      batchedApply.current?.({ left, top, width, height })
     }
-  },[drag, resize, selectedComponentId, rect, setProp, containerRect, siblings, setGuides, style, snap])
+  },[drag, resize, selectedComponentId, rect, containerRect, siblings, snap])
 
   const stopAll = useCallback(()=>{
     if (selectedComponentId) end(selectedComponentId)

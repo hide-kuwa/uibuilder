@@ -1,11 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import { useHistoryStore } from '@/stores/history'
 import type { XY, Size } from '@/stores/canvas'
 import { snapToGrid } from '@/lib/snap'
 import { computeSnapWithGuides } from '@/lib/guides'
 import DraggableNodeWrapper from './DraggableNodeWrapper'
+import { rafBatch } from '@/lib/perf/rafBatch'
 
 type Props = {
   id: string
@@ -37,6 +38,30 @@ export default function DraggableNode({
   const selected = selectedIds.includes(id)
   const [dragStart, setDragStart] = useState<{ x: number; y: number; base: XY } | null>(null)
   const [resizing, setResizing] = useState<null | { dir: string; sx: number; sy: number; baseP: XY; baseS: Size }>(null)
+
+  // rAF-batched updaters to sustain 60fps under heavy pointermove
+  const dragStartRef = useRef(dragStart)
+  useEffect(() => { dragStartRef.current = dragStart }, [dragStart])
+  const batchedResize = useRef<null | ((pos: XY, size: Size) => void)>(null)
+  const batchedMoveSingle = useRef<null | ((pos: XY, vxs: any[], hys: any[]) => void)>(null)
+  const batchedMoveMulti = useRef<null | ((dx: number, dy: number, cx: number, cy: number) => void)>(null)
+  useEffect(() => {
+    batchedResize.current = rafBatch((pos: XY, size: Size) => {
+      setNodePos(id, pos)
+      setNodeSize(id, size)
+      setGuides([], [])
+    })
+    batchedMoveSingle.current = rafBatch((pos: XY, vxs: any[], hys: any[]) => {
+      setNodePos(id, pos)
+      setGuides(vxs, hys)
+    })
+    batchedMoveMulti.current = rafBatch((dx: number, dy: number, cx: number, cy: number) => {
+      moveNodes(selectedIds, dx, dy)
+      const ds = dragStartRef.current
+      if (ds) setDragStart({ ...ds, x: cx, y: cy })
+      setGuides([], [])
+    })
+  }, [id, moveNodes, selectedIds, setGuides, setNodePos, setNodeSize])
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (locked || resizing) return
@@ -78,9 +103,7 @@ export default function DraggableNode({
       if (resizing.dir.includes('n')) { h = Math.max(60, h - dy); y = y + dy }
       // グリッド適用（任意）
       const snappedPos = snapEnabled ? snapToGrid({ x, y }, gridSize, snapThreshold) : { x, y }
-      setNodePos(id, snappedPos)
-      setNodeSize(id, { w: Math.round(w), h: Math.round(h) })
-      setGuides([], [])
+      batchedResize.current?.(snappedPos, { w: Math.round(w), h: Math.round(h) })
       return
     }
 
@@ -94,12 +117,9 @@ export default function DraggableNode({
       // 1) グリッド → 2) ガイドで微調整（両方表示）
       const grid = snapEnabled ? snapToGrid(raw, gridSize, snapThreshold) : raw
       const { x, y, vxs, hys } = computeSnapWithGuides(id, grid, curSize, snapThreshold)
-      setNodePos(id, { x, y })
-      setGuides(vxs, hys)
+      batchedMoveSingle.current?.({ x, y }, vxs, hys)
     } else {
-      moveNodes(selectedIds, dx, dy)
-      setDragStart({ ...dragStart, x: e.clientX, y: e.clientY })
-      setGuides([], [])
+      batchedMoveMulti.current?.(dx, dy, e.clientX, e.clientY)
     }
   }
 
