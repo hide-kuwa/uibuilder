@@ -1,11 +1,16 @@
 import './globals.css'
 import type { ReactNode } from 'react'
+import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Providers from './providers'
 import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import ChromeController from '@/components/layout/ChromeController'
 import ErrorBoundary from '@/components/ErrorBoundary'
+
+export const metadata: Metadata = {
+  manifest: '/manifest.json',
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()

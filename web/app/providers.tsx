@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { HUDProvider } from "@/components/hud/hudStore";
 import PerfHUD from "@/components/dev/PerfHUD";
 import EventLog from "@/components/dev/EventLog";
@@ -15,6 +16,11 @@ export default function Providers({
   children: ReactNode;
   initialTheme: string;
 }) {
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+  }, [])
   return (
     <ThemeProvider initialTheme={initialTheme}>
       <DataProvider>
