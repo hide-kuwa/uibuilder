@@ -150,6 +150,52 @@ export default function RightPanel() {
         <NumberInput label="H" value={selected.height} onChange={(n) => updateNode(selected.id, { height: n })} />
       </div>
       <div className="space-y-1">
+        <div className="text-xs uppercase tracking-wider text-gray-400">Transform</div>
+        <NumberInput
+          label="Rotate"
+          value={selected.style?.rotateDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { rotateDeg: v })}
+        />
+        <NumberInput
+          label="ScaleX"
+          value={selected.style?.scaleX ?? 1}
+          onChange={(v) => updateNodeStyle(selected.id, { scaleX: v })}
+        />
+        <NumberInput
+          label="ScaleY"
+          value={selected.style?.scaleY ?? 1}
+          onChange={(v) => updateNodeStyle(selected.id, { scaleY: v })}
+        />
+        <NumberInput
+          label="SkewX"
+          value={selected.style?.skewXDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { skewXDeg: v })}
+        />
+        <NumberInput
+          label="SkewY"
+          value={selected.style?.skewYDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { skewYDeg: v })}
+        />
+        <label className="flex items-center justify-between py-1 text-sm">
+          <span className="text-gray-500">Origin</span>
+          <select
+            className="w-40 border rounded px-2 py-1 text-sm"
+            value={selected.style?.transformOrigin ?? 'TL'}
+            onChange={(e) =>
+              updateNodeStyle(selected.id, {
+                transformOrigin: e.target.value as any,
+              })
+            }
+          >
+            {['TL', 'TC', 'TR', 'CL', 'C', 'CR', 'BL', 'BC', 'BR'].map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">Style</div>
         <ColorInput label="Fill" value={typeof selected.style?.fill === 'string' ? selected.style?.fill : ''} onChange={(v) => updateNodeStyle(selected.id, { fill: v })} />
         <ColorInput label="Stroke" value={selected.style?.stroke} onChange={(v) => updateNodeStyle(selected.id, { stroke: v })} />
