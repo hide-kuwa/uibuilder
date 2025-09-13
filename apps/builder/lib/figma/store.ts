@@ -67,6 +67,7 @@ type State = {
   updateNodeStyle: (id: string, patch: Partial<NodeStyle>) => void
   pushShadow: (id: string, shadow?: Shadow) => void
   removeShadowAt: (id: string, idx: number) => void
+  moveShadow: (id: string, from: number, to: number) => void
   beginTransform: (id: string) => void
   setGhostRect: (rect: { id: string; x: number; y: number; width: number; height: number }) => void
   commitGhost: () => void
@@ -168,7 +169,13 @@ export const useFigmaStore = create<State>()(
             const style = node.style ?? (node.style = {})
             const arr: Shadow[] = style.shadows ?? (style.shadows = [])
             arr.push(
-              shadow ?? { x: 0, y: 0, blur: 0, spread: 0, color: 'rgba(0,0,0,0.25)' }
+              shadow ?? {
+                x: 0,
+                y: 4,
+                blur: 12,
+                spread: 0,
+                color: 'rgba(0,0,0,0.1)',
+              }
             )
           }
           return { doc: { ...s.doc } }
@@ -179,6 +186,20 @@ export const useFigmaStore = create<State>()(
           const node: any = findNode(page.root, id)
           if (node?.style?.shadows) {
             node.style.shadows = node.style.shadows.filter((_: any, i: number) => i !== idx)
+          }
+          return { doc: { ...s.doc } }
+        }),
+      moveShadow: (id, from, to) =>
+        set((s) => {
+          const page = s.doc.pages[0]
+          const node: any = findNode(page.root, id)
+          if (node?.style?.shadows) {
+            const arr = node.style.shadows
+            const len = arr.length
+            if (from >= 0 && from < len && to >= 0 && to < len && from !== to) {
+              const [sp] = arr.splice(from, 1)
+              arr.splice(to, 0, sp)
+            }
           }
           return { doc: { ...s.doc } }
         }),

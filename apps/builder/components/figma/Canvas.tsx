@@ -17,6 +17,7 @@ function NodeBox({ node }: { node: Node }) {
   const style: React.CSSProperties = useMemo(() => {
     const s = node.style ?? {}
     const bg = (() => {
+      if (node.type === 'TEXT') return undefined
       if (!s.fill) return undefined
       if (typeof s.fill === 'string') return s.fill
       const stops = s.fill.stops
@@ -31,17 +32,41 @@ function NodeBox({ node }: { node: Node }) {
       if (typeof s.radius === 'number') return s.radius
       return `${s.radius.tl}px ${s.radius.tr}px ${s.radius.br}px ${s.radius.bl}px`
     })()
-    const boxShadow = s.shadows
-      ? s.shadows
-          .map((sh) =>
-            `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
+    const boxShadow = (() => {
+      if (s.shadows) {
+        return s.shadows
+          .map(
+            (sh) =>
+              `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
           )
           .join(', ')
-      : undefined
-    const transform = `translate(${node.x}px, ${node.y}px)` +
-      ` rotate(${s.rotateDeg ?? 0}deg)` +
-      ` skew(${s.skewXDeg ?? 0}deg, ${s.skewYDeg ?? 0}deg)` +
-      ` scale(${s.scaleX ?? 1}, ${s.scaleY ?? 1})`
+}
+      const sh: any = s.shadow
+      if (sh) {
+        return typeof sh === 'string'
+          ? sh
+          : `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
+      }
+      return undefined
+    })()
+    const transform = [
+      `translate(${node.x}px, ${node.y}px)`,
+      `rotate(${s.rotateDeg ?? 0}deg)`,
+      `skew(${s.skewXDeg ?? 0}deg, ${s.skewYDeg ?? 0}deg)`,
+      `scale(${s.scaleX ?? 1}, ${s.scaleY ?? 1})`,
+    ].join(' ')
+    const originMap = {
+      TL: 'top left',
+      TC: 'top center',
+      TR: 'top right',
+      CL: 'center left',
+      C: 'center',
+      CR: 'center right',
+      BL: 'bottom left',
+      BC: 'bottom center',
+      BR: 'bottom right',
+    } as const
+    const transformOrigin = originMap[s.transformOrigin ?? 'TL']
     const transition = node.motion?.transition
       ?.map(
         (t) =>
@@ -53,7 +78,7 @@ function NodeBox({ node }: { node: Node }) {
       width: node.width,
       height: node.height,
       transform,
-      transformOrigin: 'top left',
+      transformOrigin,
       opacity: s.opacity,
       borderRadius: radius,
       background: bg,

@@ -202,6 +202,15 @@ export function RulersOverlay({ containerRef, offset, thickness = 24 }: Props) {
               background: 'rgba(14,165,233,0.55)',
             }}
           />
+          <div
+            className="absolute text-[10px] leading-none bg-cyan-500 text-black px-1 py-[1px] rounded"
+            style={{
+              left: Math.max(mouse.x + thickness + 4, thickness + 4),
+              top: Math.max(mouse.y + thickness + 4, thickness + 4),
+            }}
+          >
+            {Math.round((mouse.x + offX * zoom) / zoom)}, {Math.round((mouse.y + offY * zoom) / zoom)}
+          </div>
         </>
       )}
     </div>

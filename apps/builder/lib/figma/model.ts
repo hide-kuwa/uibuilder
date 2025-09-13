@@ -21,6 +21,7 @@ export type NodeStyle = {
   strokeWidth?: number
   radius?: CornerRadius
   opacity?: number
+  shadow?: Shadow | string
   shadows?: Shadow[]
   mixBlendMode?: React.CSSProperties['mixBlendMode']
   filter?: string
@@ -30,6 +31,7 @@ export type NodeStyle = {
   scaleY?: number
   skewXDeg?: number
   skewYDeg?: number
+  transformOrigin?: 'TL' | 'TC' | 'TR' | 'CL' | 'C' | 'CR' | 'BL' | 'BC' | 'BR'
   backgroundImage?: string
   backgroundSize?: string
   backgroundPosition?: string

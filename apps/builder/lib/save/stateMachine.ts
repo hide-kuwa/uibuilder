@@ -15,12 +15,13 @@ export function nextState(state: SaveState, event: string): SaveState {
     case 'flushing':
       if (event === 'done') return 'saved'
       if (event === 'offline') return 'offline'
+      if (event === 'fail') return 'queued'
       return state
     case 'saved':
       if (event === 'enqueue') return 'queued'
+      if (event === 'change') return 'idle'
       return state
     default:
       return state
   }
 }
-
