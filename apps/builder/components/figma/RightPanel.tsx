@@ -1,10 +1,10 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useFigmaStore } from '../../lib/figma/store'
-import type { Shadow } from '../../lib/figma/model'
+import type { Shadow, GradientFill } from '../../lib/figma/model'
 import { buildCss } from '../../lib/figma/css'
 import toast from '../../lib/toast'
-
+import { alignSelected, distributeSelected } from '../../lib/figma/alignActions'
 function NumberInput({
   label,
   value,
@@ -51,6 +51,115 @@ function TextInput({
 
 const ColorInput = TextInput
 
+function gradientToCss(g: GradientFill): string {
+  const stops = g.stops.map((st) => `${st.color} ${st.offset * 100}%`).join(', ')
+  return g.type === 'linear'
+    ? `linear-gradient(${g.angle ?? 0}deg, ${stops})`
+    : `radial-gradient(${stops})`
+}
+
+function parseGradient(str?: string): GradientFill | null {
+  if (!str) return null
+  const lin = str.match(/^linear-gradient\(([-0-9.]+)deg,\s*(.+)\)$/)
+  if (lin) {
+    const angle = parseFloat(lin[1])
+    const stops = lin[2].split(/,\s*/).map((s) => {
+      const [color, offset] = s.trim().split(/\s+/)
+      return { color, offset: parseFloat(offset) / 100 }
+    })
+    return { type: 'linear', angle, stops }
+  }
+  const rad = str.match(/^radial-gradient\((.+)\)$/)
+  if (rad) {
+    const stops = rad[1].split(/,\s*/).map((s) => {
+      const [color, offset] = s.trim().split(/\s+/)
+      return { color, offset: parseFloat(offset) / 100 }
+    })
+    return { type: 'radial', stops }
+  }
+  return null
+}
+
+function GradientEditor({
+  value,
+  onChange,
+}: {
+  value?: string
+  onChange: (v: string) => void
+}) {
+  const fallback: GradientFill = {
+    type: 'linear',
+    angle: 0,
+    stops: [
+      { color: '#ff0000', offset: 0 },
+      { color: '#0000ff', offset: 1 },
+    ],
+  }
+  const [grad, setGrad] = useState<GradientFill>(() => parseGradient(value) ?? fallback)
+  useEffect(() => {
+    const parsed = parseGradient(value)
+    if (parsed) setGrad(parsed)
+  }, [value])
+  const css = gradientToCss(grad)
+  const update = (patch: Partial<GradientFill>) => {
+    const g = { ...grad, ...patch }
+    setGrad(g)
+    onChange(gradientToCss(g))
+  }
+  const updateStop = (idx: number, patch: Partial<GradientFill['stops'][number]>) => {
+    const stops = grad.stops.map((st, i) => (i === idx ? { ...st, ...patch } : st))
+    update({ stops })
+  }
+  const addStop = () => update({ stops: [...grad.stops, { color: '#000000', offset: 0.5 }] })
+  const removeStop = (idx: number) => update({ stops: grad.stops.filter((_, i) => i !== idx) })
+  return (
+    <div className="py-1 text-sm space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-500">Fill</span>
+        <div className="flex items-center space-x-1">
+          <div className="w-8 h-5 border" style={{ background: css }} />
+          <select
+            value={grad.type}
+            onChange={(e) => update({ type: e.target.value as 'linear' | 'radial' })}
+            className="border rounded px-1 text-xs"
+          >
+            <option value="linear">linear</option>
+            <option value="radial">radial</option>
+          </select>
+        </div>
+      </div>
+      {grad.type === 'linear' && (
+        <NumberInput label="Angle" value={grad.angle ?? 0} onChange={(v) => update({ angle: v })} />
+      )}
+      <div className="space-y-1">
+        {grad.stops.map((st, i) => (
+          <div key={i} className="flex items-center space-x-1">
+            <input
+              type="color"
+              value={st.color}
+              onChange={(e) => updateStop(i, { color: e.target.value })}
+            />
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={Math.round(st.offset * 100)}
+              onChange={(e) => updateStop(i, { offset: Number(e.target.value) / 100 })}
+              className="w-16 border rounded px-1 py-1 text-right"
+            />
+            <button className="border rounded px-1 text-xs" onClick={() => removeStop(i)}>
+              -
+            </button>
+          </div>
+        ))}
+        <button className="border rounded px-1 text-xs" onClick={addStop}>
+          + Stop
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function Slider({
   label,
   value,
@@ -83,11 +192,13 @@ function Slider({
 }
 
 export default function RightPanel() {
+  const selectedIds = useFigmaStore((s) => s.selectedIds)
   const selected = useFigmaStore((s) => s.selectedNode)
   const updateNode = useFigmaStore((s) => s.updateNode)
   const updateNodeStyle = useFigmaStore((s) => s.updateNodeStyle)
   const pushShadow = useFigmaStore((s) => s.pushShadow)
   const removeShadowAt = useFigmaStore((s) => s.removeShadowAt)
+  const moveShadow = useFigmaStore((s) => s.moveShadow)
   const setNodeMotion = useFigmaStore((s) => s.setNodeMotion)
 
   const [linkedRadius, setLinkedRadius] = useState(true)
@@ -95,11 +206,50 @@ export default function RightPanel() {
     setLinkedRadius(typeof selected?.style?.radius !== 'object')
   }, [selected?.id])
 
-  if (!selected) {
+  if (!selectedIds.length) {
     return (
       <div className="p-4 text-sm text-gray-500">
         <div className="font-semibold text-gray-700 mb-2">Properties</div>
         <p>No selection</p>
+      </div>
+    )
+  }
+
+  if (selectedIds.length > 1) {
+    const canDist = selectedIds.length >= 3
+    return (
+      <div className="p-4 space-y-2">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">Align</div>
+          <div className="flex flex-wrap gap-1">
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('left')}>L</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('center')}>HC</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('right')}>R</button>
+            <div className="w-[6px]" />
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('top')}>T</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('middle')}>VC</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('bottom')}>B</button>
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">Distribute</div>
+          <div className="flex flex-wrap gap-1">
+            <button
+              className="border rounded px-2 h-7 disabled:opacity-50"
+              disabled={!canDist}
+              onClick={() => distributeSelected('horizontal')}
+            >
+              H
+            </button>
+            <button
+              className="border rounded px-2 h-7 disabled:opacity-50"
+              disabled={!canDist}
+              onClick={() => distributeSelected('vertical')}
+            >
+              V
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -121,7 +271,14 @@ export default function RightPanel() {
 
   const updateShadow = (idx: number, patch: Partial<Shadow>) => {
     const shadows = selected.style?.shadows ? [...selected.style.shadows] : []
-    const base = shadows[idx] || { x: 0, y: 0, blur: 0, spread: 0, color: '#000000' }
+    const base =
+      shadows[idx] || {
+        x: 0,
+        y: 4,
+        blur: 12,
+        spread: 0,
+        color: 'rgba(0,0,0,0.1)',
+      }
     shadows[idx] = { ...base, ...patch }
     updateNodeStyle(selected.id, { shadows })
   }
@@ -164,8 +321,57 @@ export default function RightPanel() {
         <NumberInput label="H" value={selected.height} onChange={(n) => updateNode(selected.id, { height: n })} />
       </div>
       <div className="space-y-1">
+        <div className="text-xs uppercase tracking-wider text-gray-400">Transform</div>
+        <NumberInput
+          label="Rotate"
+          value={selected.style?.rotateDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { rotateDeg: v })}
+        />
+        <NumberInput
+          label="ScaleX"
+          value={selected.style?.scaleX ?? 1}
+          onChange={(v) => updateNodeStyle(selected.id, { scaleX: v })}
+        />
+        <NumberInput
+          label="ScaleY"
+          value={selected.style?.scaleY ?? 1}
+          onChange={(v) => updateNodeStyle(selected.id, { scaleY: v })}
+        />
+        <NumberInput
+          label="SkewX"
+          value={selected.style?.skewXDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { skewXDeg: v })}
+        />
+        <NumberInput
+          label="SkewY"
+          value={selected.style?.skewYDeg ?? 0}
+          onChange={(v) => updateNodeStyle(selected.id, { skewYDeg: v })}
+        />
+        <label className="flex items-center justify-between py-1 text-sm">
+          <span className="text-gray-500">Origin</span>
+          <select
+            className="w-40 border rounded px-2 py-1 text-sm"
+            value={selected.style?.transformOrigin ?? 'TL'}
+            onChange={(e) =>
+              updateNodeStyle(selected.id, {
+                transformOrigin: e.target.value as any,
+              })
+            }
+          >
+            {['TL', 'TC', 'TR', 'CL', 'C', 'CR', 'BL', 'BC', 'BR'].map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">Style</div>
-        <ColorInput label="Fill" value={typeof selected.style?.fill === 'string' ? selected.style?.fill : ''} onChange={(v) => updateNodeStyle(selected.id, { fill: v })} />
+        <GradientEditor
+          value={typeof selected.style?.fill === 'string' ? selected.style?.fill : undefined}
+          onChange={(v) => updateNodeStyle(selected.id, { fill: v })}
+        />
         <ColorInput label="Stroke" value={selected.style?.stroke} onChange={(v) => updateNodeStyle(selected.id, { stroke: v })} />
         <NumberInput label="Stroke W" value={selected.style?.strokeWidth ?? 0} onChange={(v) => updateNodeStyle(selected.id, { strokeWidth: v })} />
         <div className="flex items-center justify-between py-1 text-sm">
@@ -213,10 +419,10 @@ export default function RightPanel() {
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-gray-500">Shadows</span>
             <button className="border rounded px-1 text-xs" onClick={() => pushShadow(selected.id)}>
-              + Add
+              + Add Shadow
             </button>
           </div>
-          {(selected.style?.shadows ?? []).map((sh, i) => (
+          {(selected.style?.shadows ?? []).map((sh, i, arr) => (
             <div key={i} className="flex items-center space-x-1">
               <input
                 type="number"
@@ -248,9 +454,28 @@ export default function RightPanel() {
                 value={sh.color}
                 onChange={(e) => updateShadow(i, { color: e.target.value })}
               />
-              <button className="border rounded px-1 text-xs" onClick={() => removeShadowAt(selected.id, i)}>
-                -
-              </button>
+              <div className="flex items-center space-x-1">
+                <button
+                  className="border rounded px-1 text-xs"
+                  disabled={i === 0}
+                  onClick={() => moveShadow(selected.id, i, i - 1)}
+                >
+                  ↑
+                </button>
+                <button
+                  className="border rounded px-1 text-xs"
+                  disabled={i === arr.length - 1}
+                  onClick={() => moveShadow(selected.id, i, i + 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  className="border rounded px-1 text-xs"
+                  onClick={() => removeShadowAt(selected.id, i)}
+                >
+                  -
+                </button>
+              </div>
             </div>
           ))}
         </div>

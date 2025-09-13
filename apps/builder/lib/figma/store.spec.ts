@@ -34,4 +34,17 @@ describe('shadow helpers', () => {
     node = useFigmaStore.getState().doc.pages[0].root.children[0]
     expect(node.style.shadows.length).toBe(0)
   })
+
+  it('reorders shadows', () => {
+    const id = 't1'
+    useFigmaStore.getState().updateNodeStyle(id, {
+      shadows: [
+        { x: 1, y: 1, blur: 2, spread: 0, color: '#111' },
+        { x: 2, y: 2, blur: 4, spread: 0, color: '#222' },
+      ],
+    })
+    useFigmaStore.getState().moveShadow(id, 0, 1)
+    const node: any = useFigmaStore.getState().doc.pages[0].root.children[0]
+    expect(node.style.shadows[0].color).toBe('#222')
+  })
 })

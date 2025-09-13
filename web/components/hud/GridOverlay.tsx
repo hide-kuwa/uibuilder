@@ -7,8 +7,10 @@ export function GridOverlay() {
   const zoom = useHudStore((s) => s.zoom)
   if (!show) return null
 
-  const base = 8 * zoom
-  const fine = Math.max(1, base)
+  // 基本ピッチ（8px）にズームを掛ける
+  const minor = Math.max(1, 8 * zoom)
+  // メジャーはマイナーの 5 倍間隔
+  const major = minor * 5
 
   return (
     <div
@@ -16,9 +18,16 @@ export function GridOverlay() {
       style={{
         backgroundImage: `
           linear-gradient(0deg, rgba(148,163,184,0.12) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px)
+          linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(148,163,184,0.3) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148,163,184,0.3) 1px, transparent 1px)
         `,
-        backgroundSize: `${fine}px ${fine}px`,
+        backgroundSize: `
+          ${minor}px ${minor}px,
+          ${minor}px ${minor}px,
+          ${major}px ${major}px,
+          ${major}px ${major}px
+        `,
       }}
     />
   )
