@@ -20,7 +20,7 @@ export function InstanceView({ inst, children }: { inst: any; children: React.Re
   return <div onClick={onClick}>{children}</div>
 }
 
-export function NodeRenderer({ node }: { node: ComponentNode }) {
+function NodeRendererBase({ node }: { node: ComponentNode }) {
   const { selectComponent } = useEditorActions()
   const { setRect } = useRects()
   const ref = React.useRef<HTMLDivElement>(null)
@@ -78,4 +78,7 @@ export function NodeRenderer({ node }: { node: ComponentNode }) {
   )
 }
 
+const NodeRenderer = React.memo(NodeRendererBase, (a, b) => a.node === b.node)
+
+export { NodeRenderer }
 export default NodeRenderer
