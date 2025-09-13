@@ -86,6 +86,7 @@ export default function RightPanel() {
   const updateNodeStyle = useFigmaStore((s) => s.updateNodeStyle)
   const pushShadow = useFigmaStore((s) => s.pushShadow)
   const removeShadowAt = useFigmaStore((s) => s.removeShadowAt)
+  const moveShadow = useFigmaStore((s) => s.moveShadow)
   const setNodeMotion = useFigmaStore((s) => s.setNodeMotion)
 
   const [linkedRadius, setLinkedRadius] = useState(true)
@@ -119,7 +120,14 @@ export default function RightPanel() {
 
   const updateShadow = (idx: number, patch: Partial<Shadow>) => {
     const shadows = selected.style?.shadows ? [...selected.style.shadows] : []
-    const base = shadows[idx] || { x: 0, y: 0, blur: 0, spread: 0, color: '#000000' }
+    const base =
+      shadows[idx] || {
+        x: 0,
+        y: 4,
+        blur: 12,
+        spread: 0,
+        color: 'rgba(0,0,0,0.1)',
+      }
     shadows[idx] = { ...base, ...patch }
     updateNodeStyle(selected.id, { shadows })
   }
@@ -199,10 +207,10 @@ export default function RightPanel() {
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-gray-500">Shadows</span>
             <button className="border rounded px-1 text-xs" onClick={() => pushShadow(selected.id)}>
-              + Add
+              + Add Shadow
             </button>
           </div>
-          {(selected.style?.shadows ?? []).map((sh, i) => (
+          {(selected.style?.shadows ?? []).map((sh, i, arr) => (
             <div key={i} className="flex items-center space-x-1">
               <input
                 type="number"
@@ -234,9 +242,28 @@ export default function RightPanel() {
                 value={sh.color}
                 onChange={(e) => updateShadow(i, { color: e.target.value })}
               />
-              <button className="border rounded px-1 text-xs" onClick={() => removeShadowAt(selected.id, i)}>
-                -
-              </button>
+              <div className="flex items-center space-x-1">
+                <button
+                  className="border rounded px-1 text-xs"
+                  disabled={i === 0}
+                  onClick={() => moveShadow(selected.id, i, i - 1)}
+                >
+                  ↑
+                </button>
+                <button
+                  className="border rounded px-1 text-xs"
+                  disabled={i === arr.length - 1}
+                  onClick={() => moveShadow(selected.id, i, i + 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  className="border rounded px-1 text-xs"
+                  onClick={() => removeShadowAt(selected.id, i)}
+                >
+                  -
+                </button>
+              </div>
             </div>
           ))}
         </div>
