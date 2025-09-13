@@ -10,6 +10,14 @@ const en: Dict = {
   styleTools: 'Style tools',
   rightPanel: 'Right panel',
   language: 'Language',
+  add: 'Add',
+  apply: 'Apply',
+  remove: 'Remove',
+  duplicate: 'Duplicate',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  inset: 'Inset',
+  color: 'Color',
 }
 
 const ja: Dict = {
@@ -22,6 +30,14 @@ const ja: Dict = {
   styleTools: 'スタイルツール',
   rightPanel: '右ペイン',
   language: '言語',
+  add: '追加',
+  apply: '適用',
+  remove: '削除',
+  duplicate: '複製',
+  moveUp: '上へ',
+  moveDown: '下へ',
+  inset: 'インセット',
+  color: '色',
 }
 
 const KEY = 'i18n:locale'
@@ -46,4 +62,3 @@ export function t(k: keyof typeof en): string {
 }
 
 export const messages = { en, ja }
-

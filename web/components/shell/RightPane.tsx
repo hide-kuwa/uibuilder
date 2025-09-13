@@ -6,6 +6,7 @@ import ExportImportButtons from '@/components/actions/ExportImportButtons'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
 import { useRovingFocus } from '@/hooks/useRovingFocus'
 import { t } from '@/lib/i18n/i18n'
+import ShadowsPanel from '@/components/panels/ShadowsPanel'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
@@ -14,9 +15,34 @@ interface Section {
   content: JSX.Element;
 }
 
+function getInitialShadows(): any[] {
+  try {
+    // @ts-expect-error runtime provider from SelectionCssBridge
+    const provider = (window as any).__selectionCssProvider as undefined | (() => { shadows?: any[] }[])
+    const styles = provider?.() || []
+    const list = styles.map(s => s.shadows).filter(Boolean) as any[]
+    if (!list.length) return []
+    const first = JSON.stringify(list[0])
+    if (list.every(l => JSON.stringify(l) === first)) return list[0]
+    return [] // mixed
+  } catch { return [] }
+}
+
 const SECTIONS: Section[] = [
   { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
-  { id: 'style', title: 'Style', content: <p>Style content</p> },
+  { id: 'style', title: 'Style', content: (
+    <div className="space-y-3">
+      <ShadowsPanel
+        initial={getInitialShadows()}
+        onApply={(shadows)=>{
+          try {
+            // @ts-expect-error runtime
+            (window as any).__mut?.applyStyle?.({ shadows })
+          } catch {}
+        }}
+      />
+    </div>
+  ) },
   { id: 'code', title: 'Code', content: <p>Code content</p> },
 ];
 
