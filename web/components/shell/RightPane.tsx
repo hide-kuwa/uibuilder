@@ -1,10 +1,10 @@
 'use client';
 import { RIGHT_PANE_DEFAULT_WIDTH } from '@/lib/layout/constants';
-import { loadLayout, saveLayout } from '@/lib/layout/persist';
 import { useEffect, useRef, useState } from 'react';
 import CopyCssButton from '@/components/actions/CopyCssButton'
 import ExportImportButtons from '@/components/actions/ExportImportButtons'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
+import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
   id: string;
@@ -19,8 +19,7 @@ const SECTIONS: Section[] = [
 ];
 
 export default function RightPane() {
-  const persisted = loadLayout().rightSections || {};
-  const [open, setOpen] = useState<Record<string, boolean>>({ ...persisted });
+  const [open, setOpen] = useLocalStorageState<Record<string, boolean>>('rp:sections', {})
   const onCopied = () => {
     try {
       // shadcn/ui style toast if present
@@ -38,9 +37,7 @@ export default function RightPane() {
     try { console.info('[Copy CSS] copied') } catch {}
   }
 
-  useEffect(() => {
-    saveLayout({ rightSections: open });
-  }, [open]);
+  useEffect(() => { /* persisted by hook */ }, [open])
 
   return (
     <ErrorBoundary>
