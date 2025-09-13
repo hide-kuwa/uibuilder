@@ -5,47 +5,45 @@ export type Constraints = {
   vertical: 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE'
 }
 
-export type Style = {
-  fill?: TokenRef
-  text?: TokenRef
-  radius?: number
-  opacity?: number
+export type GradientFill = {
+  type: 'linear' | 'radial'
+  stops: { offset: number; color: string }[]
+  angle?: number
 }
 
-// --- Motion types (v0 stub) ---
-export type MotionRef = { $motion: string }
-export type MotionInline = {
-  engine?: 'framer' | 'anime'
-  preset?:
-    | 'fadeIn'
-    | 'fadeOut'
-    | 'slideInUp'
-    | 'slideInDown'
-    | 'slideInLeft'
-    | 'slideInRight'
-    | 'scaleIn'
-    | 'pop'
-    | 'flipY'
-    | 'staggerChildren'
-  trigger?:
-    | 'appear'
-    | 'enter'
-    | 'exit'
-    | 'hover'
-    | 'press'
-    | 'focus'
-    | 'loop'
-    | 'scroll'
-  options?: {
-    duration?: number | { $token: string }
-    delay?: number | { $token: string }
-    easeToken?: { $token: string }
-    distance?: number | { $token: string }
-    direction?: 'up' | 'down' | 'left' | 'right'
-    repeat?: number | 'infinite'
-    staggerStep?: number | { $token: string }
-    disabledOnReducedMotion?: boolean
-  }
+export type Shadow = { x: number; y: number; blur: number; spread: number; color: string }
+
+export type CornerRadius = number | { tl: number; tr: number; br: number; bl: number }
+
+export type NodeStyle = {
+  fill?: string | GradientFill
+  stroke?: string
+  strokeWidth?: number
+  radius?: CornerRadius
+  opacity?: number
+  shadows?: Shadow[]
+  mixBlendMode?: React.CSSProperties['mixBlendMode']
+  filter?: string
+  backdropFilter?: string
+  rotateDeg?: number
+  scaleX?: number
+  scaleY?: number
+  skewXDeg?: number
+  skewYDeg?: number
+  backgroundImage?: string
+  backgroundSize?: string
+  backgroundPosition?: string
+}
+
+export type TransitionDef = {
+  property: string
+  durationMs: number
+  easing?: string
+  delayMs?: number
+}
+
+export type NodeMotion = {
+  transition?: TransitionDef[]
 }
 
 export type NodeBase = {
@@ -66,8 +64,8 @@ export type NodeBase = {
   height: number
   rotation?: number
   constraints?: Constraints
-  style?: Style
-  motion?: MotionRef | MotionInline
+  style?: NodeStyle
+  motion?: NodeMotion
 }
 
 export type Stack = NodeBase & {

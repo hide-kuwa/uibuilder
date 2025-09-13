@@ -1,7 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import { useFigmaStore } from '../../lib/figma/store'
-import type { MotionInline } from '../../lib/figma/model'
+import type { NodeMotion } from '../../lib/figma/model'
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -16,7 +16,7 @@ export default function MotionPanel() {
   const n = useFigmaStore((s) => s.selectedNode)
   const setNodeMotion = useFigmaStore((s) => s.setNodeMotion)
 
-  const motion = (n as any)?.motion as MotionInline | undefined
+  const motion = (n as any)?.motion as NodeMotion | undefined
   const preset = motion?.preset ?? 'fadeIn'
   const trigger = motion?.trigger ?? 'appear'
   const duration = typeof motion?.options?.duration === 'number' ? motion?.options?.duration : undefined
