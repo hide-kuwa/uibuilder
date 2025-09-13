@@ -17,6 +17,7 @@ function NodeBox({ node }: { node: Node }) {
   const style: React.CSSProperties = useMemo(() => {
     const s = node.style ?? {}
     const bg = (() => {
+      if (node.type === 'TEXT') return undefined
       if (!s.fill) return undefined
       if (typeof s.fill === 'string') return s.fill
       const stops = s.fill.stops
