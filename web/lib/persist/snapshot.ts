@@ -25,8 +25,32 @@ class SnapshotDB extends Dexie {
 
 const db = new SnapshotDB();
 
-export async function saveLatestSnapshot(doc: SnapshotDoc): Promise<number> {
-  const ts = Date.now();
+let staged: { doc: SnapshotDoc; ts: number } | null = null;
+let flushHandle: any = null;
+const IDLE_TIMEOUT = 1000;
+
+function scheduleFlush() {
+  if (flushHandle != null) {
+    try {
+      if (typeof (globalThis as any).cancelIdleCallback === "function") {
+        (globalThis as any).cancelIdleCallback(flushHandle);
+      } else {
+        clearTimeout(flushHandle);
+      }
+    } catch {}
+  }
+  const cb = () => {
+    flushHandle = null;
+    flushStagedSnapshot().catch(() => {});
+  };
+  if (typeof (globalThis as any).requestIdleCallback === "function") {
+    flushHandle = (globalThis as any).requestIdleCallback(cb, { timeout: IDLE_TIMEOUT });
+  } else {
+    flushHandle = setTimeout(cb, IDLE_TIMEOUT);
+  }
+}
+
+async function commitSnapshot(doc: SnapshotDoc, ts: number) {
   const payload = { v: 1, ts, doc };
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
   const compressed = await tryGzip(bytes);
@@ -44,7 +68,38 @@ export async function saveLatestSnapshot(doc: SnapshotDoc): Promise<number> {
   try {
     localStorage.setItem("ui.snapshot.latestTs", String(ts));
   } catch {}
+}
+
+export async function flushStagedSnapshot(): Promise<void> {
+  if (flushHandle != null) {
+    try {
+      if (typeof (globalThis as any).cancelIdleCallback === "function") {
+        (globalThis as any).cancelIdleCallback(flushHandle);
+      } else {
+        clearTimeout(flushHandle);
+      }
+    } catch {}
+    flushHandle = null;
+  }
+  if (!staged) return;
+  const { doc, ts } = staged;
+  staged = null;
+  await commitSnapshot(doc, ts);
+}
+
+export async function saveLatestSnapshot(doc: SnapshotDoc): Promise<number> {
+  const ts = Date.now();
+  staged = { doc, ts };
+  scheduleFlush();
   return ts;
+}
+
+if (typeof window !== "undefined") {
+  const onHide = () => {
+    flushStagedSnapshot().catch(() => {});
+  };
+  window.addEventListener("pagehide", onHide);
+  window.addEventListener("beforeunload", onHide);
 }
 
 export async function loadLatestSnapshot(): Promise<
