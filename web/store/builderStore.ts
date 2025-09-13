@@ -124,9 +124,12 @@ type BuilderActions = {
   rename: (id: string, name: string) => void;
   group: (ids: string[], opts?: { name?: string }) => string;
   ungroup: (id: string) => void;
+  duplicate: (ids?: string[]) => void;
   deleteSelected: () => void;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
+  bringForward: (id: string) => void;
+  sendBackward: (id: string) => void;
   nudge: (dx: number, dy: number) => void;
   setElements: (els: Elm[]) => void;
   serialize: () => string;
@@ -774,6 +777,54 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
         });
       },
 
+      duplicate(ids) {
+        apply((draft: BuilderState) => {
+          const targets = ids ?? draft.selectedIds;
+          if (!targets.length) return;
+          const newIds: string[] = [];
+          const cloneRec = (el: Elm, parentId: string | null, acc: Elm[]): Elm => {
+            const cloned: Elm = {
+              ...el,
+              id: newId("n"),
+              x: el.x + 10,
+              y: el.y + 10,
+              parentId,
+              children: el.children ? [] : undefined,
+            };
+            acc.push(cloned);
+            el.children?.forEach((cid) => {
+              const child = draft.elements.find((e) => e.id === cid);
+              if (child) {
+                const c = cloneRec(child, cloned.id, acc);
+                cloned.children!.push(c.id);
+              }
+            });
+            return cloned;
+          };
+          targets.forEach((id) => {
+            const src = draft.elements.find((e) => e.id === id);
+            if (!src) return;
+            const clones: Elm[] = [];
+            const rootClone = cloneRec(src, src.parentId ?? null, clones);
+            const insertIdx = draft.elements.findIndex((e) => e.id === id);
+            draft.elements.splice(insertIdx + 1, 0, ...clones);
+            if (src.parentId) {
+              const parent = draft.elements.find((e) => e.id === src.parentId);
+              if (parent && parent.children) {
+                const ci = parent.children.indexOf(id);
+                if (ci >= 0) parent.children.splice(ci + 1, 0, rootClone.id);
+              }
+            } else {
+              const ti = draft.tree.findIndex((e) => e.id === id);
+              draft.tree.splice(ti + 1, 0, rootClone);
+            }
+            newIds.push(rootClone.id);
+          });
+          draft.selectedIds = newIds;
+          draft.selectedId = newIds[newIds.length - 1] ?? null;
+        });
+      },
+
       deleteSelected() {
         const id = get().selectedId;
         if (!id) return;
@@ -799,6 +850,78 @@ export const useBuilderStore = create<BuilderState & BuilderActions>(
           if (i < 0) return;
           const [e] = draft.elements.splice(i, 1);
           draft.elements.unshift(e);
+        });
+      },
+
+      bringForward(id) {
+        apply((draft: BuilderState) => {
+          const idx = draft.elements.findIndex((e) => e.id === id);
+          if (idx < 0) return;
+          const el = draft.elements[idx];
+          const parentId = el.parentId ?? null;
+          for (let i = idx + 1; i < draft.elements.length; i++) {
+            const nxt = draft.elements[i];
+            if ((nxt.parentId ?? null) === parentId) {
+              draft.elements[idx] = nxt;
+              draft.elements[i] = el;
+              if (parentId) {
+                const p = draft.elements.find((e) => e.id === parentId);
+                if (p && p.children) {
+                  const ci = p.children.indexOf(id);
+                  const ni = p.children.indexOf(nxt.id);
+                  if (ci >= 0 && ni >= 0) {
+                    p.children[ci] = nxt.id;
+                    p.children[ni] = id;
+                  }
+                }
+              } else {
+                const ci = draft.tree.findIndex((e) => e.id === id);
+                const ni = draft.tree.findIndex((e) => e.id === nxt.id);
+                if (ci >= 0 && ni >= 0) {
+                  const tmp = draft.tree[ci];
+                  draft.tree[ci] = draft.tree[ni];
+                  draft.tree[ni] = tmp;
+                }
+              }
+              break;
+            }
+          }
+        });
+      },
+
+      sendBackward(id) {
+        apply((draft: BuilderState) => {
+          const idx = draft.elements.findIndex((e) => e.id === id);
+          if (idx < 0) return;
+          const el = draft.elements[idx];
+          const parentId = el.parentId ?? null;
+          for (let i = idx - 1; i >= 0; i--) {
+            const prev = draft.elements[i];
+            if ((prev.parentId ?? null) === parentId) {
+              draft.elements[idx] = prev;
+              draft.elements[i] = el;
+              if (parentId) {
+                const p = draft.elements.find((e) => e.id === parentId);
+                if (p && p.children) {
+                  const ci = p.children.indexOf(id);
+                  const pi = p.children.indexOf(prev.id);
+                  if (ci >= 0 && pi >= 0) {
+                    p.children[ci] = prev.id;
+                    p.children[pi] = id;
+                  }
+                }
+              } else {
+                const ci = draft.tree.findIndex((e) => e.id === id);
+                const pi = draft.tree.findIndex((e) => e.id === prev.id);
+                if (ci >= 0 && pi >= 0) {
+                  const tmp = draft.tree[ci];
+                  draft.tree[ci] = draft.tree[pi];
+                  draft.tree[pi] = tmp;
+                }
+              }
+              break;
+            }
+          }
         });
       },
 
