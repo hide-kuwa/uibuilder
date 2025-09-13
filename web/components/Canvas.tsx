@@ -10,7 +10,7 @@ import { Rulers } from './Rulers'
 import { RectsProvider } from './canvas/RectsStore'
 import SmartGuidesOverlay from './canvas/SmartGuidesOverlay'
 import { GuidesOverlay } from './overlays/GuidesOverlay'
-import type { Guide } from './canvas/snap'
+import type { Guide, Measure } from './canvas/snap'
 import { OutlineOverlay } from './overlays/OutlineOverlay'
 import { GridToolbar } from '@/components/GridToolbar'
 import { CanvasRoot } from '@/components/CanvasRoot'
@@ -20,12 +20,13 @@ import { useUIStore } from '@/store/uiStore'
 export default function Canvas() {
   const { tree } = useEditorState()
   const [guides, setGuides] = useState<Guide[]>([])
+  const [measures, setMeasures] = useState<Measure[]>([])
   const canvasRef = useRef<HTMLDivElement>(null)
 
   return (
     <ViewportProvider>
       <RectsProvider>
-        <CanvasInner tree={tree} guides={guides} setGuides={setGuides} canvasRef={canvasRef} />
+        <CanvasInner tree={tree} guides={guides} measures={measures} setGuides={setGuides} setMeasures={setMeasures} canvasRef={canvasRef} />
       </RectsProvider>
     </ViewportProvider>
   )
@@ -34,12 +35,16 @@ export default function Canvas() {
 function CanvasInner({
   tree,
   guides,
+  measures,
   setGuides,
+  setMeasures,
   canvasRef,
 }: {
   tree: ComponentNode[]
   guides: Guide[]
+  measures: Measure[]
   setGuides: (g: Guide[]) => void
+  setMeasures: (m: Measure[]) => void
   canvasRef: React.RefObject<HTMLDivElement>
 }) {
   const { vp } = useViewport()
@@ -51,7 +56,7 @@ function CanvasInner({
           {tree.map((n) => (
             <NodeRenderer key={n.id} node={n} />
           ))}
-          <SelectionOverlay setGuides={setGuides} />
+          <SelectionOverlay setGuides={setGuides} setMeasures={setMeasures} />
           <OutlineOverlay canvasRef={canvasRef} />
         </div>
       </Viewport>
@@ -63,7 +68,7 @@ function CanvasInner({
       />
       {showRulers && <Rulers width={2000} height={2000} canvasRef={canvasRef} />}
       <HUDContainer />
-      <SmartGuidesOverlay guides={guides} />
+      <SmartGuidesOverlay guides={guides} measures={measures} />
       <GuidesOverlay width={2000} height={2000} canvasRef={canvasRef} />
       <div className="absolute top-2 left-2 z-50">
         <GridToolbar />

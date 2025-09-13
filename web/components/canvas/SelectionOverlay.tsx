@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useEditorState, useEditorActions } from '../store'
 import { useRects } from './RectsStore'
-import { getSmartSnap, Guide } from './snap'
+import { getSmartSnap, Guide, Measure } from './snap'
 import { useGridStore } from '@/store/gridStore'
 import { useEditorUIStore } from '@/store/editorUIStore'
 
@@ -18,7 +18,13 @@ function findNode(nodes:any[], id:string):any|null{
   return null
 }
 
-export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>void}) {
+export default function SelectionOverlay({
+  setGuides,
+  setMeasures,
+}: {
+  setGuides: (g: Guide[]) => void
+  setMeasures: (m: Measure[]) => void
+}) {
   const { selectedComponentId, tree } = useEditorState()
   const { setProp } = useEditorActions() as any
   const { rects } = useRects()
@@ -84,9 +90,10 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
     if(drag && selectedComponentId && rect){
       let left = ev.clientX - drag.dx - (containerRect?.left||0)
       let top  = ev.clientY - drag.dy - (containerRect?.top||0)
-      const {dx,dy,guides} = getSmartSnap({x:left,y:top,w:rect.w,h:rect.h}, siblings)
+      const {dx,dy,guides,measures} = getSmartSnap({x:left,y:top,w:rect.w,h:rect.h}, siblings)
       left += dx; top += dy
       setGuides(guides)
+      setMeasures(measures)
       setProp(selectedComponentId, 'style', { ...style, position:'absolute', left, top })
     } else if(resize && selectedComponentId){
       let {startX,startY,startW,startH,startLeft,startTop,dir}=resize
@@ -103,8 +110,8 @@ export default function SelectionOverlay({setGuides}:{setGuides:(g:Guide[])=>voi
 
   const stopAll = useCallback(()=>{
     if (selectedComponentId) end(selectedComponentId)
-    setDrag(null); setResize(null); setGuides([])
-  },[setGuides, end, selectedComponentId])
+    setDrag(null); setResize(null); setGuides([]); setMeasures([])
+  },[setGuides, setMeasures, end, selectedComponentId])
 
   useEffect(()=>{
     if(drag||resize){
