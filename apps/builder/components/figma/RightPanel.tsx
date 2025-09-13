@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import { useFigmaStore } from '../../lib/figma/store'
 import type { Shadow, GradientFill } from '../../lib/figma/model'
+import { buildCss } from '../../lib/figma/css'
+import toast from '../../lib/toast'
 import { alignSelected, distributeSelected } from '../../lib/figma/alignActions'
 function NumberInput({
   label,
@@ -281,16 +283,28 @@ export default function RightPanel() {
     updateNodeStyle(selected.id, { shadows })
   }
 
+  const copyCss = async () => {
+    try {
+      await navigator.clipboard.writeText(buildCss(selected))
+      toast.success('Copied CSS')
+    } catch {
+      toast.error('Failed to copy CSS')
+    }
+  }
+
   return (
     <div className="p-4 space-y-4">
       <div>
         <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">
           Selection
         </div>
-        <div className="text-sm font-medium text-gray-800">
-          {selected.name || selected.type}{' '}
-          <span className="text-gray-400">({selected.type})</span>
-        </div>
+      <div className="text-sm font-medium text-gray-800">
+        {selected.name || selected.type}{' '}
+        <span className="text-gray-400">({selected.type})</span>
+      </div>
+      <button className="mt-2 border rounded px-1 text-xs" onClick={copyCss}>
+        Copy CSS
+      </button>
       </div>
       <div className="space-y-1">
         <div className="text-xs uppercase tracking-wider text-gray-400">
