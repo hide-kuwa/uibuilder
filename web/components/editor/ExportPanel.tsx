@@ -4,6 +4,7 @@ import DesignTokensCard from '@/components/editor/export/DesignTokensCard'
 import AssetMapCard from '@/components/editor/export/AssetMapCard'
 import DiffExportCard from '@/components/editor/export/DiffExportCard'
 import ReactCodeCard from '@/components/editor/export/ReactCodeCard'
+import PngExportCard from '@/components/editor/export/PngExportCard'
 
 export default function ExportPanel() {
   return (
@@ -12,6 +13,7 @@ export default function ExportPanel() {
       <DesignTokensCard />
       <AssetMapCard />
       <DiffExportCard />
+      <PngExportCard />
       <ReactCodeCard />
     </div>
   )

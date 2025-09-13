@@ -21,6 +21,7 @@ export type NodeStyle = {
   strokeWidth?: number
   radius?: CornerRadius
   opacity?: number
+  shadow?: Shadow | string
   shadows?: Shadow[]
   mixBlendMode?: React.CSSProperties['mixBlendMode']
   filter?: string

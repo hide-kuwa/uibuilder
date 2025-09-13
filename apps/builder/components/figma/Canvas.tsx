@@ -31,13 +31,23 @@ function NodeBox({ node }: { node: Node }) {
       if (typeof s.radius === 'number') return s.radius
       return `${s.radius.tl}px ${s.radius.tr}px ${s.radius.br}px ${s.radius.bl}px`
     })()
-    const boxShadow = s.shadows
-      ? s.shadows
-          .map((sh) =>
-            `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
+    const boxShadow = (() => {
+      if (s.shadows) {
+        return s.shadows
+          .map(
+            (sh) =>
+              `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
           )
           .join(', ')
-      : undefined
+}
+      const sh: any = s.shadow
+      if (sh) {
+        return typeof sh === 'string'
+          ? sh
+          : `${sh.x}px ${sh.y}px ${sh.blur}px ${sh.spread}px ${sh.color}`
+      }
+      return undefined
+    })()
     const transform = [
       `translate(${node.x}px, ${node.y}px)`,
       `rotate(${s.rotateDeg ?? 0}deg)`,
