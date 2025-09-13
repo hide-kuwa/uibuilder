@@ -55,6 +55,7 @@ type State = {
   stopEditingText: () => void
   setTextContent: (id: string, value: string) => void
   updateNode: (id: string, patch: RectPatch) => void
+  updateNodeStyle: (id: string, patch: Partial<NonNullable<Node['style']>>) => void
   beginTransform: (id: string, handle?: string) => void
   setGhostRect: (rect: { id: string; x: number; y: number; width: number; height: number }) => void
   commitGhost: () => void
@@ -64,7 +65,7 @@ type State = {
   duplicateNode: (id: string) => string | null
   wrapInStack: (direction: 'H'|'V') => void
   setStackProps: (id: string, patch: Partial<{direction:'H'|'V';spacing:number;padding:{t:number;r:number;b:number;l:number};align:'START'|'CENTER'|'END'|'SPACE_BETWEEN'}>) => void
-  setNodeMotion: (id: string, patch: Partial<MotionInline>) => void
+  setNodeMotion: (id: string, patch: Partial<MotionInline & { durationMs?: number; delayMs?: number; easing?: string }>) => void
   undo: () => void
   redo: () => void
 }
@@ -101,6 +102,14 @@ export const useFigmaStore = create<State>((set, get) => ({
       if (typeof patch.y === 'number') (node as any).y = patch.y
       if (typeof patch.width === 'number') (node as any).width = Math.max(1, patch.width)
       if (typeof patch.height === 'number') (node as any).height = Math.max(1, patch.height)
+    }
+    return { doc: { ...s.doc } }
+  }),
+  updateNodeStyle: (id, patch) => set((s) => {
+    const page = s.doc.pages[0]
+    const node = findNode(page.root, id) as any
+    if (node) {
+      node.style = { ...(node.style ?? {}), ...patch }
     }
     return { doc: { ...s.doc } }
   }),

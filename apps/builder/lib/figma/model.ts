@@ -5,7 +5,17 @@ export type Constraints = {
   vertical: 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE'
 }
 
-export type Style = { fill?: TokenRef; text?: TokenRef; radius?: number; opacity?: number }
+export type Style = {
+  // Existing tokens/props
+  fill?: TokenRef | string
+  text?: TokenRef
+  radius?: number
+  opacity?: number
+  // Extended optional style fields (safe additive)
+  stroke?: string
+  strokeWidth?: number
+  shadow?: { x: number; y: number; blur: number; spread: number; color: string }
+}
 
 export type MotionRef = { $motion: string }
 export type MotionInline = {
@@ -36,7 +46,8 @@ export type NodeBase = {
   rotation?: number
   constraints?: Constraints
   style?: Style
-  motion?: MotionRef | MotionInline
+  // Allow simple CSS transition fields in addition to existing motion types
+  motion?: MotionRef | MotionInline | { durationMs?: number; delayMs?: number; easing?: string }
 }
 
 export type Stack = NodeBase & {

@@ -79,11 +79,42 @@ function NodeBox({ node, parentIsStack=false }: { node: Node, parentIsStack?: bo
     window.addEventListener('pointerup', onUp, { once: true })
   }
 
-  const fill = node.type === 'TEXT' ? undefined : (node.style?.fill ? '#0000000a' : '#9ca3af22')
+  // compute style props from node.style and node.motion
+  const styleFromNode: React.CSSProperties = {}
+  if (node.type !== 'TEXT') {
+    // background fill (string only)
+    const fillVal = (node as any).style?.fill
+    if (typeof fillVal === 'string' && fillVal.length) styleFromNode.background = fillVal
+    // stroke
+    if ((node as any).style?.stroke) {
+      styleFromNode.borderColor = (node as any).style?.stroke
+      styleFromNode.borderStyle = 'solid'
+      const sw = (node as any).style?.strokeWidth
+      styleFromNode.borderWidth = `${typeof sw === 'number' ? sw : 1}px`
+    }
+    // radius
+    if (typeof (node as any).style?.radius === 'number') {
+      styleFromNode.borderRadius = (node as any).style?.radius
+    }
+    // opacity
+    if (typeof (node as any).style?.opacity === 'number') {
+      const op = Math.max(0, Math.min(1, (node as any).style?.opacity))
+      styleFromNode.opacity = op
+    }
+    // shadow
+    const sh = (node as any).style?.shadow
+    if (sh && typeof sh === 'object') {
+      styleFromNode.boxShadow = `${sh.x ?? 0}px ${sh.y ?? 0}px ${sh.blur ?? 0}px ${sh.spread ?? 0}px ${sh.color ?? 'rgba(0,0,0,0.2)'}
+      `
+    }
+  }
+  // lightweight motion via CSS transitions
+  const motion: any = (node as any).motion ?? {}
+  styleFromNode.transition = `all ${motion.durationMs ?? 160}ms ${motion.easing ?? 'ease-out'} ${motion.delayMs ?? 0}ms`
 
   return (
     <div onClick={onClick} onDoubleClick={onDoubleClick} onPointerDown={onPointerDownMove}
-      style={{ ...style, background: fill }}>
+      style={{ ...style, ...styleFromNode }}>
       {node.type === 'TEXT' && (
         <>
           <div className="select-none cursor-text p-1 text-sm">

@@ -16,9 +16,45 @@ function NumberInput({ label, value, onChange }:{
   )
 }
 
+function ColorInput({ label, value, onChange }:{
+  label: string; value?: string; onChange:(v:string)=>void
+}) {
+  return (
+    <label className="flex items-center justify-between py-1 text-sm">
+      <span className="text-gray-500">{label}</span>
+      <input
+        type="text"
+        placeholder="#RRGGBB / rgba()"
+        className="w-32 rounded border border-gray-200 px-2 py-1 text-right font-mono text-xs"
+        value={value ?? ''}
+        onChange={(e)=>onChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
+function Slider({ label, value, min=0, max=1, step=0.01, onChange }:{
+  label:string; value:number; min?:number; max?:number; step?:number; onChange:(n:number)=>void
+}) {
+  return (
+    <label className="flex items-center gap-2 py-1 text-sm">
+      <span className="text-gray-500">{label}</span>
+      <input
+        type="range" min={min} max={max} step={step}
+        className="flex-1"
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(e)=>onChange(Number(e.target.value))}
+      />
+      <span className="w-10 text-right tabular-nums">{Math.round((value ?? 0)*100)}</span>
+    </label>
+  )
+}
+
 export default function RightPanel() {
   const selected = useFigmaStore((s)=>s.selectedNode)
   const updateNode = useFigmaStore((s)=>s.updateNode)
+  const updateNodeStyle = useFigmaStore((s)=>s.updateNodeStyle)
+  const setNodeMotion = useFigmaStore((s)=>s.setNodeMotion)
   const wrapInStack = useFigmaStore((s)=>s.wrapInStack)
   const setStackProps = useFigmaStore((s)=>s.setStackProps)
 
@@ -100,10 +136,38 @@ export default function RightPanel() {
           </div>
         </div>
       )}
-      <div className="space-y-1 opacity-50 pointer-events-none">
-        <div className="text-xs uppercase tracking-wider text-gray-400">Style (v0 stub)</div>
-        <NumberInput label="Radius" value={selected.style?.radius ?? 0} onChange={()=>{}}/>
-        <NumberInput label="Opacity" value={selected.style?.opacity ?? 1} onChange={()=>{}}/>
+      {/* Style */}
+      <div className="space-y-1 mt-4">
+        <div className="text-xs uppercase tracking-wider text-gray-400">Style</div>
+        <ColorInput label="Fill" value={(selected as any).style?.fill as any} onChange={(v)=>updateNodeStyle(selected.id,{ fill:v })}/>
+        <ColorInput label="Stroke" value={(selected as any).style?.stroke} onChange={(v)=>updateNodeStyle(selected.id,{ stroke:v })}/>
+        <NumberInput label="Stroke W" value={(selected as any).style?.strokeWidth ?? 1} onChange={(n)=>updateNodeStyle(selected.id,{ strokeWidth:n })}/>
+        <NumberInput label="Radius" value={(selected as any).style?.radius ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ radius:n })}/>
+        <Slider label="Opacity" value={(selected as any).style?.opacity ?? 1} min={0} max={1} step={0.01}
+          onChange={(n)=>updateNodeStyle(selected.id,{ opacity:n })}/>
+        {/* Shadow */}
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput label="Shadow X" value={(selected as any).style?.shadow?.x ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ shadow:{ ...(((selected as any).style?.shadow)||{x:0,y:0,blur:0,spread:0,color:'rgba(0,0,0,.2)'}), x:n } })}/>
+          <NumberInput label="Shadow Y" value={(selected as any).style?.shadow?.y ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ shadow:{ ...(((selected as any).style?.shadow)||{x:0,y:0,blur:0,spread:0,color:'rgba(0,0,0,.2)'}), y:n } })}/>
+          <NumberInput label="Blur" value={(selected as any).style?.shadow?.blur ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ shadow:{ ...(((selected as any).style?.shadow)||{x:0,y:0,blur:0,spread:0,color:'rgba(0,0,0,.2)'}), blur:n } })}/>
+          <NumberInput label="Spread" value={(selected as any).style?.shadow?.spread ?? 0} onChange={(n)=>updateNodeStyle(selected.id,{ shadow:{ ...(((selected as any).style?.shadow)||{x:0,y:0,blur:0,spread:0,color:'rgba(0,0,0,.2)'}), spread:n } })}/>
+        </div>
+        <ColorInput label="Shadow Color" value={(selected as any).style?.shadow?.color}
+          onChange={(v)=>updateNodeStyle(selected.id,{ shadow:{ ...(((selected as any).style?.shadow)||{x:0,y:0,blur:0,spread:0,color:'rgba(0,0,0,.2)'}), color:v } })}/>
+      </div>
+
+      {/* Motion (CSS Transition) */}
+      <div className="space-y-1 mt-4">
+        <div className="text-xs uppercase tracking-wider text-gray-400">Motion</div>
+        <NumberInput label="Duration(ms)" value={(selected as any).motion?.durationMs ?? 160} onChange={(n)=>setNodeMotion(selected.id,{ durationMs:n } as any)}/>
+        <NumberInput label="Delay(ms)" value={(selected as any).motion?.delayMs ?? 0} onChange={(n)=>setNodeMotion(selected.id,{ delayMs:n } as any)}/>
+        <label className="flex items-center justify-between py-1 text-sm">
+          <span className="text-gray-500">Easing</span>
+          <input type="text" className="w-32 rounded border border-gray-200 px-2 py-1 text-right text-xs font-mono"
+            placeholder="ease|linear|ease-in-out|cubic-bezier(...)"
+            value={(selected as any).motion?.easing ?? 'ease-out'}
+            onChange={(e)=>setNodeMotion(selected.id,{ easing:e.target.value } as any)}/>
+        </label>
       </div>
 
       <MotionPanel />
