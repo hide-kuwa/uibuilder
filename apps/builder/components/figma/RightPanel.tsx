@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useFigmaStore } from '../../lib/figma/store'
 import type { Shadow } from '../../lib/figma/model'
+import { alignSelected, distributeSelected } from '../../lib/figma/alignActions'
 
 function NumberInput({
   label,
@@ -81,6 +82,7 @@ function Slider({
 }
 
 export default function RightPanel() {
+  const selectedIds = useFigmaStore((s) => s.selectedIds)
   const selected = useFigmaStore((s) => s.selectedNode)
   const updateNode = useFigmaStore((s) => s.updateNode)
   const updateNodeStyle = useFigmaStore((s) => s.updateNodeStyle)
@@ -93,11 +95,50 @@ export default function RightPanel() {
     setLinkedRadius(typeof selected?.style?.radius !== 'object')
   }, [selected?.id])
 
-  if (!selected) {
+  if (!selectedIds.length) {
     return (
       <div className="p-4 text-sm text-gray-500">
         <div className="font-semibold text-gray-700 mb-2">Properties</div>
         <p>No selection</p>
+      </div>
+    )
+  }
+
+  if (selectedIds.length > 1) {
+    const canDist = selectedIds.length >= 3
+    return (
+      <div className="p-4 space-y-2">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">Align</div>
+          <div className="flex flex-wrap gap-1">
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('left')}>L</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('center')}>HC</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('right')}>R</button>
+            <div className="w-[6px]" />
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('top')}>T</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('middle')}>VC</button>
+            <button className="border rounded px-2 h-7" onClick={() => alignSelected('bottom')}>B</button>
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">Distribute</div>
+          <div className="flex flex-wrap gap-1">
+            <button
+              className="border rounded px-2 h-7 disabled:opacity-50"
+              disabled={!canDist}
+              onClick={() => distributeSelected('horizontal')}
+            >
+              H
+            </button>
+            <button
+              className="border rounded px-2 h-7 disabled:opacity-50"
+              disabled={!canDist}
+              onClick={() => distributeSelected('vertical')}
+            >
+              V
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
