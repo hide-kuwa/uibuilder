@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import type { Gradient, GradientStop } from '@/lib/style/gradientCodec'
 import StopRow from './gradient/StopRow'
 import { selectionToCss } from '@/lib/style/selectionToCss'
-import { normalizeStops } from '@/lib/style/gradientCodec'
+import { disambiguateStops } from '@/lib/style/gradientCodec'
 
 const DEFAULT: Gradient = {
   type: 'linear', angle: 180,
@@ -55,7 +55,7 @@ export default function GradientPanel({ initial, onApply }:{
         )}
         <div className="ml-auto flex gap-2">
           <button className="btn btn-xs" onClick={addStop}>+ Add stop</button>
-          <button className="btn btn-xs" onClick={()=> { const norm = { ...g, stops: normalizeStops(g.stops) }; onApply?.(norm) }}>Apply</button>
+          <button className="btn btn-xs" onClick={()=> { const norm = { ...g, stops: disambiguateStops(g.stops) }; onApply?.(norm) }}>Apply</button>
         </div>
       </div>
 
