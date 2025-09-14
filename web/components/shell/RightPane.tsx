@@ -9,6 +9,7 @@ import { t } from '@/lib/i18n/i18n'
 import ShadowsPanel from '@/components/panels/ShadowsPanel'
 import GradientPanel from '@/components/panels/GradientPanel'
 import BulkStylePanel from '@/components/panels/BulkStylePanel'
+import ThemeGallery from '@/components/panels/ThemeGallery'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
@@ -45,6 +46,11 @@ function getInitialGradient(): any | null {
 
 const SECTIONS: Section[] = [
   { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
+  { id: 'theme', title: 'Theme', content: (
+    <div className="space-y-3">
+      <ThemeGallery />
+    </div>
+  ) },
   { id: 'style', title: 'Style', content: (
     <div className="space-y-3">
       <div className="space-y-2">
