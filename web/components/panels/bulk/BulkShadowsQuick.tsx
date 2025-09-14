@@ -1,4 +1,5 @@
 'use client'
+import { t } from '@/lib/i18n/i18n'
 type Num = number | string | { token: string; fallback?: string }
 type Shadow = { x: Num; y: Num; blur?: Num; spread?: Num; color?: string; inset?: boolean }
 
@@ -32,18 +33,17 @@ export default function BulkShadowsQuick() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Shadows quick apply">
-      <span className="min-w-28 text-sm">Shadows</span>
-      <button className="btn btn-xs" onClick={() => applyPreset('none')}>None</button>
-      <button className="btn btn-xs" onClick={() => applyPreset('soft')}>Soft</button>
-      <button className="btn btn-xs" onClick={() => applyPreset('medium')}>Medium</button>
-      <button className="btn btn-xs" onClick={() => applyPreset('strong')}>Strong</button>
-      <button className="btn btn-xs" onClick={() => applyPreset('inset')}>Inset</button>
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('shadowsQuick')}>
+      <span className="min-w-28 text-sm">{t('shadowsQuick')}</span>
+      <button className="btn btn-xs" onClick={() => applyPreset('none')} aria-label={t('none')}>{t('none')}</button>
+      <button className="btn btn-xs" onClick={() => applyPreset('soft')} aria-label={t('soft')}>{t('soft')}</button>
+      <button className="btn btn-xs" onClick={() => applyPreset('medium')} aria-label={t('medium')}>{t('medium')}</button>
+      <button className="btn btn-xs" onClick={() => applyPreset('strong')} aria-label={t('strong')}>{t('strong')}</button>
+      <button className="btn btn-xs" onClick={() => applyPreset('inset')} aria-label={t('inset')}>{t('inset')}</button>
       <div className="mx-2 h-4 w-px bg-white/20" />
-      <button className="btn btn-xs" onClick={copyFromFirst}>Copy from first</button>
-      <button className="btn btn-xs" onClick={openDetailed}>Open detailed editor</button>
-      <span className="text-xs opacity-70 ml-auto">{allSame ? '' : 'Mixed'}</span>
+      <button className="btn btn-xs" onClick={copyFromFirst} aria-label={t('copyFromFirst')}>{t('copyFromFirst')}</button>
+      <button className="btn btn-xs" onClick={openDetailed} aria-label={t('openDetailedEditor')}>{t('openDetailedEditor')}</button>
+      <span className="text-xs opacity-70 ml-auto">{allSame ? '' : t('mixed')}</span>
     </div>
   )
 }
-

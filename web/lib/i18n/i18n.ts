@@ -69,6 +69,14 @@ Object.assign(en, {
   radius: 'Radius',
   opacity: 'Opacity',
   shadows: 'Shadows',
+  shadowsQuick: 'Shadows',
+  none: 'None',
+  soft: 'Soft',
+  medium: 'Medium',
+  strong: 'Strong',
+  inset: 'Inset',
+  copyFromFirst: 'Copy from first',
+  openDetailedEditor: 'Open detailed editor',
 } as Record<string, string>)
 Object.assign(ja, {
   bulkEdit: '蜈･繧願ｴ�',
@@ -80,6 +88,14 @@ Object.assign(ja, {
   radius: '荳蟾ｮ',
   opacity: '譁�蟄�',
   shadows: '蝪�',
+  shadowsQuick: '蝪�',
+  none: '荳翫〒',
+  soft: '繧ｻ繝薙・',
+  medium: '繝｡繝・け繝�',
+  strong: '繧ｹ繧｣繝ｳ繧ｿ',
+  inset: '繧ｨ繝ｳ繧ｻ繝・ヨ',
+  copyFromFirst: '隕九○縺ｧ繧ｳ繝�繝',
+  openDetailedEditor: '蜀��繧ｨ繝ｼ繝・け繧偵せ繧ｯ繝�',
 } as Record<string, string>)
 
 export function getLocale(): 'en' | 'ja' {
