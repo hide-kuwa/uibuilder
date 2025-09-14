@@ -17,3 +17,13 @@ export function normalizeStops(stops: GradientStop[]): GradientStop[] {
   return [...stops].map(s => ({ ...s, pos: clamp01(s.pos ?? 0) })).sort((a,b)=>a.pos-b.pos)
 }
 
+export function disambiguateStops(stops: GradientStop[]): GradientStop[] {
+  const norm = normalizeStops(stops)
+  const eps = 0.0001
+  for (let i = 1; i < norm.length; i++) {
+    if (norm[i].pos <= norm[i-1].pos) {
+      norm[i] = { ...norm[i], pos: clamp01(norm[i-1].pos + eps) }
+    }
+  }
+  return norm
+}
