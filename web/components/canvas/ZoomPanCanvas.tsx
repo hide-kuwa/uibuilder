@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import { useRafWheel } from '@/hooks/useRafWheel'
 import { useRafPointerPan } from '@/hooks/useRafPointerPan'
@@ -17,6 +17,33 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
   const rootRef = ref
   const [panning, setPanning] = useState(false)
   const setCursor = (c?: string) => { const el = ref.current; if (el) el.style.cursor = c ?? '' }
+  const panningRef = useRef(false)
+  const spaceDownRef = useRef(false)
+
+  // Space 押下で grab、ドラッグ中は grabbing。入力中は無視。
+  const isEditable = (t: EventTarget | null) => {
+    if (!(t instanceof HTMLElement)) return false
+    return t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/i.test(t.tagName)
+  }
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isEditable(e.target)) return
+      if (spaceDownRef.current) return // auto-repeat対策
+      spaceDownRef.current = true
+      if (!panningRef.current) setCursor('grab')
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isEditable(e.target)) return
+      spaceDownRef.current = false
+      if (!panningRef.current) setCursor('')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [])
 
   // rAF-coalesced wheel zoom
   useRafWheel(rootRef, ({ dy, lastX, lastY }) => {
@@ -42,7 +69,11 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
     setTransform({ tx: s.tx + dx, ty: s.ty + dy })
   }, {
     isActive: (e) => e.button === 1 || (e.button === 0 && (e as any).getModifierState?.('Space')),
-    onActiveChange: (active) => { setPanning(active); setCursor(active ? 'grabbing' : '') }
+    onActiveChange: (active) => {
+      setPanning(active)
+      panningRef.current = active
+      setCursor(active ? 'grabbing' : (spaceDownRef.current ? 'grab' : ''))
+    }
   })
 
   const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
