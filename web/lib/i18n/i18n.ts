@@ -58,6 +58,30 @@ const KEY = 'i18n:locale'
 const hasWin = typeof window !== 'undefined'
 let cached = (hasWin && localStorage.getItem(KEY)) || (hasWin ? navigator.language.slice(0, 2) : 'en')
 
+// Extend dictionaries with bulk-edit labels
+Object.assign(en, {
+  bulkEdit: 'Bulk edit',
+  applyToSelection: 'Apply to selection',
+  mixed: 'Mixed',
+  fill: 'Fill',
+  stroke: 'Stroke',
+  strokeWidth: 'Stroke width',
+  radius: 'Radius',
+  opacity: 'Opacity',
+  shadows: 'Shadows',
+} as Record<string, string>)
+Object.assign(ja, {
+  bulkEdit: '蜈･繧願ｴ�',
+  applyToSelection: '遘ｻ隱槭→驕ｩ逕ｨ',
+  mixed: '豬√〒',
+  fill: '譏弱・',
+  stroke: '闃ｱ',
+  strokeWidth: '闃ｱ蜿｡',
+  radius: '荳蟾ｮ',
+  opacity: '譁�蟄�',
+  shadows: '蝪�',
+} as Record<string, string>)
+
 export function getLocale(): 'en' | 'ja' {
   return (cached === 'ja' ? 'ja' : 'en')
 }

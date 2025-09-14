@@ -8,6 +8,7 @@ import { useRovingFocus } from '@/hooks/useRovingFocus'
 import { t } from '@/lib/i18n/i18n'
 import ShadowsPanel from '@/components/panels/ShadowsPanel'
 import GradientPanel from '@/components/panels/GradientPanel'
+import BulkStylePanel from '@/components/panels/BulkStylePanel'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
@@ -46,6 +47,10 @@ const SECTIONS: Section[] = [
   { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
   { id: 'style', title: 'Style', content: (
     <div className="space-y-3">
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">{t('bulkEdit')}</h3>
+        <BulkStylePanel />
+      </div>
       <GradientPanel
         initial={getInitialGradient()}
         onApply={(g)=>{
