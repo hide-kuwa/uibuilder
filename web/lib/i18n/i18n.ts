@@ -77,6 +77,10 @@ Object.assign(en, {
   inset: 'Inset',
   copyFromFirst: 'Copy from first',
   openDetailedEditor: 'Open detailed editor',
+  theme: 'Theme',
+  themePresets: 'Theme presets',
+  apply: 'Apply',
+  preview: 'Preview',
 } as Record<string, string>)
 Object.assign(ja, {
   bulkEdit: '蜈･繧願ｴ�',
@@ -96,6 +100,10 @@ Object.assign(ja, {
   inset: '繧ｨ繝ｳ繧ｻ繝・ヨ',
   copyFromFirst: '隕九○縺ｧ繧ｳ繝�繝',
   openDetailedEditor: '蜀��繧ｨ繝ｼ繝・け繧偵せ繧ｯ繝�',
+  theme: 'テーマ',
+  themePresets: 'テーマプリセット',
+  apply: '適用',
+  preview: 'プレビュー',
 } as Record<string, string>)
 
 export function getLocale(): 'en' | 'ja' {

@@ -46,7 +46,7 @@ function getInitialGradient(): any | null {
 
 const SECTIONS: Section[] = [
   { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
-  { id: 'theme', title: 'Theme', content: (
+  { id: 'theme', title: t('theme'), content: (
     <div className="space-y-3">
       <ThemeGallery />
     </div>
