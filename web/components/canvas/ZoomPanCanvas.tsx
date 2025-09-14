@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
 import { useRafWheel } from '@/hooks/useRafWheel'
+import { useRafPointerPan } from '@/hooks/useRafPointerPan'
 
 type Props = {
   className?: string
@@ -15,7 +16,7 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
   const ref = useRef<HTMLDivElement | null>(null)
   const rootRef = ref
   const [panning, setPanning] = useState(false)
-  const panStart = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
+  const setCursor = (c?: string) => { const el = ref.current; if (el) el.style.cursor = c ?? '' }
 
   // rAF-coalesced wheel zoom
   useRafWheel(rootRef, ({ dy, lastX, lastY }) => {
@@ -35,24 +36,14 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
     setTransform({ scale: newScale, tx: nTx, ty: nTy })
   })
 
-  const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!(e.button === 1 || e.buttons === 4 || e.shiftKey || e.altKey || e.metaKey || e.ctrlKey || e.currentTarget === e.target)) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    panStart.current = { x: e.clientX, y: e.clientY, tx, ty }
-    setPanning(true)
-  }
-  const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!panning || !panStart.current) return
-    const dx = e.clientX - panStart.current.x
-    const dy = e.clientY - panStart.current.y
-    setTransform({ tx: panStart.current.tx + dx, ty: panStart.current.ty + dy })
-  }
-  const endPan = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!panning) return
-    setPanning(false)
-    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
-    panStart.current = null
-  }
+  // Space+Left or Middle button only
+  useRafPointerPan(rootRef, (dx, dy) => {
+    const s = useCanvasStore.getState()
+    setTransform({ tx: s.tx + dx, ty: s.ty + dy })
+  }, {
+    isActive: (e) => e.button === 1 || (e.button === 0 && (e as any).getModifierState?.('Space')),
+    onActiveChange: (active) => { setPanning(active); setCursor(active ? 'grabbing' : '') }
+  })
 
   const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (!hotkeys) return
@@ -67,10 +58,7 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
       className={`relative h-[calc(100vh-140px)] touch-none select-none overflow-hidden rounded-2xl border ${className ?? ''}`}
       tabIndex={0}
       // wheel handled via useRafWheel
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endPan}
-      onPointerCancel={endPan}
+      // pointer pan handled via useRafPointerPan
       onKeyDown={onKeyDown}
       aria-label="zoom-pan-canvas"
       style={{
