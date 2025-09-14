@@ -18,6 +18,13 @@ const en: Dict = {
   moveDown: 'Move down',
   inset: 'Inset',
   color: 'Color',
+  gradient: 'Gradient',
+  linear: 'Linear',
+  radial: 'Radial',
+  angle: 'Angle',
+  shape: 'Shape',
+  size: 'Size',
+  addStop: 'Add stop',
 }
 
 const ja: Dict = {
@@ -38,6 +45,13 @@ const ja: Dict = {
   moveDown: '下へ',
   inset: 'インセット',
   color: '色',
+  gradient: 'グラデーション',
+  linear: 'リニア',
+  radial: 'ラジアル',
+  angle: '角度',
+  shape: '形状',
+  size: 'サイズ',
+  addStop: '色停止を追加',
 }
 
 const KEY = 'i18n:locale'

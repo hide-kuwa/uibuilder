@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary'
 import { useRovingFocus } from '@/hooks/useRovingFocus'
 import { t } from '@/lib/i18n/i18n'
 import ShadowsPanel from '@/components/panels/ShadowsPanel'
+import GradientPanel from '@/components/panels/GradientPanel'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 
 interface Section {
@@ -28,10 +29,32 @@ function getInitialShadows(): any[] {
   } catch { return [] }
 }
 
+function getInitialGradient(): any | null {
+  try {
+    // @ts-expect-error runtime provider from SelectionCssBridge
+    const provider = (window as any).__selectionCssProvider as undefined | (() => { fill?: any }[])
+    const styles = provider?.() || []
+    const list = styles.map(s => s.fill).filter(Boolean) as any[]
+    if (!list.length) return null
+    const first = JSON.stringify(list[0])
+    if (list.every(l => JSON.stringify(l) === first)) return list[0]
+    return null
+  } catch { return null }
+}
+
 const SECTIONS: Section[] = [
   { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
   { id: 'style', title: 'Style', content: (
     <div className="space-y-3">
+      <GradientPanel
+        initial={getInitialGradient()}
+        onApply={(g)=>{
+          try {
+            // @ts-expect-error runtime
+            (window as any).__mut?.applyStyle?.({ fill: g })
+          } catch {}
+        }}
+      />
       <ShadowsPanel
         initial={getInitialShadows()}
         onApply={(shadows)=>{
