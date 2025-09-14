@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 export function useRafPointerPan(
   ref: React.RefObject<HTMLElement | null>,
   onPan: (dx: number, dy: number) => void,
+  opts?: { isActive?: (e: PointerEvent) => boolean }
 ) {
   const dragging = useRef(false)
   const last = useRef<{ x: number; y: number } | null>(null)
@@ -28,7 +29,8 @@ export function useRafPointerPan(
     }
 
     const onDown = (e: PointerEvent) => {
-      if (e.button !== 0) return
+      const active = opts?.isActive ? opts.isActive(e) : e.button === 0
+      if (!active) return
       dragging.current = true
       last.current = { x: e.clientX, y: e.clientY }
       el.setPointerCapture?.(e.pointerId)
@@ -60,4 +62,3 @@ export function useRafPointerPan(
     }
   }, [ref, onPan])
 }
-

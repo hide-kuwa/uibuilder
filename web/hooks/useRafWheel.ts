@@ -41,6 +41,10 @@ export function useRafWheel(
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      // Normalize delta across devices (pixel/line/page)
+      const line = 16
+      const dy = e.deltaMode === 1 ? e.deltaY * line : e.deltaMode === 2 ? e.deltaY * (window.innerHeight || 800) : e.deltaY
+      const dx = e.deltaMode === 1 ? e.deltaX * line : e.deltaMode === 2 ? e.deltaX * (window.innerWidth  || 1200) : e.deltaX
       const s =
         sumRef.current ??
         (sumRef.current = {
@@ -53,8 +57,8 @@ export function useRafWheel(
           altKey: e.altKey,
           metaKey: e.metaKey,
         })
-      s.dx += e.deltaX
-      s.dy += e.deltaY
+      s.dx += dx
+      s.dy += dy
       s.lastX = e.clientX
       s.lastY = e.clientY
       s.ctrlKey = e.ctrlKey
@@ -68,4 +72,3 @@ export function useRafWheel(
     return () => el.removeEventListener('wheel', onWheel as any)
   }, [ref, onFrame])
 }
-
