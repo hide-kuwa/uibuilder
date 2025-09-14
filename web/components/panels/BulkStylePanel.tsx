@@ -1,5 +1,6 @@
 'use client'
 import BulkField from './bulk/BulkField'
+import BulkShadowsQuick from './bulk/BulkShadowsQuick'
 import { pickMixed } from '@/lib/style/detectMixed'
 import { t } from '@/lib/i18n/i18n'
 
@@ -42,6 +43,7 @@ export default function BulkStylePanel() {
       <BulkField label={t('strokeWidth')} mixed={mStrokeWidth} onChange={set('strokeWidth')} mode="px" />
       <BulkField label={t('radius')} mixed={mRadius} onChange={set('radius')} mode="px" />
       <BulkField label={t('opacity')} mixed={mOpacity} onChange={set('opacity')} mode="px" />
+      <BulkShadowsQuick />
       <div className="flex justify-end">
         <button className="btn" onClick={applyAll} aria-label={t('applyToSelection')}>
           {t('applyToSelection')}
@@ -50,4 +52,3 @@ export default function BulkStylePanel() {
     </div>
   )
 }
-
