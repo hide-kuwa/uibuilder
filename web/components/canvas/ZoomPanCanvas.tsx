@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { useCanvasStore } from '@/stores/canvas'
+import { useRafWheel } from '@/hooks/useRafWheel'
 
 type Props = {
   className?: string
@@ -12,25 +13,27 @@ type Props = {
 export default function ZoomPanCanvas({ className, children, hotkeys = true, onFitRequest }: Props) {
   const { scale, tx, ty, setTransform, resetView, snapEnabled } = useCanvasStore()
   const ref = useRef<HTMLDivElement | null>(null)
+  const rootRef = ref
   const [panning, setPanning] = useState(false)
   const panStart = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
 
-  const onWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault()
+  // rAF-coalesced wheel zoom
+  useRafWheel(rootRef, ({ dy, lastX, lastY }) => {
     const el = ref.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-    const delta = -e.deltaY
+    const mouseX = lastX - rect.left
+    const mouseY = lastY - rect.top
+    const delta = -dy
     const factor = Math.exp(delta * 0.0015)
-    const newScale = Math.max(0.3, Math.min(3, scale * factor))
-    const wx = (mouseX - tx) / scale
-    const wy = (mouseY - ty) / scale
+    const newScale = Math.max(0.3, Math.min(3, useCanvasStore.getState().scale * factor))
+    const { tx: curTx, ty: curTy, scale: curScale } = useCanvasStore.getState()
+    const wx = (mouseX - curTx) / curScale
+    const wy = (mouseY - curTy) / curScale
     const nTx = mouseX - wx * newScale
     const nTy = mouseY - wy * newScale
     setTransform({ scale: newScale, tx: nTx, ty: nTy })
-  }
+  })
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!(e.button === 1 || e.buttons === 4 || e.shiftKey || e.altKey || e.metaKey || e.ctrlKey || e.currentTarget === e.target)) return
@@ -63,7 +66,7 @@ export default function ZoomPanCanvas({ className, children, hotkeys = true, onF
       ref={ref}
       className={`relative h-[calc(100vh-140px)] touch-none select-none overflow-hidden rounded-2xl border ${className ?? ''}`}
       tabIndex={0}
-      onWheel={onWheel}
+      // wheel handled via useRafWheel
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPan}
