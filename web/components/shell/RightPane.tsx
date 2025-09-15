@@ -45,13 +45,13 @@ function getInitialGradient(): any | null {
 }
 
 const SECTIONS: Section[] = [
-  { id: 'layout', title: 'Layout', content: <p>Layout content</p> },
+  { id: 'layout', title: t('layout'), content: <p>Layout content</p> },
   { id: 'theme', title: t('theme'), content: (
     <div className="space-y-3">
       <ThemeGallery />
     </div>
   ) },
-  { id: 'style', title: 'Style', content: (
+  { id: 'style', title: t('style'), content: (
     <div className="space-y-3">
       <div className="space-y-2">
         <h3 className="text-sm font-medium">{t('bulkEdit')}</h3>

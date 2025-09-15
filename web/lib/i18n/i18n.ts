@@ -81,6 +81,9 @@ Object.assign(en, {
   themePresets: 'Theme presets',
   apply: 'Apply',
   preview: 'Preview',
+  layout: 'Layout',
+  style: 'Style',
+  styleTools: 'Style tools',
 } as Record<string, string>)
 Object.assign(ja, {
   bulkEdit: '蜈･繧願ｴ�',
@@ -104,6 +107,9 @@ Object.assign(ja, {
   themePresets: 'テーマプリセット',
   apply: '適用',
   preview: 'プレビュー',
+  layout: 'レイアウト',
+  style: 'スタイル',
+  styleTools: 'スタイルツール',
 } as Record<string, string>)
 
 export function getLocale(): 'en' | 'ja' {
@@ -117,6 +123,11 @@ export function setLocale(l: 'en' | 'ja') {
     try { document.documentElement.lang = l } catch {}
   }
 }
+
+// Fix up any mojibake-ed Japanese labels by overriding here
+Object.assign(ja, {
+  bulkEdit: '一括編集',
+})
 
 export function t(k: keyof typeof en): string {
   const d = getLocale() === 'ja' ? ja : en
