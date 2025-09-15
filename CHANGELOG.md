@@ -1,33 +1,22 @@
-## RC (YYYY-MM-DD)
+﻿# Changelog
 
-- CI: Publish Perf P95 summary to Job Summary (CSV → Markdown)
-- Script: Add `scripts/perf-summary.mjs` to aggregate `perf_raw.csv`
-- Docs: Append P95 Baseline template to `docs/testing.md`
-- Tests: Unit tests green; perf thresholds enforced in `apps/builder/e2e/perf-dod.spec.ts` (target P95 < 150ms)
+## [1.0.0-rc.1] - 2025-09-15
 
-Notes:
-- P95 values will appear on PR Job Summary after CI runs. Copy them into `docs/testing.md` to finalize J-03.
+### Breaking
+- Canonicalize to updateNode; remove setNodeRect (pre-rc cleanup)
 
-## v1.0.0-rc.1
-- RC 基盤、perf ゲート導入（DoD: P95 < 150ms）、E2E/Unit の土台整備
-- CI: Playwright レポートと perf_raw.csv を Artifacts 出力
-- Docs: Testing Guide の P95 Baseline テンプレ追加
-- Compatibility: append-only / no breaking changes
+### Features
+- Copy CSS; Selection provider; Hotkey (P18)
+- Export/Import finalized + thin migrate (P19)
+- Bulk style edit (P25)
+- Shadows editor + presets (P23); Gradient editor (P24)
+- Theme presets & gallery (Light/Dark/HC + 5 presets) (P27)
 
-## v1.0.0-rc.2
-- Unit-only 追加（セット 6a/6b）
-- Compatibility: append-only / no breaking changes
+### A11y/i18n
+- EN/JA dictionaries, roving focus, skip link, aria (P22)
 
-## v1.0.0-rc.3
-- Unit-only 追加（セット 6c/6d）
-- Compatibility: append-only / no breaking changes
+### Performance
+- rAF drag/resize; wheel zoom coalesce; pointer pan throttle; layers virtualization (P21)
 
-## v1.0.0-rc.4
-- Unit-only 追加（セット 6e: concurrency & split plan）
-- Compatibility: append-only / no breaking changes
-
-## v1.0.0-rc.5
-- Unit-only: cancel/resume outbox, split manifest helpers, gate timeline markers, size boundary spec（7a–7d）
-- Docs: RC ブランチで CI から P95 Baseline を自動追記
-- Perf: CSV 形式を固定（カンマ区切り + ヘッダー順安定）
-- Compatibility: append-only / no breaking changes
+### Tests/Chore
+- Vitest scoped to web/; smoke tests for style, io, zoom, layers
