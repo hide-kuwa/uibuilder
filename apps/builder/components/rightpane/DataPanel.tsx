@@ -9,7 +9,7 @@ export default function DataPanel() {
   const { selectedNodeId, getBindingsForNode, setBinding } = useBuilderStore()
   const mode = useEnvStore((s) => s.mode)
   const [propId, setPropId] = React.useState('text')
-  const [kind, setKind] = React.useState<'local' | 'global'>('local')
+  const [kind, setKind] = React.useState<'local' | 'global' | 'api'>('local')
   const [path, setPath] = React.useState('')
   const [testOut, setTestOut] = React.useState<string>('')
   const [repeatPath, setRepeatPath] = React.useState('list.items')
@@ -57,9 +57,15 @@ export default function DataPanel() {
         <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="border rounded px-2 py-1 text-xs">
           <option value="local">local</option>
           <option value="global">global</option>
+          <option value="api">api</option>
         </select>
         <label className="text-xs">Path</label>
-        <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="user.name" className="border rounded px-2 py-1 text-xs" />
+        <input
+          value={path}
+          onChange={(e) => setPath(e.target.value)}
+          placeholder={kind === 'api' ? 'prefStats.0.value' : 'user.name'}
+          className="border rounded px-2 py-1 text-xs"
+        />
       </div>
       <div className="flex gap-2">
         <button data-testid="binding-apply" className="underline" onClick={onAdd}>Apply</button>
