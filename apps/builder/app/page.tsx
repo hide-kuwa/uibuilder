@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
-import * as REG from '@chizu/registry'
+import { entries as REG, getSchema as getRegistrySchema } from '@chizu/registry'
 import { AutosaveMountHashed } from '@/components/AutosaveMountHashed'
 import { ApplyLastSnippetButton } from '@/components/bindings/ApplyLastSnippetButton'
 
@@ -52,6 +52,8 @@ const CATALOG: Array<{type:string; label:string; defaultProps?:Record<string,any
   { type:'TopNav', label:'TopNav' },
   { type:'PrefList', label:'PrefList' }
 ]
+
+type PaletteItem = { id: string; displayName: string; defaults?: Record<string, any> }
 
 type SlotName = 'header'|'sidebar'|'content'|'footer'
 
@@ -118,7 +120,7 @@ function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string
 }
 
 function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:any)=>void}){
-  const schema = (REG as any).getSchema?.(node.type) as any
+  const schema = getRegistrySchema(node.type) as any
   if(!schema?.properties) return <div>Propsなし</div>
   // fetch hover preset options
   const { data: hoverList } = useSWR<{ items: Array<{ id: string; name: string }> }>(
@@ -193,7 +195,7 @@ function BindingsEditor({
   onChange: (next: ComponentNode) => void
   pageRoot: any
 }) {
-  const schema: any = REG.getSchema(node.type)
+  const schema: any = getRegistrySchema(node.type)
   const propKeys: string[] = Object.keys(schema?.properties ?? {})
   const currentBindings = node.bindings ?? {}
   const { data: ds } = useSWR<{items:Array<{key:string;url:string;ttlSec?:number}>}>('/api/ds', fetcher)
@@ -560,6 +562,45 @@ export default function Builder() {
   const [frameId, setFrameId] = useState<string>('frame-basic')
   const currentFrame = useMemo(() => FRAMES.find(f => f.id === frameId)!, [frameId])
 
+  const { items: paletteItems, usingFallback: paletteUsingFallback } = useMemo(() => {
+    const fallbackItems: PaletteItem[] = CATALOG.map((c) => ({
+      id: c.type,
+      displayName: c.label,
+      defaults: c.defaultProps,
+    }))
+
+    try {
+      const source = (REG as any)?.entries ?? REG
+      const entriesList = source && typeof source === 'object'
+        ? Object.values(source as Record<string, any>)
+        : []
+      const registryItems: PaletteItem[] = entriesList
+        .filter((entry: any) => entry && typeof entry.id === 'string' && !entry.slotSchema)
+        .map((entry: any) => {
+          const props = entry.propsSchema?.properties ?? {}
+          const defaults = Object.entries(props).reduce((acc, [key, spec]) => {
+            if (spec && typeof spec === 'object' && 'default' in spec) {
+              acc[key] = (spec as any).default
+            }
+            return acc
+          }, {} as Record<string, any>)
+          return {
+            id: entry.id as string,
+            displayName: (entry.displayName as string) ?? (entry.id as string),
+            defaults: Object.keys(defaults).length ? defaults : undefined,
+          }
+        })
+
+      if (registryItems.length) {
+        return { items: registryItems, usingFallback: false }
+      }
+    } catch {
+      // silent fallback
+    }
+
+    return { items: fallbackItems, usingFallback: true }
+  }, [])
+
   const [selSlot, setSelSlot] = useState<SlotName>('content')
   const currentNodes = useMemo(() => {
     return selSlot === 'content'
@@ -695,10 +736,11 @@ export default function Builder() {
     return out
   }
 
-  const addNode = (type:string) => {
+  const addNode = (type:string, defaults?: Record<string, any>) => {
     const id = `${type.toLowerCase()}_${Math.random().toString(36).slice(2,7)}`
-    const def = CATALOG.find(c=>c.type===type)?.defaultProps ?? {}
-    const n: ComponentNode = { id, type, props: def }
+    const baseProps = defaults ?? CATALOG.find(c=>c.type===type)?.defaultProps
+    const props = { ...(baseProps ?? {}) }
+    const n: ComponentNode = { id, type, props }
     if (selSlot === 'content') {
       push({ ...page, content: [...(page.content ?? []), n] })
     } else {
@@ -954,9 +996,20 @@ export default function Builder() {
 
         <div>
           <h3 style={{margin:'8px 0'}}>Components</h3>
+          {paletteUsingFallback && (
+            <div style={{ color: '#c00', fontSize: 12, marginBottom: 4 }}>
+              登録なし/解決不可（ローカル CATALOG を使用中）
+            </div>
+          )}
           <div style={{display:'grid', gap:8}}>
-            {CATALOG.map(c => (
-              <button key={c.type} onClick={()=>addNode(c.type)} style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}>{c.label}</button>
+            {paletteItems.map(c => (
+              <button
+                key={c.id}
+                onClick={()=>addNode(c.id, c.defaults)}
+                style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}
+              >
+                {c.displayName}
+              </button>
             ))}
           </div>
         </div>
