@@ -1,4 +1,5 @@
 'use client'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
@@ -553,6 +554,11 @@ function BindingsEditor({
 }
 
 export default function Builder() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const isMetaMode = searchParams.get('meta') === '1'
+
   const [page,setPage] = useState<Page>(() => {
     const p = DEFAULT_PAGE('map-home')
     p.content.push({ id:'hero_init', type:'Hero', props:{ title:'地図で集める旅' } })
@@ -636,6 +642,13 @@ export default function Builder() {
     const base = d.slotDiffs.reduce((acc: number, s: any) => acc + s.added.length + s.removed.length + s.moved.length + s.modified.length, 0)
     return base + (d.titleChanged ? 1 : 0) + (d.frameChanged ? 1 : 0)
   }, [diffs])
+  const toggleMetaMode = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (isMetaMode) params.delete('meta')
+    else params.set('meta', '1')
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
   const push = (next: Page) => { setHistory(h=>[...h.slice(-49), page]); setPage(next) }
 
   const { data: list } = useSWR<{ ids: string[] }>(
@@ -895,7 +908,19 @@ export default function Builder() {
   }
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
+    <>
+      <div style={{display:'grid', gridTemplateRows:'auto 1fr', height:'100vh'}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', gap:8, padding:'10px 16px', borderBottom:'1px solid #eee', background:'#f9f9f9'}}>
+          <button
+            onClick={toggleMetaMode}
+            aria-pressed={isMetaMode}
+            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background: isMetaMode ? '#111' : '#fff', color: isMetaMode ? '#fff' : '#111', fontWeight:600, boxShadow: isMetaMode ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'}}
+            title={isMetaMode ? 'Metaモードを終了' : 'Metaモードを開始'}
+          >
+            Meta Edit
+          </button>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100%', minHeight:0}}>
       {/* 左ペイン：パレット＋Slot切替 */}
       <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
@@ -920,7 +945,18 @@ export default function Builder() {
           >
             変更点を見る{diffCount>0 ? `（${diffCount}）` : ''}
           </button>
-          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '●' : '✓'}</button>
+          <button
+            onClick={() => {
+              if (isMetaMode) return
+              save()
+            }}
+            aria-disabled={isMetaMode}
+            disabled={!dirty}
+            style={{padding:'6px 10px', borderRadius:8, background: isMetaMode ? '#bbb' : dirty ? '#111' : '#888', color:'#fff', cursor: isMetaMode ? 'not-allowed' : undefined, opacity: isMetaMode ? 0.7 : 1}}
+            title={isMetaMode ? 'Metaモードでは保存/生成できません' : undefined}
+          >
+            保存→生成 {dirty ? '●' : '✓'}
+          </button>
 
           <select
             value={frameId}
@@ -1123,5 +1159,11 @@ export default function Builder() {
         )}
       </div>
     </div>
+    {isMetaMode && (
+      <div style={{position:'fixed', top:56, right:16, padding:'8px 14px', borderRadius:9999, background:'#111', color:'#fff', fontWeight:600, boxShadow:'0 12px 30px rgba(0,0,0,0.2)', letterSpacing:0.5, zIndex:60}}>
+        Meta Editing
+      </div>
+    )}
+    </>
   )
 }
