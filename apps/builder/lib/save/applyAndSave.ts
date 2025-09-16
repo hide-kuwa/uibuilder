@@ -1,5 +1,5 @@
 // apps/builder/lib/save/applyAndSave.ts
-import { useSaveStore } from '@/stores/saveQueue'
+import { recordSavedAt, useSaveStore } from '@/stores/saveQueue'
 import { debounce } from '@/lib/utils/debounce'
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -46,5 +46,8 @@ export const saveDebounced = debounce(async (slug: string, draft: any) => {
       try { await fetch('/api/audit-log', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'gateBypass', slug, score, reason, at: new Date().toISOString() }) }) } catch {}
     }
     await useSaveStore.getState().queueChange(slug, draft)
+    const nowTs = Date.now()
+    const lastWriteTs = typeof (draft as any)?.lastWriteTs === 'number' ? Number((draft as any).lastWriteTs) : nowTs
+    recordSavedAt(nowTs, lastWriteTs)
   } catch {}
 }, 1000)
