@@ -638,14 +638,20 @@ export default function AuditPage() {
     try { obj = JSON.parse(li.textContent || '{}') } catch { obj = null }
     const op = typeof obj?.op === 'string' ? obj.op : ''
     const hash = typeof obj?.contentHash === 'string' ? obj.contentHash : ''
+    const slug =
+      (typeof obj?.slug === 'string' && obj.slug) ||
+      (typeof obj?.id === 'string' && obj.id) ||
+      (typeof obj?.page?.id === 'string' ? obj.page.id : '')
     if (op) li.dataset.op = op
     if (hash) li.dataset.hash = hash
+    if (slug) li.dataset.slug = slug
 
     // Inject a shadow-based badge host so li.textContent stays as raw JSON
     const host = document.createElement('span')
     host.setAttribute('data-audit-badges', '1')
     host.style.position = 'relative'
     host.style.display = 'inline-block'
+    if (slug) host.dataset.slug = slug
     // no text nodes in light DOM
     li.appendChild(host)
     const shadow = host.attachShadow({ mode: 'open' })
@@ -679,8 +685,18 @@ export default function AuditPage() {
     shadow.appendChild(style)
     const wrap = document.createElement('span')
     wrap.style.marginLeft = '6px'
+    wrap.style.display = 'inline-flex'
+    wrap.style.alignItems = 'center'
+    wrap.style.gap = '4px'
     if (op) wrap.appendChild(makeBadge('op', op, 'op'))
     if (hash) wrap.appendChild(makeBadge('contentHash', hash, 'hash'))
+    const issueWrap = document.createElement('span')
+    issueWrap.setAttribute('data-ui-audit-issue-badges', '1')
+    issueWrap.style.display = 'inline-flex'
+    issueWrap.style.alignItems = 'center'
+    issueWrap.style.gap = '4px'
+    issueWrap.style.marginLeft = '4px'
+    wrap.appendChild(issueWrap)
     shadow.appendChild(wrap)
 
     ;(li as any).__auditAnno = true
@@ -761,4 +777,129 @@ export default function AuditPage() {
   setInterval(() => {
     const h = getHash(); if (h !== currentHash) tick()
   }, 500)
+})()
+
+// --- append-only: UI-Audit issue badges linking to /dev/ui-audit ---
+;(() => {
+  if (typeof window === 'undefined') return
+
+  type Issue = { id: string; kind: string; nodeId: string; slug: string; message?: string; scoreImpact?: number }
+
+  const goto = (slug: string, nodeId: string) => {
+    if (!slug || !nodeId) return
+    try {
+      const url = new URL('/dev/ui-audit', window.location.origin)
+      url.searchParams.set('slug', slug)
+      url.searchParams.set('highlight', nodeId)
+      window.location.href = url.toString()
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const labelFor = (kind: string) => {
+    if (kind === 'contrast') return 'contrast'
+    if (kind === 'grid8') return 'grid'
+    if (kind === 'alignment') return 'align'
+    return kind
+  }
+
+  const colorFor = (kind: string) => {
+    if (kind === 'contrast') return '#b91c1c'
+    if (kind === 'grid8') return '#b45309'
+    if (kind === 'alignment') return '#2563eb'
+    return '#2563eb'
+  }
+
+  const cache = new Map<string, Issue[] | null>()
+  const pending = new Map<string, Promise<Issue[] | null>>()
+
+  const fetchIssues = async (slug: string): Promise<Issue[] | null> => {
+    try {
+      const res = await fetch(`/api/ui-audit/issues?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' })
+      if (!res.ok) return null
+      const data = await res.json()
+      return Array.isArray(data) ? (data as Issue[]) : null
+    } catch {
+      return null
+    }
+  }
+
+  const getIssues = async (slug: string): Promise<Issue[]> => {
+    if (cache.has(slug)) return cache.get(slug) ?? []
+    let task = pending.get(slug)
+    if (!task) {
+      task = fetchIssues(slug)
+      pending.set(slug, task)
+    }
+    const data = await task
+    pending.delete(slug)
+    cache.set(slug, data ?? [])
+    return data ?? []
+  }
+
+  const ensureBadges = async (li: HTMLLIElement) => {
+    const slug = li.dataset.slug || ''
+    if (!slug) return
+    const host = li.querySelector('[data-audit-badges]') as HTMLElement | null
+    if (!host) return
+    const shadow = host.shadowRoot
+    if (!shadow) return
+    const container = shadow.querySelector('[data-ui-audit-issue-badges]') as HTMLElement | null
+    if (!container || container.dataset.loading === '1') return
+    container.dataset.loading = '1'
+    const issues = await getIssues(slug)
+    container.innerHTML = ''
+    if (issues.length > 0) {
+      container.style.display = 'inline-flex'
+      container.style.gap = '4px'
+      issues
+        .slice()
+        .sort((a, b) => (b.scoreImpact ?? 0) - (a.scoreImpact ?? 0))
+        .slice(0, 6)
+        .forEach((iss) => {
+          const btn = document.createElement('button')
+          btn.type = 'button'
+          btn.textContent = `${labelFor(iss.kind)}:${iss.nodeId}`
+          btn.title = iss.message || ''
+          btn.style.fontSize = '10px'
+          btn.style.textDecoration = 'underline'
+          btn.style.cursor = 'pointer'
+          btn.style.background = 'transparent'
+          btn.style.border = 'none'
+          btn.style.color = colorFor(iss.kind)
+          btn.addEventListener('click', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            goto(slug, iss.nodeId)
+          })
+          container.appendChild(btn)
+        })
+      if (issues.length > 6) {
+        const more = document.createElement('span')
+        more.textContent = `+${issues.length - 6}`
+        more.style.fontSize = '10px'
+        more.style.color = '#6b7280'
+        container.appendChild(more)
+      }
+    }
+    container.dataset.loading = '0'
+  }
+
+  const apply = () => {
+    const list = document.querySelector('ol') as HTMLOListElement | null
+    if (!list) return
+    const rows = Array.from(list.querySelectorAll('li')) as HTMLLIElement[]
+    rows.forEach((li) => {
+      void ensureBadges(li)
+    })
+  }
+
+  const schedule = () => { apply() }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, { once: true })
+  else schedule()
+
+  const mo = new MutationObserver(schedule)
+  mo.observe(document.body, { childList: true, subtree: true })
 })()

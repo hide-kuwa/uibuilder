@@ -1,6 +1,7 @@
 // apps/builder/app/dev/ui-audit/page.tsx
 // SSR page: UI design audit (initial skeleton)
 import React from 'react'
+import { headers } from 'next/headers'
 
 // --- Types (temporary, append-only) ---
 type ComponentNode = {
@@ -47,6 +48,56 @@ function loadMockNodes(): ComponentNode[] {
     },
   ]
 }
+
+type ApiScores = {
+  contrast: number
+  fontVariety: number
+  gridSpacing: number
+  alignment: number
+  average: number
+}
+
+type ApiIssues = {
+  contrast: string[]
+  fontVariety: string[]
+  gridSpacing: string[]
+  alignment: string[]
+}
+
+type ApiContrastDetail = {
+  id: string
+  ratio: number | null
+  required: number
+  level: 'warning' | 'error'
+  textColor?: string
+  bgColor?: string
+}
+
+type AuditScoreResponse = {
+  slug: string
+  scores: ApiScores
+  issues: ApiIssues
+  issuesDetail?: { contrast?: ApiContrastDetail[] }
+  warning?: string
+  error?: string
+}
+
+const defaultScores: ApiScores = {
+  contrast: 0,
+  fontVariety: 0,
+  gridSpacing: 0,
+  alignment: 0,
+  average: 0,
+}
+
+const defaultIssues: ApiIssues = {
+  contrast: [],
+  fontVariety: [],
+  gridSpacing: [],
+  alignment: [],
+}
+
+const colorForScore = (v: number) => (v >= 80 ? 'text-green-700' : v >= 50 ? 'text-amber-700' : 'text-rose-700')
 
 // --- Helpers: color parsing and WCAG contrast ---
 function parseHexColor(s: string): [number, number, number] | null {
@@ -115,62 +166,88 @@ function walk(nodes: ComponentNode[], fn: (n: ComponentNode) => void) {
   }
 }
 
-export default async function Page() {
-  const nodes = loadMockNodes()
+export const dynamic = 'force-dynamic'
 
-  // Metrics containers
-  const fontSizes = new Set<number>()
-  const spacingValues: number[] = []
-  type ContrastRow = { id: string; type: string; ratio: number | null; text?: string; bg?: string }
-  const contrastRows: ContrastRow[] = []
+export default async function Page({ searchParams }: { searchParams?: { slug?: string } }) {
+  const slugParam = typeof searchParams?.slug === 'string' ? searchParams.slug.trim() : ''
+  const slug = slugParam || 'sample'
 
-  walk(nodes, (n) => {
-    // font-size
-    const fs = n.props?.fontSize
-    if (typeof fs === 'number' && isFinite(fs)) fontSizes.add(fs)
-    if (typeof fs === 'string') {
-      const m = fs.trim().match(/^(\d+\.?\d*)px$/)
-      if (m) fontSizes.add(parseFloat(m[1]))
+  const hdrs = headers()
+  const hostHeader = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
+  const protoHeader = hdrs.get('x-forwarded-proto')
+  const fallbackProto = /localhost|127\.0\.0\.1/.test(hostHeader) ? 'http' : 'https'
+  const origin = (process.env.NEXT_PUBLIC_UI_AUDIT_ORIGIN || `${protoHeader ?? fallbackProto}://${hostHeader}`).replace(/\/$/, '')
+  const apiUrl = `${origin}/api/ui-audit/score?slug=${encodeURIComponent(slug)}`
+
+  let apiData: AuditScoreResponse | null = null
+  try {
+    const res = await fetch(apiUrl, { cache: 'no-store' })
+    if (res.ok) {
+      apiData = (await res.json()) as AuditScoreResponse
     }
-    // spacing
-    extractPxValues(n.style?.margin).forEach((v) => spacingValues.push(v))
-    extractPxValues(n.style?.padding).forEach((v) => spacingValues.push(v))
-    // contrast
-    const tc = parseColor(n.props?.textColor || '')
-    const bg = parseColor(n.props?.bgColor || '')
-    const ratio = tc && bg ? contrastRatio(tc, bg) : null
-    contrastRows.push({ id: n.id, type: n.type, ratio, text: n.props?.textColor, bg: n.props?.bgColor })
-  })
+  } catch {
+    // ignore network failures; fallback below
+  }
 
-  // Compute 8px grid adherence
-  const onGridCount = spacingValues.filter((v) => Math.abs(v % 8) < 0.01).length
-  const spacingRate = spacingValues.length ? Math.round((onGridCount / spacingValues.length) * 100) : 100
+  const data = apiData ?? {
+    slug,
+    scores: defaultScores,
+    issues: defaultIssues,
+    issuesDetail: { contrast: [] },
+    warning: apiData ? apiData.warning : 'UI-Audit API response unavailable',
+    error: apiData?.error,
+  }
 
-  // Contrast evaluation (AA normal text threshold 4.5)
-  const contrastFails = contrastRows.filter((r) => r.ratio !== null && (r.ratio as number) < 4.5)
+  const scores = data.scores ?? defaultScores
+  const issues = data.issues ?? defaultIssues
+  const contrastDetails = data.issuesDetail?.contrast ?? []
+  const contrastRows = contrastDetails.map((d) => ({
+    id: d.id,
+    ratio: typeof d.ratio === 'number' ? d.ratio : null,
+    required: d.required,
+    level: d.level,
+    textColor: d.textColor,
+    bgColor: d.bgColor,
+  }))
+
+  const contrastIssueCount = contrastRows.length || issues.contrast.length
+  const gridIssueCount = issues.gridSpacing.length
+  const alignmentIssueCount = issues.alignment.length
 
   return (
     <main className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">UI Audit (prototype)</h1>
-      <p className="text-sm text-gray-600">SSR mock metrics. Will be wired to builder store later.</p>
+      <div className="text-sm text-gray-600 space-y-1">
+        <p>
+          API-driven metrics for <code className="font-mono">{data.slug}</code>.
+        </p>
+        <p className="text-xs text-blue-600">データソース: API</p>
+        {data.warning ? <p className="text-xs text-amber-600">{data.warning}</p> : null}
+        {data.error ? <p className="text-xs text-rose-600">{data.error}</p> : null}
+      </div>
 
       <section className="space-y-2">
         <h2 className="font-semibold">Summary</h2>
-        <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           <div className="border rounded p-2">
-            <div className="text-xs opacity-70">font-size 種類数</div>
-            <div className="text-xl font-semibold">{fontSizes.size}</div>
-            <div className="text-xs text-gray-600">[{Array.from(fontSizes).sort((a,b)=>a-b).join(', ')}]</div>
+            <div className="text-xs opacity-70">平均スコア</div>
+            <div className={`text-xl font-semibold ${colorForScore(scores.average)}`}>{Math.round(scores.average)}</div>
+            <div className="text-xs text-gray-600">font variety score <span className={colorForScore(scores.fontVariety)}>{Math.round(scores.fontVariety)}</span></div>
           </div>
           <div className="border rounded p-2">
-            <div className="text-xs opacity-70">8pxグリッド適合率 (margin/padding)</div>
-            <div className="text-xl font-semibold">{spacingRate}%</div>
-            <div className="text-xs text-gray-600">総数 {spacingValues.length} / on-grid {onGridCount}</div>
+            <div className="text-xs opacity-70">コントラスト</div>
+            <div className={`text-xl font-semibold ${colorForScore(scores.contrast)}`}>{Math.round(scores.contrast)}</div>
+            <div className="text-xs text-gray-600">issues {contrastIssueCount}</div>
           </div>
           <div className="border rounded p-2">
-            <div className="text-xs opacity-70">コントラスト不適合 (AA 4.5未満)</div>
-            <div className="text-xl font-semibold">{contrastFails.length}</div>
-            <div className="text-xs text-gray-600">対象 {contrastRows.filter(r=>r.ratio!==null).length} ノード</div>
+            <div className="text-xs opacity-70">8pxグリッド適合率</div>
+            <div className={`text-xl font-semibold ${colorForScore(scores.gridSpacing)}`}>{Math.round(scores.gridSpacing)}</div>
+            <div className="text-xs text-gray-600">off-grid {gridIssueCount}</div>
+          </div>
+          <div className="border rounded p-2">
+            <div className="text-xs opacity-70">Alignment</div>
+            <div className={`text-xl font-semibold ${colorForScore(scores.alignment)}`}>{Math.round(scores.alignment)}</div>
+            <div className="text-xs text-gray-600">misaligned {alignmentIssueCount}</div>
           </div>
         </div>
       </section>
@@ -178,23 +255,33 @@ export default async function Page() {
       <section className="space-y-2">
         <h2 className="font-semibold">Contrast details</h2>
         <div className="space-y-1 text-xs">
-          {contrastRows.map((r) => {
-            const fail = r.ratio !== null && r.ratio < 4.5
-            return (
-              <div key={r.id} className={`border rounded p-2 ${fail ? 'border-rose-300 bg-rose-50' : 'border-gray-200'}`}>
-                <div className="font-mono text-[11px]">{r.id} <span className="opacity-60">({r.type})</span></div>
-                <div>ratio: <b>{r.ratio ? r.ratio.toFixed(2) : '-'}</b> <span className="opacity-70">(text {r.text || '-'} on {r.bg || '-'})</span></div>
-              </div>
-            )
-          })}
+          {contrastRows.length === 0 ? (
+            <div className="border border-gray-200 rounded p-2 text-gray-500">No contrast issues detected by API.</div>
+          ) : (
+            contrastRows.map((r) => {
+              const fail = r.ratio !== null && r.ratio < r.required
+              const cls = fail ? (r.level === 'error' ? 'border-rose-300 bg-rose-50' : 'border-amber-300 bg-amber-50') : 'border-gray-200'
+              return (
+                <div key={r.id} className={`border rounded p-2 ${cls}`}>
+                  <div className="font-mono text-[11px]">{r.id}</div>
+                  <div>
+                    ratio: <b>{r.ratio !== null ? r.ratio.toFixed(2) : '-'}</b>
+                    <span className="ml-2">required: <b>{r.required.toFixed(1)}</b></span>
+                    <span className="ml-2 uppercase">{r.level}</span>
+                  </div>
+                  <div className="opacity-70">text {r.textColor || '-'} / bg {r.bgColor || '-'}</div>
+                </div>
+              )
+            })
+          )}
         </div>
       </section>
 
       <section className="space-y-2">
         <h2 className="font-semibold">Notes</h2>
         <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-          <li>閾値: AA 通常テキスト 4.5。大きなテキストの場合は 3.0 を許容（後続で判定に font-size を反映予定）。</li>
-          <li>8px グリッドは margin/padding の px 値のみ評価。% / rem などは今後対応。</li>
+          <li>閾値: AA 通常テキスト 4.5。大きなテキストの場合は 3.0 を許容（API 応答の required を参照）。</li>
+          <li>8px グリッド/Alignment は API の issues 情報を基に集計しています。</li>
           <li>実データ連携後は、ノード選択と連動したハイライトやジャンプも提供予定。</li>
         </ul>
       </section>
@@ -1580,4 +1667,50 @@ export default async function Page() {
   const init = () => { renderReal(); renderMock() }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true })
   else init()
+})()
+
+// --- append-only: Highlight node when navigated with ?highlight=... (from /audit) ---
+;(() => {
+  if (typeof window === 'undefined') return
+
+  const focusNode = (id: string) => {
+    if (!id) return
+    const w = window as any
+    try { w.__panel = 'lineage' } catch {}
+    try { if (typeof w.__builderStore?.select === 'function') w.__builderStore.select(id) } catch {}
+    try { w.__chizuSel = id } catch {}
+
+    const mark = () => {
+      const el = document.getElementById(id)
+      if (!el) return false
+      const prev = el.style.boxShadow
+      const prevOutline = el.style.outline
+      el.style.outline = '2px solid rgba(59,130,246,0.8)'
+      el.style.boxShadow = '0 0 0 4px rgba(59,130,246,0.35)'
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }) } catch {}
+      setTimeout(() => {
+        el.style.outline = prevOutline
+        el.style.boxShadow = prev
+      }, 2000)
+      return true
+    }
+
+    if (!mark()) {
+      const obs = new MutationObserver(() => {
+        if (mark()) obs.disconnect()
+      })
+      obs.observe(document.body, { childList: true, subtree: true })
+      setTimeout(() => obs.disconnect(), 4000)
+    }
+  }
+
+  const apply = () => {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('highlight') || params.get('node') || ''
+    if (!id) return
+    focusNode(id)
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true })
+  else apply()
 })()
