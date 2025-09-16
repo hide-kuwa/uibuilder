@@ -6,6 +6,7 @@ import type { Page, ComponentNode, Frame } from '@chizu/types'
 import { entries as REG, getSchema as getRegistrySchema } from '@chizu/registry'
 import { AutosaveMountHashed } from '@/components/AutosaveMountHashed'
 import { ApplyLastSnippetButton } from '@/components/bindings/ApplyLastSnippetButton'
+import { CanvasRenderer } from '@/components/CanvasRenderer'
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json())
 
@@ -64,6 +65,38 @@ const PREVIEW_API: Record<string, any> = {
     '01': { name: '北海道', population: 5224614 },
     '13': { name: '東京都', population: 14047594 },
   },
+}
+
+const FRAME_TYPE_MAP: Record<string, string> = {
+  'frame-basic': 'Frame_Basic',
+  'frame-top': 'Frame_Toponly',
+  'frame-wide': 'Frame_Wide',
+}
+
+function cloneNodes(nodes?: ComponentNode[] | null): ComponentNode[] {
+  if (!Array.isArray(nodes)) return []
+  try {
+    return structuredClone(nodes)
+  } catch {
+    return JSON.parse(JSON.stringify(nodes)) as ComponentNode[]
+  }
+}
+
+function buildPreviewTree(page: Page, frameId: string): ComponentNode[] {
+  const type = FRAME_TYPE_MAP[frameId] ?? 'Frame_Basic'
+  const slots: Record<string, ComponentNode[]> = {}
+  slots.content = cloneNodes(page.content)
+  const assignments = page.slotAssignments ?? {}
+  for (const [slot, nodes] of Object.entries(assignments)) {
+    slots[slot] = cloneNodes(nodes)
+  }
+  return [
+    {
+      id: 'frame-root',
+      type,
+      slots,
+    },
+  ]
 }
 
 // ---- diff utilities ----
@@ -558,7 +591,6 @@ export default function Builder() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isMetaMode = searchParams.get('meta') === '1'
-
   const [page,setPage] = useState<Page>(() => {
     const p = DEFAULT_PAGE('map-home')
     p.content.push({ id:'hero_init', type:'Hero', props:{ title:'地図で集める旅' } })
@@ -842,6 +874,16 @@ export default function Builder() {
   }
 
   const selected = useMemo(() => currentNodes.find(n=>n.id===selId), [currentNodes, selId])
+  const previewTree = useMemo(() => buildPreviewTree(page, frameId), [page, frameId])
+  const previewRuntime = useMemo(
+    () => ({
+      page: { prefCode: (page as any)?.prefCode ?? '13' },
+      frame: { id: frameId },
+      api: PREVIEW_API,
+      app: {},
+    }),
+    [page, frameId],
+  )
 
   // keyboard shortcuts
   const SLOT_ORDER: SlotName[] = ['header','sidebar','content','footer']
@@ -1063,6 +1105,14 @@ export default function Builder() {
       {/* 中央：キャンバス（選択中Slotの中身だけを表示） */}
       <div style={{padding:12}}>
         <h3 style={{margin:'8px 0'}}>Canvas ({selSlot})</h3>
+        <div style={{border:'1px solid #eee', borderRadius:12, padding:12, background:'#fff', marginBottom:12}}>
+          <CanvasRenderer
+            tree={previewTree}
+            runtime={previewRuntime}
+            builderManifest={isMetaMode ? previewTree : undefined}
+            isMetaMode={isMetaMode}
+          />
+        </div>
         <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
           {currentNodes.map(n => (
             <li
