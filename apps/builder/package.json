@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "route:check": "node scripts/check-route-conflicts.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "next lint",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

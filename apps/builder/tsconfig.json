@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@chizu/renderer": ["./shims/chizu-renderer-server"],
+      "@chizu/ui/*": ["./shims/chizu-ui/*"],
       "@/*": ["./*"]
     },
     "plugins": [
