@@ -60,7 +60,13 @@ export function Palette() {
       <section className="space-y-2">
         <div className="text-xs opacity-70">Elements</div>
         <div className="grid grid-cols-1 gap-2">
-          {defs.map((d) => <Item key={d.meta.id} comp={d} />)}
+          {defs.length === 0 ? (
+            <div className="rounded border border-dashed border-zinc-700 px-2 py-2 text-xs text-zinc-400">
+              Registry 未解決/0件
+            </div>
+          ) : (
+            defs.map((d) => <Item key={d.meta.id} comp={d} />)
+          )}
         </div>
       </section>
       <PresetsSection />
