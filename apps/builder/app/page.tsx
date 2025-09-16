@@ -1,16 +1,17 @@
 'use client'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
-import { entries as REG, getSchema as getRegistrySchema } from '@chizu/registry'
+import * as REG from '@chizu/registry'
+import { CanvasRenderer } from '@/components/CanvasRenderer'
 import { AutosaveMountHashed } from '@/components/AutosaveMountHashed'
 import { ApplyLastSnippetButton } from '@/components/bindings/ApplyLastSnippetButton'
-import { CanvasRenderer } from '@/components/CanvasRenderer'
+import { DEFAULT_BUILDER_MANIFEST } from '@/lib/meta/builderManifest'
+import { loadBuilderManifest, saveBuilderManifest } from '@/lib/meta/storage'
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json())
 
-const FRAMES: Frame[] = [
+const BASE_FRAMES: Frame[] = [
   {
     id: 'frame-basic',
     name: 'Basic',
@@ -39,6 +40,16 @@ const FRAMES: Frame[] = [
   },
 ]
 
+const META_FRAME: Frame = {
+  id: 'frame-builder',
+  name: 'Builder UI',
+  slots: [
+    { name: 'leftSidebar' },
+    { name: 'canvas', required: true },
+    { name: 'rightPanel' },
+  ],
+}
+
 const DEFAULT_PAGE = (id = 'map-home'): Page => ({
   id,
   title: '新規ページ',
@@ -55,18 +66,19 @@ const CATALOG: Array<{type:string; label:string; defaultProps?:Record<string,any
   { type:'PrefList', label:'PrefList' }
 ]
 
-type PaletteItem = { id: string; displayName: string; defaults?: Record<string, any> }
+type SlotName = 'header'|'sidebar'|'content'|'footer'|'leftSidebar'|'rightPanel'|'canvas'
 
-type SlotName = 'header'|'sidebar'|'content'|'footer'
+const META_SLOTS: SlotName[] = ['leftSidebar', 'canvas', 'rightPanel']
 
-// Builder-side lightweight runtime preview data for bindings
-const PREVIEW_API: Record<string, any> = {
-  prefStats: {
-    '01': { name: '北海道', population: 5224614 },
-    '13': { name: '東京都', population: 14047594 },
-  },
+function clone<T>(value: T): T {
+  try {
+    return structuredClone(value)
+  } catch {
+    return JSON.parse(JSON.stringify(value)) as T
+  }
 }
 
+// Preview helpers for CanvasRenderer
 const FRAME_TYPE_MAP: Record<string, string> = {
   'frame-basic': 'Frame_Basic',
   'frame-top': 'Frame_Toponly',
@@ -85,6 +97,7 @@ function cloneNodes(nodes?: ComponentNode[] | null): ComponentNode[] {
 function buildPreviewTree(page: Page, frameId: string): ComponentNode[] {
   const type = FRAME_TYPE_MAP[frameId] ?? 'Frame_Basic'
   const slots: Record<string, ComponentNode[]> = {}
+  // content/canvas use the same page.content
   slots.content = cloneNodes(page.content)
   const assignments = page.slotAssignments ?? {}
   for (const [slot, nodes] of Object.entries(assignments)) {
@@ -97,6 +110,14 @@ function buildPreviewTree(page: Page, frameId: string): ComponentNode[] {
       slots,
     },
   ]
+}
+
+// Builder-side lightweight runtime preview data for bindings
+const PREVIEW_API: Record<string, any> = {
+  prefStats: {
+    '01': { name: '北海道', population: 5224614 },
+    '13': { name: '東京都', population: 14047594 },
+  },
 }
 
 // ---- diff utilities ----
@@ -131,10 +152,13 @@ function diffPropsBindings(oldN?:ComponentNode, newN?:ComponentNode){
   return changes
 }
 function getSlotNodes(p: Page, slot: SlotName): ComponentNode[] {
-  return slot==='content' ? (p.content??[]) : (p.slotAssignments?.[slot] ?? [])
+  if (slot === 'content' || slot === 'canvas') {
+    return p.content ?? []
+  }
+  return p.slotAssignments?.[slot] ?? []
 }
 function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string){
-  const slots: SlotName[] = ['header','sidebar','content','footer']
+  const slots: SlotName[] = ['header','sidebar','content','footer','leftSidebar','rightPanel']
   const slotDiffs = slots.map(slot=>{
     const o = getSlotNodes(oldP, slot)
     const n = getSlotNodes(newP, slot)
@@ -154,7 +178,7 @@ function diffPage(oldP: Page, newP: Page, frameIdOld: string, frameIdNew: string
 }
 
 function PropsEditor({node, onChange}:{node:ComponentNode; onChange:(k:string,v:any)=>void}){
-  const schema = getRegistrySchema(node.type) as any
+  const schema = (REG as any).getSchema?.(node.type) as any
   if(!schema?.properties) return <div>Propsなし</div>
   // fetch hover preset options
   const { data: hoverList } = useSWR<{ items: Array<{ id: string; name: string }> }>(
@@ -229,11 +253,12 @@ function BindingsEditor({
   onChange: (next: ComponentNode) => void
   pageRoot: any
 }) {
-  const schema: any = getRegistrySchema(node.type)
+  const schema: any = REG.getSchema(node.type)
   const propKeys: string[] = Object.keys(schema?.properties ?? {})
   const currentBindings = node.bindings ?? {}
   const { data: ds } = useSWR<{items:Array<{key:string;url:string;ttlSec?:number}>}>('/api/ds', fetcher)
   const apiKeys = (ds?.items ?? []).map(x=>x.key)
+  const isMetaMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('meta') === '1'
 
   const initialProp =
     (node.meta as any)?.lastBindingProp ||
@@ -581,67 +606,36 @@ function BindingsEditor({
         <button onClick={apply} style={{padding:'6px 10px', borderRadius:8, background:'#111', color:'#fff'}}>適用</button>
         <button onClick={remove} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>解除</button>
       </div>
-      <AutosaveMountHashed page={page} debounceMs={800} />
+      {!isMetaMode && <AutosaveMountHashed page={pageRoot} debounceMs={800} />}
     </div>
   )
 }
 
 export default function Builder() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const isMetaMode = searchParams.get('meta') === '1'
-  const [page,setPage] = useState<Page>(() => {
+  const [isMetaMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('meta') === '1'
+  })
+
+  const [page, setPage] = useState<Page>(() => {
+    const meta = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('meta') === '1'
+    if (meta) {
+      return clone(DEFAULT_BUILDER_MANIFEST)
+    }
     const p = DEFAULT_PAGE('map-home')
-    p.content.push({ id:'hero_init', type:'Hero', props:{ title:'地図で集める旅' } })
-    p.slotAssignments = { header:[{id:'nav',type:'TopNav'}], sidebar:[{id:'list',type:'PrefList'}] }
+    p.content.push({ id: 'hero_init', type: 'Hero', props: { title: '地図で集める旅' } })
+    p.slotAssignments = { header: [{ id: 'nav', type: 'TopNav' }], sidebar: [{ id: 'list', type: 'PrefList' }] }
     return p
   })
-  const [frameId, setFrameId] = useState<string>('frame-basic')
-  const currentFrame = useMemo(() => FRAMES.find(f => f.id === frameId)!, [frameId])
 
-  const { items: paletteItems, usingFallback: paletteUsingFallback } = useMemo(() => {
-    const fallbackItems: PaletteItem[] = CATALOG.map((c) => ({
-      id: c.type,
-      displayName: c.label,
-      defaults: c.defaultProps,
-    }))
+  const frames = useMemo(() => (isMetaMode ? [...BASE_FRAMES, META_FRAME] : BASE_FRAMES), [isMetaMode])
+  const primarySlot: SlotName = isMetaMode ? 'canvas' : 'content'
+  const [frameId, setFrameId] = useState<string>(() => (isMetaMode ? META_FRAME.id : 'frame-basic'))
+  const currentFrame = useMemo(() => frames.find((f) => f.id === frameId) ?? frames[0], [frames, frameId])
 
-    try {
-      const source = (REG as any)?.entries ?? REG
-      const entriesList = source && typeof source === 'object'
-        ? Object.values(source as Record<string, any>)
-        : []
-      const registryItems: PaletteItem[] = entriesList
-        .filter((entry: any) => entry && typeof entry.id === 'string' && !entry.slotSchema)
-        .map((entry: any) => {
-          const props = entry.propsSchema?.properties ?? {}
-          const defaults = Object.entries(props).reduce((acc, [key, spec]) => {
-            if (spec && typeof spec === 'object' && 'default' in spec) {
-              acc[key] = (spec as any).default
-            }
-            return acc
-          }, {} as Record<string, any>)
-          return {
-            id: entry.id as string,
-            displayName: (entry.displayName as string) ?? (entry.id as string),
-            defaults: Object.keys(defaults).length ? defaults : undefined,
-          }
-        })
-
-      if (registryItems.length) {
-        return { items: registryItems, usingFallback: false }
-      }
-    } catch {
-      // silent fallback
-    }
-
-    return { items: fallbackItems, usingFallback: true }
-  }, [])
-
-  const [selSlot, setSelSlot] = useState<SlotName>('content')
+  const [selSlot, setSelSlot] = useState<SlotName>(() => primarySlot)
   const currentNodes = useMemo(() => {
-    return selSlot === 'content'
+    return selSlot === 'content' || selSlot === 'canvas'
       ? (page.content ?? [])
       : (page.slotAssignments?.[selSlot] ?? [])
   }, [page, selSlot])
@@ -674,31 +668,46 @@ export default function Builder() {
     const base = d.slotDiffs.reduce((acc: number, s: any) => acc + s.added.length + s.removed.length + s.moved.length + s.modified.length, 0)
     return base + (d.titleChanged ? 1 : 0) + (d.frameChanged ? 1 : 0)
   }, [diffs])
-  const toggleMetaMode = () => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (isMetaMode) params.delete('meta')
-    else params.set('meta', '1')
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
-  }
   const push = (next: Page) => { setHistory(h=>[...h.slice(-49), page]); setPage(next) }
 
+  useEffect(() => {
+    if (!isMetaMode) return
+    let cancelled = false
+    loadBuilderManifest()
+      .then((manifest) => {
+        if (cancelled) return
+        const next = clone(manifest)
+        const fid = next.frameId ?? META_FRAME.id
+        setPage(next)
+        setFrameId(fid)
+        setSelSlot(primarySlot)
+        setHistory([])
+        setSelId(undefined)
+        setLastSaved(JSON.stringify({ page: next, frameId: fid }))
+        setDirty(false)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [isMetaMode])
+
   const { data: list } = useSWR<{ ids: string[] }>(
-    '/api/pages',
+    isMetaMode ? null : '/api/pages',
     fetcher,
     { refreshInterval: 2000 }
   )
 
   useEffect(() => {
     const last = typeof window !== 'undefined' ? localStorage.getItem('chizu:lastPageId') : null
-    if (!last) return
+    if (!last || isMetaMode) return
     fetch(`/api/page?id=${encodeURIComponent(last)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         if (j?.page) {
           setPage(j.page as Page)
           setSelId(undefined)
-          setSelSlot('content')
+          setSelSlot(primarySlot)
           setHistory([])
           if ((j.page as Page).frameId) setFrameId((j.page as Page).frameId as string)
           const fid = ((j.page as Page).frameId as string) || 'frame-basic'
@@ -709,12 +718,13 @@ export default function Builder() {
   }, [])
 
   const loadPage = async (id: string) => {
+    if (isMetaMode) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`)
     if (!res.ok) return alert('読み込みに失敗しました')
     const { page: loaded } = (await res.json()) as { page: Page }
     setHistory([])
     setSelId(undefined)
-    setSelSlot('content')
+    setSelSlot(primarySlot)
     setPage(loaded)
     const fid = loaded.frameId ?? 'frame-basic'
     setFrameId(fid)
@@ -723,13 +733,14 @@ export default function Builder() {
   }
 
   const deletePage = async (id: string) => {
+    if (isMetaMode) return
     if (!confirm(`Delete page "${id}"? この操作は元に戻せません。`)) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
     if (!res.ok) return alert('削除に失敗しました')
     if (id === page.id) {
       setHistory([])
       setSelId(undefined)
-      setSelSlot('content')
+      setSelSlot(primarySlot)
       setPage(DEFAULT_PAGE('map-home'))
       setFrameId('frame-basic')
       localStorage.removeItem('chizu:lastPageId')
@@ -737,6 +748,7 @@ export default function Builder() {
   }
 
   const duplicatePage = async (id: string) => {
+    if (isMetaMode) return
     const to = prompt(`複製先の pageId`, `${id}-copy`)
     if (!to || to===id) return
     const res = await fetch('/api/duplicate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ sourceId: id, newId: to }) })
@@ -751,10 +763,10 @@ export default function Builder() {
   }
 
   function getSlotArray(p: Page, slot: SlotName) {
-    return slot === 'content' ? (p.content ?? []) : (p.slotAssignments?.[slot] ?? [])
+    return slot === 'content' || slot === 'canvas' ? (p.content ?? []) : (p.slotAssignments?.[slot] ?? [])
   }
   function setSlotArray(p: Page, slot: SlotName, arr: ComponentNode[]) {
-    if (slot === 'content') p.content = arr
+    if (slot === 'content' || slot === 'canvas') p.content = arr
     else { if(!p.slotAssignments) p.slotAssignments = {}; p.slotAssignments[slot] = arr }
   }
 
@@ -781,12 +793,11 @@ export default function Builder() {
     return out
   }
 
-  const addNode = (type:string, defaults?: Record<string, any>) => {
+  const addNode = (type:string) => {
     const id = `${type.toLowerCase()}_${Math.random().toString(36).slice(2,7)}`
-    const baseProps = defaults ?? CATALOG.find(c=>c.type===type)?.defaultProps
-    const props = { ...(baseProps ?? {}) }
-    const n: ComponentNode = { id, type, props }
-    if (selSlot === 'content') {
+    const def = CATALOG.find(c=>c.type===type)?.defaultProps ?? {}
+    const n: ComponentNode = { id, type, props: def }
+    if (selSlot === 'content' || selSlot === 'canvas') {
       push({ ...page, content: [...(page.content ?? []), n] })
     } else {
       const next = structuredClone(page)
@@ -799,7 +810,7 @@ export default function Builder() {
 
   const updateProp = (k:string, v:any) => {
     if (!selId) return
-    if (selSlot === 'content') {
+    if (selSlot === 'content' || selSlot === 'canvas') {
       push({ ...page, content: (page.content ?? []).map(n => n.id===selId ? ({ ...n, props: { ...(n.props??{}), [k]: v } }) : n ) })
     } else {
       const next = structuredClone(page)
@@ -811,7 +822,7 @@ export default function Builder() {
 
   const removeSel = () => {
     if (!selId) return
-    if (selSlot === 'content') {
+    if (selSlot === 'content' || selSlot === 'canvas') {
       push({ ...page, content: (page.content ?? []).filter(n=>n.id!==selId) })
     } else {
       const next = structuredClone(page)
@@ -824,13 +835,13 @@ export default function Builder() {
 
   const moveSel = (dir:-1|1) => {
     if (!selId) return
-    const arr = selSlot === 'content'
+    const arr = selSlot === 'content' || selSlot === 'canvas'
       ? [...(page.content ?? [])]
       : [...(page.slotAssignments?.[selSlot] ?? [])]
     const i = arr.findIndex(n=>n.id===selId); if(i<0) return
     const j = i + dir; if (j<0 || j>=arr.length) return
     ;[arr[i],arr[j]]=[arr[j],arr[i]]
-    if (selSlot === 'content') push({ ...page, content: arr })
+    if (selSlot === 'content' || selSlot === 'canvas') push({ ...page, content: arr })
     else {
       const next = structuredClone(page)
       ensureSlot(next, selSlot)
@@ -839,32 +850,122 @@ export default function Builder() {
     }
   }
 
-  const duplicateSel = () => {
-    if (!selId) return
-    const list = getSlotArray(page, selSlot)
-    const i = list.findIndex(n=>n.id===selId); if (i<0) return
+  const duplicateSel = (slotOverride?: SlotName, idOverride?: string) => {
+    const targetSlot = slotOverride ?? selSlot
+    const targetId = idOverride ?? selId
+    if (!targetId) return
+    const list = getSlotArray(page, targetSlot)
+    const i = list.findIndex((n) => n.id === targetId)
+    if (i < 0) return
     const src = list[i]
-    const copy: ComponentNode = structuredClone(src)
-    copy.id = `${src.type.toLowerCase()}_${Math.random().toString(36).slice(2,7)}`
-    const next = structuredClone(page)
-    const arr = getSlotArray(next, selSlot)
-    arr.splice(i+1, 0, copy)
-    setSlotArray(next, selSlot, arr)
-    push(next); setSelId(copy.id)
+    const copy: ComponentNode = clone(src)
+    copy.id = `${src.type.toLowerCase()}_${Math.random().toString(36).slice(2, 7)}`
+    const next = clone(page)
+    const arr = getSlotArray(next, targetSlot)
+    arr.splice(i + 1, 0, copy)
+    setSlotArray(next, targetSlot, arr)
+    push(next)
+    setSelSlot(targetSlot)
+    setSelId(copy.id)
   }
 
-  const moveSelToSlot = (dest: SlotName) => {
-    if (!selId || dest===selSlot) return
-    const next = structuredClone(page)
-    const fromArr = getSlotArray(next, selSlot)
-    const i = fromArr.findIndex(n=>n.id===selId); if (i<0) return
-    const [node] = fromArr.splice(i,1)
-    setSlotArray(next, selSlot, fromArr)
+  const moveSelToSlot = (dest: SlotName, sourceSlot?: SlotName, nodeId?: string) => {
+    const fromSlot = sourceSlot ?? selSlot
+    const id = nodeId ?? selId
+    if (!id || dest === fromSlot) return
+    const next = clone(page)
+    const fromArr = getSlotArray(next, fromSlot)
+    const i = fromArr.findIndex((n) => n.id === id)
+    if (i < 0) return
+    const [node] = fromArr.splice(i, 1)
+    setSlotArray(next, fromSlot, fromArr)
     const toArr = getSlotArray(next, dest)
     toArr.push(node)
     setSlotArray(next, dest, toArr)
-    push(next); setSelSlot(dest)
+    push(next)
+    setSelSlot(dest)
+    setSelId(node.id)
   }
+
+  const renderNodeList = (nodes: ComponentNode[], slot: SlotName) => (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
+      {nodes.map((n) => {
+        const isActive = selSlot === slot && selId === n.id
+        return (
+          <li
+            key={n.id}
+            onClick={() => {
+              setSelSlot(slot)
+              setSelId(n.id)
+            }}
+            style={{
+              padding: '10px',
+              border: '2px solid ' + (isActive ? '#111' : '#ddd'),
+              borderRadius: 10,
+              background: '#fafafa',
+              cursor: 'pointer',
+              outline: isActive ? '2px solid #111' : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (isActive) return
+              e.currentTarget.style.outline = '2px dashed #bbb'
+            }}
+            onMouseLeave={(e) => {
+              if (isActive) return
+              e.currentTarget.style.outline = 'none'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#666' }}>{n.type}</div>
+                <div style={{ fontWeight: 600 }}>
+                  {n.type === 'Text'
+                    ? (n.props as any)?.text
+                    : n.type === 'Hero'
+                    ? (n.props as any)?.title
+                    : `[${n.type}]`}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelSlot(slot)
+                    setSelId(n.id)
+                    duplicateSel(slot, n.id)
+                  }}
+                >
+                  複製
+                </button>
+                <select
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = (e.target as HTMLSelectElement).value as SlotName
+                    if (!value) return
+                    setSelSlot(slot)
+                    setSelId(n.id)
+                    moveSelToSlot(value, slot, n.id)
+                  }}
+                >
+                  <option value="">→ slot</option>
+                  {slotOrder
+                    .filter((name) => name !== slot)
+                    .map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          </li>
+        )
+      })}
+      {nodes.length === 0 && (
+        <li style={{ color: '#888' }}>（このスロットにはまだ要素がありません）</li>
+      )}
+    </ul>
+  )
 
   const undo = () => {
     const prev = history.at(-1); if(!prev) return
@@ -886,7 +987,7 @@ export default function Builder() {
   )
 
   // keyboard shortcuts
-  const SLOT_ORDER: SlotName[] = ['header','sidebar','content','footer']
+  const slotOrder: SlotName[] = isMetaMode ? META_SLOTS : ['header','sidebar','content','footer']
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!selId) return
@@ -895,15 +996,15 @@ export default function Builder() {
       if (e.key === 'ArrowDown'){ e.preventDefault(); moveSel( 1) }
       if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault()
-        const idx = SLOT_ORDER.indexOf(selSlot)
-        const nextIdx = e.key === 'ArrowLeft' ? Math.max(0, idx-1) : Math.min(SLOT_ORDER.length-1, idx+1)
-        const dest = SLOT_ORDER[nextIdx]
+        const idx = slotOrder.indexOf(selSlot)
+        const nextIdx = e.key === 'ArrowLeft' ? Math.max(0, idx-1) : Math.min(slotOrder.length-1, idx+1)
+        const dest = slotOrder[nextIdx]
         if (dest !== selSlot) moveSelToSlot(dest)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selId, page, selSlot])
+  }, [selId, page, selSlot, slotOrder])
 
   // dirty tracking and save
   useEffect(()=>{
@@ -913,6 +1014,13 @@ export default function Builder() {
 
   const save = async () => {
     if (!dirty) return
+    if (isMetaMode) {
+      const snapshot: Page = { ...page, frameId }
+      await saveBuilderManifest(snapshot)
+      const snap = JSON.stringify({ page: snapshot, frameId })
+      setLastSaved(snap)
+      return
+    }
     const frame = currentFrame
     await fetch('/api/save', {
       method:'POST',
@@ -938,10 +1046,11 @@ export default function Builder() {
   useEffect(()=>{ if (!dirty && showDiff) setShowDiff(false) }, [dirty, showDiff])
 
   const newPage = () => {
+    if (isMetaMode) return
     const id = prompt('新しい pageId を入力してください（例：map-about）','map-about')
     if (!id) return
     setHistory([])
-    setSelSlot('content')
+    setSelSlot(primarySlot)
     setSelId(undefined)
     const np = DEFAULT_PAGE(id)
     setPage(np)
@@ -950,25 +1059,14 @@ export default function Builder() {
   }
 
   return (
-    <>
-      <div style={{display:'grid', gridTemplateRows:'auto 1fr', height:'100vh'}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', gap:8, padding:'10px 16px', borderBottom:'1px solid #eee', background:'#f9f9f9'}}>
-          <button
-            onClick={toggleMetaMode}
-            aria-pressed={isMetaMode}
-            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background: isMetaMode ? '#111' : '#fff', color: isMetaMode ? '#fff' : '#111', fontWeight:600, boxShadow: isMetaMode ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'}}
-            title={isMetaMode ? 'Metaモードを終了' : 'Metaモードを開始'}
-          >
-            Meta Edit
-          </button>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100%', minHeight:0}}>
+    <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
       {/* 左ペイン：パレット＋Slot切替 */}
       <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
-          <button onClick={newPage} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>New Page</button>
+          <button onClick={newPage} disabled={isMetaMode} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>New Page</button>
           <button
             onClick={async()=>{
+              if (isMetaMode) return
               const to = prompt('新しい pageId を入力', page.id)
               if(!to || to===page.id) return
               const res = await fetch('/api/rename', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ oldId: page.id, newId: to }) })
@@ -979,7 +1077,8 @@ export default function Builder() {
               localStorage.setItem('chizu:lastPageId', j.id)
               show(`Renamed → ${j.id}`)
             }}
-            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>Rename</button>
+            disabled={isMetaMode}
+            style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>Rename</button>
           <button
             onClick={()=>setShowDiff(v=>!v)}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
@@ -987,25 +1086,15 @@ export default function Builder() {
           >
             変更点を見る{diffCount>0 ? `（${diffCount}）` : ''}
           </button>
-          <button
-            onClick={() => {
-              if (isMetaMode) return
-              save()
-            }}
-            aria-disabled={isMetaMode}
-            disabled={!dirty}
-            style={{padding:'6px 10px', borderRadius:8, background: isMetaMode ? '#bbb' : dirty ? '#111' : '#888', color:'#fff', cursor: isMetaMode ? 'not-allowed' : undefined, opacity: isMetaMode ? 0.7 : 1}}
-            title={isMetaMode ? 'Metaモードでは保存/生成できません' : undefined}
-          >
-            保存→生成 {dirty ? '●' : '✓'}
-          </button>
+          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '●' : '✓'}</button>
 
           <select
             value={frameId}
+            disabled={isMetaMode}
             onChange={(e) => {
               const nextId = (e.target as HTMLSelectElement).value
-              const nextFrame = FRAMES.find(f => f.id === nextId)!
-              const prevFrame = FRAMES.find(f => f.id === frameId)!
+              const nextFrame = frames.find((f) => f.id === nextId)!
+              const prevFrame = frames.find((f) => f.id === frameId)!
               const missing = Object.keys(page.slotAssignments ?? {}).filter(s => !nextFrame.slots.some(ns => ns.name===s))
               if (missing.length) {
                 const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか？`)
@@ -1015,13 +1104,13 @@ export default function Builder() {
               setHistory(h=>[...h.slice(-49), page])
               setPage(remapped)
               setFrameId(nextId)
-              setSelSlot('content')
+              setSelSlot(primarySlot)
               setSelId(undefined)
             }}
             style={{marginLeft:'auto', padding:'6px 8px', border:'1px solid #ddd', borderRadius:8}}
             title="Frameを変更（未対応slotはcontentへ退避）"
           >
-            {FRAMES.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {frames.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
 
@@ -1034,22 +1123,25 @@ export default function Builder() {
                 <div key={id} style={{display:'grid', gridTemplateColumns:'1fr auto auto', gap:8}}>
                   <button
                     onClick={() => loadPage(id)}
+                    disabled={isMetaMode}
                     style={{
                       padding:'6px 8px', border:'1px solid #ddd', borderRadius:8,
-                      background: id===page.id ? '#eef' : '#fff', textAlign:'left'
+                      background: id===page.id ? '#eef' : '#fff', textAlign:'left', opacity: isMetaMode ? 0.6 : 1
                     }}
                   >
                     {id}
                   </button>
                   <button
                     onClick={() => duplicatePage(id)}
-                    style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
+                    disabled={isMetaMode}
+                    style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}
                   >
                     複製
                   </button>
                   <button
                     onClick={() => deletePage(id)}
-                    style={{padding:'6px 8px', border:'1px solid #f0c', color:'#c00', background:'#fff', borderRadius:8}}
+                    disabled={isMetaMode}
+                    style={{padding:'6px 8px', border:'1px solid #f0c', color:'#c00', background:'#fff', borderRadius:8, opacity: isMetaMode ? 0.6 : 1}}
                   >
                     削除
                   </button>
@@ -1063,9 +1155,22 @@ export default function Builder() {
 
         <div>
           <h3 style={{margin:'8px 0'}}>Slots</h3>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8}}>
-            {(['header','sidebar','content','footer'] as SlotName[]).map(s => (
-              <button key={s} onClick={()=>{setSelSlot(s); setSelId(undefined)}} style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background: selSlot===s ? '#111' : '#fff', color: selSlot===s ? '#fff' : '#111'}}>
+          <div style={{display:'grid', gridTemplateColumns:`repeat(${slotOrder.length},1fr)`, gap:8}}>
+            {slotOrder.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setSelSlot(s)
+                  setSelId(undefined)
+                }}
+                style={{
+                  padding: '6px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  background: selSlot === s ? '#111' : '#fff',
+                  color: selSlot === s ? '#fff' : '#111',
+                }}
+              >
                 {s}
               </button>
             ))}
@@ -1074,20 +1179,9 @@ export default function Builder() {
 
         <div>
           <h3 style={{margin:'8px 0'}}>Components</h3>
-          {paletteUsingFallback && (
-            <div style={{ color: '#c00', fontSize: 12, marginBottom: 4 }}>
-              登録なし/解決不可（ローカル CATALOG を使用中）
-            </div>
-          )}
           <div style={{display:'grid', gap:8}}>
-            {paletteItems.map(c => (
-              <button
-                key={c.id}
-                onClick={()=>addNode(c.id, c.defaults)}
-                style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}
-              >
-                {c.displayName}
-              </button>
+            {CATALOG.map(c => (
+              <button key={c.type} onClick={()=>addNode(c.type)} style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}>{c.label}</button>
             ))}
           </div>
         </div>
@@ -1102,10 +1196,11 @@ export default function Builder() {
         </div>
       </div>
 
-      {/* 中央：キャンバス（選択中Slotの中身だけを表示） */}
-      <div style={{padding:12}}>
-        <h3 style={{margin:'8px 0'}}>Canvas ({selSlot})</h3>
-        <div style={{border:'1px solid #eee', borderRadius:12, padding:12, background:'#fff', marginBottom:12}}>
+      {/* 中央：キャンバス */}
+      {/* Canvas preview */}
+      <div style={{ padding: 12 }}>
+        <h3 style={{ margin: '8px 0' }}>Canvas</h3>
+        <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff', marginBottom: 12 }}>
           <CanvasRenderer
             tree={previewTree}
             runtime={previewRuntime}
@@ -1113,42 +1208,24 @@ export default function Builder() {
             isMetaMode={isMetaMode}
           />
         </div>
-        <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
-          {currentNodes.map(n => (
-            <li
-              key={n.id}
-              onClick={()=>setSelId(n.id)}
-              style={{
-                padding:'10px',
-                border:'2px solid ' + (n.id===selId ? '#111' : '#ddd'),
-                borderRadius:10,
-                background:'#fafafa',
-                cursor:'pointer',
-                outline: n.id===selId ? '2px solid #111' : 'none'
-              }}
-              onMouseEnter={e=>{ if (n.id!==selId) (e.currentTarget.style.outline='2px dashed #bbb') }}
-              onMouseLeave={e=>{ if (n.id!==selId) (e.currentTarget.style.outline='none') }}
-            >
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div>
-                  <div style={{fontSize:12,color:'#666'}}>{n.type}</div>
-                  <div style={{fontWeight:600}}>{n.type==='Text' ? (n.props as any)?.text : n.type==='Hero' ? (n.props as any)?.title : `[${n.type}]`}</div>
-                </div>
-                <div style={{display:'flex', gap:6}}>
-                  <button onClick={(e)=>{e.stopPropagation(); setSelId(n.id); duplicateSel()}}>複製</button>
-                  <select onClick={e=>e.stopPropagation()} onChange={e=>{setSelId(n.id); moveSelToSlot((e.target as HTMLSelectElement).value as any)}}>
-                    <option value="">→ slot</option>
-                    <option value="header">header</option>
-                    <option value="sidebar">sidebar</option>
-                    <option value="content">content</option>
-                    <option value="footer">footer</option>
-                  </select>
-                </div>
+      </div>
+
+      <div style={{ padding: 12 }}>
+        {isMetaMode ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 320px', gap: 12 }}>
+            {META_SLOTS.map((slot) => (
+              <div key={slot} style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff' }}>
+                <h3 style={{ margin: '8px 0' }}>Canvas ({slot})</h3>
+                {renderNodeList(getSlotNodes(page, slot), slot)}
               </div>
-            </li>
-          ))}
-          {currentNodes.length===0 && <li style={{color:'#888'}}>（このスロットにはまだ要素がありません）</li>}
-        </ul>
+            ))}
+          </div>
+        ) : (
+          <>
+            <h3 style={{ margin: '8px 0' }}>Canvas ({selSlot})</h3>
+            {renderNodeList(currentNodes, selSlot)}
+          </>
+        )}
       </div>
 
       {/* 右：Inspector（Props / Bindings タブ） */}
@@ -1167,7 +1244,7 @@ export default function Builder() {
             <PropsEditor node={selected} onChange={(k,v)=>updateProp(k,v)} />
           ) : (
             <BindingsEditor pageRoot={page} node={selected} onChange={(next)=>{
-              if (selSlot === 'content') {
+              if (selSlot === 'content' || selSlot === 'canvas') {
                 push({ ...page, content: (page.content ?? []).map(n => n.id===selected.id ? next : n) })
               } else {
                 const draft = structuredClone(page)
@@ -1209,11 +1286,5 @@ export default function Builder() {
         )}
       </div>
     </div>
-    {isMetaMode && (
-      <div style={{position:'fixed', top:56, right:16, padding:'8px 14px', borderRadius:9999, background:'#111', color:'#fff', fontWeight:600, boxShadow:'0 12px 30px rgba(0,0,0,0.2)', letterSpacing:0.5, zIndex:60}}>
-        Meta Editing
-      </div>
-    )}
-    </>
   )
 }
