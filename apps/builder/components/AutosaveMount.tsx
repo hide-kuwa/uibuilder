@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import { useAutosave } from '@/src/hooks/useAutosave';
+import { recordSavedAt } from '@/stores/saveQueue';
 
 type Props = {
   page: any;             // 既存の page JSON（id を含む想定）
@@ -25,6 +26,19 @@ export function AutosaveMount({ page, debounceMs = 800 }: Props) {
         body: JSON.stringify(p),
       });
       if (!res.ok) throw new Error('save failed');
+      try {
+        const payload = await res.json();
+        const savedAtRaw = typeof payload?.savedAt === 'string'
+          ? Date.parse(payload.savedAt)
+          : typeof payload?.savedAt === 'number'
+            ? Number(payload.savedAt)
+            : Date.now();
+        const savedAt = Number.isFinite(savedAtRaw) ? savedAtRaw : Date.now();
+        const lastWriteTs = typeof payload?.lastWriteTs === 'number' ? Number(payload.lastWriteTs) : undefined;
+        recordSavedAt(savedAt, lastWriteTs);
+      } catch {
+        recordSavedAt(Date.now());
+      }
     },
     debounceMs,
   });

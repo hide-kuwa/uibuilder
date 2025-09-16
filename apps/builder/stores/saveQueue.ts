@@ -8,6 +8,7 @@ type SaveState = {
   offline: boolean
   queued: number
   lastSavedAt?: number
+  lastWriteTs?: number
   queueChange: (id: string, data: any) => Promise<void>
   flush: () => Promise<void>
   boot: () => Promise<void>
@@ -34,33 +35,41 @@ export const useSaveStore = create<SaveState>(() => ({
       await db.outbox.add({ target: `/api/drafts/${id}`, method: 'PUT', body: { data, updatedAt: now() }, createdAt: now() })
     }
     const cnt = await db.outbox.count()
-    ;(useSaveStore as any).setState({ queued: cnt })
+    useSaveStore.setState({ queued: cnt })
   },
   async flush() {
     const items = await db.outbox.toArray()
+    let lastWrite: number | undefined
     for (const it of items) {
       try {
         await fetch(it.target, { method: it.method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(it.body) })
         await db.outbox.delete(it.id!)
+        const candidate = typeof (it.body as any)?.updatedAt === 'number' ? Number((it.body as any).updatedAt) : undefined
+        lastWrite = typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : now()
       } catch {
         break
       }
     }
     const cnt = await db.outbox.count()
-    ;(useSaveStore as any).setState({ queued: cnt, lastSavedAt: now() })
+    const savedAt = now()
+    useSaveStore.setState({ queued: cnt, lastSavedAt: savedAt, lastWriteTs: lastWrite ?? savedAt })
   },
   async boot() {
     const cnt = await db.outbox.count()
-    ;(useSaveStore as any).setState({ queued: cnt })
+    useSaveStore.setState({ queued: cnt })
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
-        ;(useSaveStore as any).setState({ offline: false })
+        useSaveStore.setState({ offline: false })
         useSaveStore.getState().flush()
       })
       window.addEventListener('offline', () => {
-        ;(useSaveStore as any).setState({ offline: true })
+        useSaveStore.setState({ offline: true })
       })
     }
   },
 }))
+
+export function recordSavedAt(savedAt: number, lastWriteTs?: number) {
+  useSaveStore.setState({ lastSavedAt: savedAt, lastWriteTs })
+}
 

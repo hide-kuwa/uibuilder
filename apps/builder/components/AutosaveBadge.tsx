@@ -1,9 +1,11 @@
 // apps/builder/components/AutosaveBadge.tsx
 'use client'
 import React from 'react'
+import { useSaveStore } from '@/stores/saveQueue'
 
 export function AutosaveBadge() {
   const [queued, setQueued] = React.useState(0)
+  const lastSavedAt = useSaveStore((s) => s.lastSavedAt)
   const onQueued  = (_e: Event) => setQueued((n) => n + 1)
   const onSaved   = (_e: Event) => setQueued((n) => Math.max(0, n - 1))
   const onError   = (_e: Event) => setQueued((n) => n)
@@ -26,13 +28,15 @@ export function AutosaveBadge() {
   }, [])
 
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false
+  const savedLabel = lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString() : null
+
   return (
     <div style={{
       position:'fixed', right:12, bottom:12, padding:'6px 10px',
       borderRadius:12, background: offline ? '#fee2e2' : (queued>0 ? '#fef9c3' : '#e2fbe2'),
       color:'#111', fontSize:12, boxShadow:'0 1px 4px rgba(0,0,0,0.12)', zIndex:9999
     }}>
-      {offline ? 'Offline' : 'Autosave'} {queued>0 ? `• Queue ${queued}` : '• OK'}
+      {offline ? 'Offline' : 'Autosave'} {queued>0 ? `• Queue ${queued}` : savedLabel ? `• Saved ${savedLabel}` : '• OK'}
     </div>
   )
 }
