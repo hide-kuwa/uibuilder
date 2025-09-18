@@ -16,10 +16,9 @@ export default function InlineTextEditor({ nodeId, initialText }:{nodeId:string;
     <input ref={ref}
       className="absolute left-0 top-0 w-full border-none outline-none bg-transparent p-1 text-sm"
       value={value}
-      onChange={(e)=>setValue(e.target.value)}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setValue(e.currentTarget.value)}
       onBlur={commit}
       onKeyDown={(e)=>{ if(e.key==='Enter') commit(); if(e.key==='Escape') stopEditingText() }}
     />
   )
 }
-

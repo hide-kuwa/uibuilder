@@ -33,13 +33,13 @@ export default function DsTestPanelPlus() {
         <input
           placeholder="https://example.com/data.json"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.currentTarget.value)}
           style={{ width: '100%' }}
         />
         <div style={{ display: 'flex', gap: 8 }}>
-          <label>timeoutMs <input type="number" value={timeoutMs} onChange={(e) => setTimeoutMs(Number(e.target.value))} style={{ width: 120 }} /></label>
-          <label>retries <input type="number" value={retries} onChange={(e) => setRetries(Number(e.target.value))} style={{ width: 120 }} /></label>
-          <label>backoffMs <input type="number" value={backoffMs} onChange={(e) => setBackoffMs(Number(e.target.value))} style={{ width: 120 }} /></label>
+          <label>timeoutMs <input type="number" value={timeoutMs} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimeoutMs(Number(e.currentTarget.value))} style={{ width: 120 }} /></label>
+          <label>retries <input type="number" value={retries} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRetries(Number(e.currentTarget.value))} style={{ width: 120 }} /></label>
+          <label>backoffMs <input type="number" value={backoffMs} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBackoffMs(Number(e.currentTarget.value))} style={{ width: 120 }} /></label>
         </div>
         <button onClick={post}>POST /api/ds-fetch3</button>
         <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#fafafa', border: '1px solid #eee', padding: 8, maxHeight: 300, overflow: 'auto' }}>
@@ -77,7 +77,7 @@ export default function DsTestPanelPlus() {
       // Find the DS+ action button by its label
       const btns = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[]
       dsBtn = btns.find((b) => (b.textContent || '').includes('POST /api/ds-fetch3')) || null
-      if (dsBtn && !dsBtn.__dsplus_bound) {
+      if (dsBtn && !(dsBtn as any).__dsplus_bound) {
         dsBtn.addEventListener(
           'click',
           (ev) => {

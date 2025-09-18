@@ -179,28 +179,27 @@ export default async function Page({ searchParams }: { searchParams?: { slug?: s
   const origin = (process.env.NEXT_PUBLIC_UI_AUDIT_ORIGIN || `${protoHeader ?? fallbackProto}://${hostHeader}`).replace(/\/$/, '')
   const apiUrl = `${origin}/api/ui-audit/score?slug=${encodeURIComponent(slug)}`
 
-  let apiData: AuditScoreResponse | null = null
+  let apiData: Partial<AuditScoreResponse> | null = null
   try {
     const res = await fetch(apiUrl, { cache: 'no-store' })
     if (res.ok) {
-      apiData = (await res.json()) as AuditScoreResponse
+      apiData = (await res.json()) as Partial<AuditScoreResponse>
     }
   } catch {
     // ignore network failures; fallback below
   }
 
-  const data = apiData ?? {
+  const data: Partial<AuditScoreResponse> = apiData ?? {
     slug,
     scores: defaultScores,
     issues: defaultIssues,
     issuesDetail: { contrast: [] },
-    warning: apiData ? apiData.warning : 'UI-Audit API response unavailable',
-    error: apiData?.error,
+    warning: 'UI-Audit API response unavailable',
   }
 
   const scores = data.scores ?? defaultScores
   const issues = data.issues ?? defaultIssues
-  const contrastDetails = data.issuesDetail?.contrast ?? []
+  const contrastDetails = Array.isArray(data.issuesDetail?.contrast) ? data.issuesDetail!.contrast! : []
   const contrastRows = contrastDetails.map((d) => ({
     id: d.id,
     ratio: typeof d.ratio === 'number' ? d.ratio : null,

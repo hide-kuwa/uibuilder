@@ -6,9 +6,9 @@ import type { Document, Node, Page, NodeStyle, NodeMotion, Shadow } from './mode
 
 function findNode(root: Node, id: string): Node | null {
   if (root.id === id) return root
-  // @ts-expect-error runtime guard
-  if (root.children && Array.isArray(root.children)) {
-    for (const c of root.children) {
+  const anyRoot: any = root
+  if (anyRoot.children && Array.isArray(anyRoot.children)) {
+    for (const c of anyRoot.children as any[]) {
       const r = findNode(c, id)
       if (r) return r
     }

@@ -367,21 +367,30 @@ export default async function Page({ searchParams }: { searchParams?: Record<str
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
         <div class="border rounded p-2">
           <div class="text-xs opacity-70">Contrast Issues (Top 5)</div>
-          <div class="mt-1 space-y-1">$${'{'}rank.contrast.length ? rank.contrast.map((r, i) => `
-            <div class=\"flex items-center justify-between\"><a class=\"underline text-blue-600 hover:text-blue-800\" href=\"/audit?slug=${'${'}encodeURIComponent(r.slug)${'}'}\">${'${'}r.slug${'}'}</a><span class=\"font-mono\">${'${'}r.n${'}'}</span></div>
-          `).join('') : '<div class=\\"text-xs text-gray-500\\">No data</div>'$${'}'}</div>
+          <div class="mt-1 space-y-1">$${'{'}rank.contrast.length ? rank.contrast.map((r) => (
+            '<div class="flex items-center justify-between">'
+            + '<a class="underline text-blue-600 hover:text-blue-800" href="/audit?slug=' + encodeURIComponent(r.slug) + '">' + r.slug + '</a>'
+            + '<span class="font-mono">' + r.n + '</span>'
+            + '</div>'
+          )).join('') : '<div class="text-xs text-gray-500">No data</div>'$${'}'}</div>
         </div>
         <div class="border rounded p-2">
           <div class="text-xs opacity-70">Spacing Issues (Top 5)</div>
-          <div class="mt-1 space-y-1">$${'{'}rank.gridSpacing.length ? rank.gridSpacing.map((r, i) => `
-            <div class=\"flex items-center justify-between\"><a class=\"underline text-blue-600 hover:text-blue-800\" href=\"/audit?slug=${'${'}encodeURIComponent(r.slug)${'}'}\">${'${'}r.slug${'}'}</a><span class=\"font-mono\">${'${'}r.n${'}'}</span></div>
-          `).join('') : '<div class=\\"text-xs text-gray-500\\">No data</div>'$${'}'}</div>
+          <div class="mt-1 space-y-1">$${'{'}rank.gridSpacing.length ? rank.gridSpacing.map((r) => (
+            '<div class="flex items-center justify-between">'
+            + '<a class="underline text-blue-600 hover:text-blue-800" href="/audit?slug=' + encodeURIComponent(r.slug) + '">' + r.slug + '</a>'
+            + '<span class="font-mono">' + r.n + '</span>'
+            + '</div>'
+          )).join('') : '<div class="text-xs text-gray-500">No data</div>'$${'}'}</div>
         </div>
         <div class="border rounded p-2">
           <div class="text-xs opacity-70">Alignment Issues (Top 5)</div>
-          <div class="mt-1 space-y-1">$${'{'}rank.alignment.length ? rank.alignment.map((r, i) => `
-            <div class=\"flex items-center justify-between\"><a class=\"underline text-blue-600 hover:text-blue-800\" href=\"/audit?slug=${'${'}encodeURIComponent(r.slug)${'}'}\">${'${'}r.slug${'}'}</a><span class=\"font-mono\">${'${'}r.n${'}'}</span></div>
-          `).join('') : '<div class=\\"text-xs text-gray-500\\">No data</div>'$${'}'}</div>
+          <div class="mt-1 space-y-1">$${'{'}rank.alignment.length ? rank.alignment.map((r) => (
+            '<div class="flex items-center justify-between">'
+            + '<a class="underline text-blue-600 hover:text-blue-800" href="/audit?slug=' + encodeURIComponent(r.slug) + '">' + r.slug + '</a>'
+            + '<span class="font-mono">' + r.n + '</span>'
+            + '</div>'
+          )).join('') : '<div class="text-xs text-gray-500">No data</div>'$${'}'}</div>
         </div>
       </div>
     `

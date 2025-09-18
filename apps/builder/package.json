@@ -6,6 +6,7 @@
     "route:check": "node scripts/check-route-conflicts.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "next lint",
+    "utf8-guard": "node -e \"const fs=require('fs'),path=require('path');let bad=0;function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()) w(p); else if(/\\.(ts|tsx|js|jsx|json|md|css|html)$/.test(e.name)){const s=fs.readFileSync(p,'utf8'); if(s.includes('\\uFFFD')){ console.error('FFFD:',p); bad=1; } } }} w('apps/builder'); process.exit(bad);\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -23,6 +24,8 @@
     "swr": "2.2.5"
   },
   "devDependencies": {
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0"
   }
 }

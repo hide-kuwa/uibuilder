@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 
 declare global {
   interface Window {
-    registerRightPaneTab?: (key: string, label: string, render: any) => void
+    registerRightPaneTab?: ((tab: { key: string; label: string; render: () => Element }) => void)
     __rbacWrapped?: boolean
     currentUserRole?: 'owner' | 'maintainer' | 'reviewer'
   }
@@ -25,16 +25,16 @@ export default function RbacBridge() {
     if (typeof orig !== 'function') return
     window.__rbacWrapped = true
 
-    window.registerRightPaneTab = (key: string, label: string, render: any) => {
+    window.registerRightPaneTab = (tab: { key: string; label: string; render: () => Element }) => {
       const role = window.currentUserRole || DEFAULT_ROLE
       const allow = allowMap[role] || []
-      const permitted = allow.includes('*') || allow.includes(label) || allow.includes(key)
+      const permitted = allow.includes('*') || allow.includes(tab.label) || allow.includes(tab.key)
       if (!permitted) {
-        console.info('[rbac] blocked tab', { role, key, label })
+        console.info('[rbac] blocked tab', { role, key: tab.key, label: tab.label })
         return
       }
       // call-through supporting both signature styles
-      try { (orig as any)({ key, label, render }) } catch { try { (orig as any)(key, label, render) } catch {} }
+      try { (orig as any)(tab) } catch { try { (orig as any)(tab.key, tab.label, tab.render) } catch {} }
     }
   }, [])
   return null
@@ -52,4 +52,3 @@ export default function RbacBridge() {
  *     window.currentUserRole = 'reviewer'
  *   としてフィルタ挙動を確認、完了後に 'owner' に戻す。
  */
-

@@ -1,6 +1,6 @@
 'use client'
 
-import Dexie, { type Table } from 'dexie'
+import Dexie from 'dexie'
 import type { Page } from '@chizu/types'
 import { DEFAULT_BUILDER_MANIFEST } from './builderManifest'
 
@@ -13,7 +13,7 @@ type ManifestRecord = {
 }
 
 class BuilderMetaDB extends Dexie {
-  manifests!: Table<ManifestRecord, string>
+  manifests!: any
 
   constructor() {
     super('builder-meta')

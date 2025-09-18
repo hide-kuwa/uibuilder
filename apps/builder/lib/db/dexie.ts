@@ -1,12 +1,12 @@
 'use client'
-import Dexie, { Table } from 'dexie'
+import Dexie from 'dexie'
 
 export interface Draft { id: string; data: any; updatedAt: number }
 export interface Outbox { id?: number; target: string; method: 'PUT'|'PATCH'; body: any; createdAt: number }
 
 class BuilderDB extends Dexie {
-  drafts!: Table<Draft, string>
-  outbox!: Table<Outbox, number>
+  drafts!: any
+  outbox!: any
   constructor() {
     super('builder-db')
     this.version(1).stores({
@@ -17,4 +17,3 @@ class BuilderDB extends Dexie {
 }
 
 export const db = new BuilderDB()
-

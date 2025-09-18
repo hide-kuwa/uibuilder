@@ -33,7 +33,7 @@ export default function PresetsPanel({ slug }: { slug?: string }) {
       const tree = Array.isArray(cur?.tree) ? cur.tree : Array.isArray(cur) ? cur : []
       setSnapshot(tree)
       const { nextTree, diffText } = applyPreset(tree, p as Preset)
-      logEvent('applyPreset', { slug: id, name: sel?.name })
+      logEvent('applyPreset', { slug: id, name: name })
       setDiff(diffText)
       // Raise event for host to apply draft
       try { window.dispatchEvent(new CustomEvent('builder:applyPreset', { detail: { slug: id, name, nextTree } })) } catch {}
@@ -61,7 +61,7 @@ export default function PresetsPanel({ slug }: { slug?: string }) {
     <div data-testid="presets-ready" className="p-2 space-y-2 text-sm">
       <div className="flex items-center gap-2">
         <b>Presets</b>
-        <select value={name} onChange={(e) => setName(e.target.value)} className="border rounded px-2 py-0.5 text-xs">
+        <select value={name} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setName(e.currentTarget.value)} className="border rounded px-2 py-0.5 text-xs">
           {names.map((n) => (
             <option key={n} value={n}>
               {n}

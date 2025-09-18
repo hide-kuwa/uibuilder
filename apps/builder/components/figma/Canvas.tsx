@@ -106,15 +106,17 @@ function NodeBox({ node }: { node: Node }) {
     if (node.type === 'TEXT') startEditingText(node.id)
   }
 
+  const textContent = (node as any)?.content ?? ''
+
   return (
     <div onClick={onClick} onDoubleClick={onDoubleClick} style={style}>
       {node.type === 'TEXT' && (
         <>
           <div className="select-none cursor-text p-1 text-sm">
-            {editingTextId !== node.id && (node.content ?? '')}
+            {editingTextId !== node.id && textContent}
           </div>
           {editingTextId === node.id && (
-            <InlineTextEditor nodeId={node.id} initialText={node.content ?? ''} />
+            <InlineTextEditor nodeId={node.id} initialText={textContent} />
           )}
         </>
       )}
@@ -180,7 +182,7 @@ function DevNodeBox({ node }: { node: FigmaDevNode }) {
             className="w-full h-full text-sm"
             value={draft}
             autoFocus
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.currentTarget.value)}
             onKeyDown={onKeyDown}
           />
         ) : (

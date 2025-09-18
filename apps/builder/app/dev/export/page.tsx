@@ -17,7 +17,7 @@ export default function Page() {
       {/* --- append-only: autosave mount --- */}
       <AutosaveMount page={getPage()} />
       <div style={{ marginTop: 16 }}>
-        <ExportButtonDeterministic page={getPage()} />
+        <ExportButtonDeterministic getPage={getPage} />
       </div>
       <ExportHashPreview page={getPage()} />
       <p className="text-sm opacity-70">※ ストア接続前の暫定版です。</p>

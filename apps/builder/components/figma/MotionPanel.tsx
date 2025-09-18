@@ -35,33 +35,33 @@ export default function MotionPanel() {
       <Row label="Preset">
         <select className="w-full border rounded px-2 py-1 text-sm"
           value={preset}
-          onChange={(e)=>setNodeMotion(n.id, { preset: e.target.value as any })}>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>setNodeMotion(n.id, { preset: e.currentTarget.value as any })}>
           {presets.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
       </Row>
       <Row label="Trigger">
         <select className="w-full border rounded px-2 py-1 text-sm"
           value={trigger}
-          onChange={(e)=>setNodeMotion(n.id, { trigger: e.target.value as any })}>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>setNodeMotion(n.id, { trigger: e.currentTarget.value as any })}>
           {triggers.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </Row>
       <Row label="Engine">
         <select className="w-full border rounded px-2 py-1 text-sm"
           value={engine}
-          onChange={(e)=>setNodeMotion(n.id, { engine: e.target.value as any })}>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>setNodeMotion(n.id, { engine: e.currentTarget.value as any })}>
           {engines.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </Row>
       <Row label="Duration(ms)">
         <input type="number" className="w-full border rounded px-2 py-1 text-right"
           value={duration ?? 280}
-          onChange={(e)=>setNodeMotion(n.id, { options: { duration: Number(e.target.value) }})}/>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setNodeMotion(n.id, { options: { duration: Number(e.currentTarget.value) }})}/>
       </Row>
       <Row label="Distance(px)">
         <input type="number" className="w-full border rounded px-2 py-1 text-right"
           value={distance ?? 24}
-          onChange={(e)=>setNodeMotion(n.id, { options: { distance: Number(e.target.value) }})}/>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setNodeMotion(n.id, { options: { distance: Number(e.currentTarget.value) }})}/>
       </Row>
       <div className="text-xs text-gray-400 mt-1">※ 再生は後続PR。Reduced Motionは既定で尊重。</div>
     </div>

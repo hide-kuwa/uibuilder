@@ -38,8 +38,8 @@ export default function DataPanel() {
       const nodeId = selectedNodeId || 'node'
       const b = getBindingsForNode(nodeId)
       const props: Record<string, any> = { [propId]: '(preview)' }
-      const out = await resolvePropsWithBindings(nodeId, props, b, mode)
-      setTestOut(String(out[propId]))
+      const out: any = await resolvePropsWithBindings(nodeId, props, b, mode)
+      setTestOut(String(out?.[propId]))
     } catch (e) {
       setTestOut(String(e instanceof Error ? e.message : e))
     }
@@ -52,9 +52,9 @@ export default function DataPanel() {
       <div className="text-xs opacity-70">Data Binding</div>
       <div className="grid grid-cols-2 gap-2 items-center">
         <label className="text-xs">Prop</label>
-        <input value={propId} onChange={(e) => setPropId(e.target.value)} className="border rounded px-2 py-1 text-xs" />
+        <input value={propId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPropId(e.currentTarget.value)} className="border rounded px-2 py-1 text-xs" />
         <label className="text-xs">Kind</label>
-        <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="border rounded px-2 py-1 text-xs">
+        <select value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setKind(e.currentTarget.value as any)} className="border rounded px-2 py-1 text-xs">
           <option value="local">local</option>
           <option value="global">global</option>
           <option value="api">api</option>
@@ -62,8 +62,8 @@ export default function DataPanel() {
         <label className="text-xs">Path</label>
         <input
           value={path}
-          onChange={(e) => setPath(e.target.value)}
-          placeholder={kind === 'api' ? 'prefStats.0.value' : 'user.name'}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPath(e.currentTarget.value)}
+          placeholder={kind === 'api' ? 'prefStats.13.name' : 'user.name'}
           className="border rounded px-2 py-1 text-xs"
         />
       </div>
@@ -82,9 +82,9 @@ export default function DataPanel() {
         <div className="text-xs opacity-70">Repeat (wrap selected node)</div>
         <div className="grid grid-cols-2 gap-2 items-center">
           <label className="text-xs">dataPath</label>
-          <input value={repeatPath} onChange={(e) => setRepeatPath(e.target.value)} className="border rounded px-2 py-1 text-xs" placeholder="list.items" />
+          <input value={repeatPath} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRepeatPath(e.currentTarget.value)} className="border rounded px-2 py-1 text-xs" placeholder="list.items" />
           <label className="text-xs">itemKey</label>
-          <input value={repeatKey} onChange={(e) => setRepeatKey(e.target.value)} className="border rounded px-2 py-1 text-xs" placeholder="id" />
+          <input value={repeatKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRepeatKey(e.currentTarget.value)} className="border rounded px-2 py-1 text-xs" placeholder="id" />
         </div>
         <div className="flex gap-2 mt-1">
           <button

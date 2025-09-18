@@ -17,6 +17,8 @@
     "paths": {
       "@chizu/renderer": ["./shims/chizu-renderer-server"],
       "@chizu/ui/*": ["./shims/chizu-ui/*"],
+      "@chizu/types": ["../../packages/chizu-types/src/index.ts"],
+      "@chizu/types/*": ["../../packages/chizu-types/src/*", "../../packages/types/src/*"],
       "@/*": ["./*"]
     },
     "plugins": [

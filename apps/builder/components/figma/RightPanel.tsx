@@ -66,7 +66,7 @@ function NumberInput({
         <input
           type="number"
           value={Number.isFinite(value) ? value : 0}
-          onChange={(e) => onChange(Number(e.target.value))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.currentTarget.value))}
           onKeyDown={onKeyDown}
           className="flex-1 border rounded px-2 py-1 text-right"
         />
@@ -96,7 +96,7 @@ function TextInput({
       <input
         type="text"
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.currentTarget.value)}
         className="w-40 border rounded px-2 py-1 text-right"
       />
     </label>
@@ -238,7 +238,7 @@ function Slider({
         max={max}
         step={step}
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.currentTarget.value))}
         className="w-40"
       />
     </label>
@@ -307,6 +307,8 @@ export default function RightPanel() {
       </div>
     )
   }
+
+  if (!selected) return null
 
   const radiusObj = (() => {
     const r = selected.style?.radius
@@ -414,9 +416,9 @@ export default function RightPanel() {
           <select
             className="w-40 border rounded px-2 py-1 text-sm"
             value={selected.style?.transformOrigin ?? 'TL'}
-            onChange={(e) =>
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               updateNodeStyle(selected.id, {
-                transformOrigin: e.target.value as any,
+                transformOrigin: e.currentTarget.value as any,
               })
             }
           >
@@ -443,7 +445,7 @@ export default function RightPanel() {
               <input
                 type="number"
                 value={radiusObj.tl}
-                onChange={(e) => updateNodeStyle(selected.id, { radius: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateNodeStyle(selected.id, { radius: Number(e.currentTarget.value) })}
                 className="w-20 border rounded px-2 py-1 text-right"
               />
             ) : (
@@ -453,8 +455,8 @@ export default function RightPanel() {
                     key={k}
                     type="number"
                     value={radiusObj[k]}
-                    onChange={(e) =>
-                      updateNodeStyle(selected.id, { radius: { ...radiusObj, [k]: Number(e.target.value) } })
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateNodeStyle(selected.id, { radius: { ...radiusObj, [k]: Number(e.currentTarget.value) } })
                     }
                     className="w-16 border rounded px-1 py-1 text-right"
                   />
@@ -490,31 +492,31 @@ export default function RightPanel() {
                 type="number"
                 className="w-12 border rounded px-1 py-1 text-right"
                 value={sh.x}
-                onChange={(e) => updateShadow(i, { x: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateShadow(i, { x: Number(e.currentTarget.value) })}
               />
               <input
                 type="number"
                 className="w-12 border rounded px-1 py-1 text-right"
                 value={sh.y}
-                onChange={(e) => updateShadow(i, { y: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateShadow(i, { y: Number(e.currentTarget.value) })}
               />
               <input
                 type="number"
                 className="w-12 border rounded px-1 py-1 text-right"
                 value={sh.blur}
-                onChange={(e) => updateShadow(i, { blur: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateShadow(i, { blur: Number(e.currentTarget.value) })}
               />
               <input
                 type="number"
                 className="w-12 border rounded px-1 py-1 text-right"
                 value={sh.spread}
-                onChange={(e) => updateShadow(i, { spread: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateShadow(i, { spread: Number(e.currentTarget.value) })}
               />
               <input
                 type="text"
                 className="w-20 border rounded px-1 py-1 text-right"
                 value={sh.color}
-                onChange={(e) => updateShadow(i, { color: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateShadow(i, { color: e.currentTarget.value })}
               />
               <div className="flex items-center space-x-1">
                 <button

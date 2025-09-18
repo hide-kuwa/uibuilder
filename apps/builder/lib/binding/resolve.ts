@@ -129,7 +129,7 @@ export async function resolvePropsWithBindings(
   const { bindings, apiRuntime } = await toRendererBindings(propBindings)
   const runtimeWithApi = apiRuntime ? { ...runtime, api: { ...(runtime as any).api, ...apiRuntime } } : runtime
   const runtimeWithItem = item === undefined ? runtimeWithApi : { ...runtimeWithApi, item }
-  return renderResolve(runtimeWithItem, nodeId, props, bindings as any)
+  return (renderResolve as any)(runtimeWithItem, nodeId, props, bindings as any)
 }
 
 // Bridge for preview runtime (optional)
