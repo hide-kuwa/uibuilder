@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
@@ -10,7 +10,8 @@ import { DEFAULT_BUILDER_MANIFEST } from '@/lib/meta/builderManifest'
 import { loadBuilderManifest, saveBuilderManifest } from '@/lib/meta/storage'
 
 function show(msg: string) {
-  // 蠕後〒繝医・繧ｹ繝医↓蟾ｮ縺玲崛縺亥庄閭ｽ縺ｪ證ｫ螳壹い繝ｩ繝ｼ繝・  if (typeof window !== 'undefined') alert(msg)
+  // TODO: 後でトーストに差し替え可能な暫定アラート
+  if (typeof window !== 'undefined') alert(msg)
 }
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json())
@@ -65,7 +66,7 @@ const DEFAULT_PAGE = (id = 'map-home'): Page => ({
 const CATALOG: Array<{type:string; label:string; defaultProps?:Record<string,any>}> = [
   { type:'Text', label:'Text', defaultProps:{ text:'テキスト' } },
   { type:'Image', label:'Image', defaultProps:{ src:'', alt:'' } },
-  { type:'Hero', label:'Hero', defaultProps:{ title:'繧ｿ繧､繝医Ν' } },
+  { type:'Hero', label:'Hero', defaultProps:{ title:'タイトル' } },
   { type:'TopNav', label:'TopNav' },
   { type:'PrefList', label:'PrefList' }
 ]
@@ -120,7 +121,7 @@ function buildPreviewTree(page: Page, frameId: string): ComponentNode[] {
 const PREVIEW_API: Record<string, any> = {
   prefStats: {
       '01': { name: '北海道', population: 5224614 },
-    '13': { name: '譚ｱ莠ｬ驛ｽ', population: 14047594 },
+    '13': { name: '東京都', population: 14047594 },
   },
 }
 
@@ -288,11 +289,11 @@ function BindingsEditor({
       : [{ scope: 'page', path: 'prefCode' }]
   )
   const [expr, setExpr] = useState<string>(
-    cur?.formula?.expr ?? '`蛟､: ${$0}`'
+    cur?.formula?.expr ?? '`値: ${$0}`'
   )
   const [suggestIdx, setSuggestIdx] = useState<number>(-1)
 
-  // 陦梧桃菴・
+  // 行操作ヘルパー
   const addRow = () => setRows(rs => [...rs, { scope: 'page', path: '' }])
   const delRow = (i: number) => setRows(rs => rs.filter((_, idx) => idx !== i))
   const moveRow = (i: number, dir: -1|1) => setRows(rs => {
@@ -302,18 +303,18 @@ function BindingsEditor({
   const setRow = (i: number, patch: Partial<{scope:'page'|'api', path:string}>) =>
     setRows(rs => rs.map((r, idx) => idx===i ? { ...r, ...patch } : r))
 
-  // 繝ｩ繧､繝悶・繝ｬ繝薙Η繝ｼ・夂ｰ｡譏薙Λ繝ｳ繧ｿ繧､繝
+  // ライブプレビュー用の簡易ランタイム
   const PREVIEW_PAGE = { prefCode: '13' }
   const PREVIEW_API  = {
     prefStats: {
       '01': { name: '北海道', population: 5224614 },
-      '13': { name: '譚ｱ莠ｬ驛ｽ', population: 14047594 }
+      '13': { name: '東京都', population: 14047594 }
     }
   }
 
   const inputsPreview: any[] = rows.map(r => {
     if (r.scope === 'page') {
-      // dot-walk・域怙蟆擾ｼ・
+      // dot-walkを最小限に
       return r.path.split('.').reduce((acc:any,k)=>acc?.[k], PREVIEW_PAGE)
     } else {
       return r.path.split('.').reduce((acc:any,k)=>acc?.[k], PREVIEW_API)
@@ -322,13 +323,13 @@ function BindingsEditor({
 
   const previewValue = (() => {
     try {
-      // 螳牙・遲厄ｼ壼ｼ上・譁・ｭ怜・・・聞縺募宛髯・
-      if (typeof expr !== 'string' || expr.length > 500) return '(蠑上′髟ｷ縺吶℃縺ｾ縺・'
+      // 安全策: 式の長さを制限
+      if (typeof expr !== 'string' || expr.length > 500) return '(式が長すぎます)'
       // eslint-disable-next-line no-new-func
       const f = new Function(...inputsPreview.map((_,i)=>`$${i}`), `return (${expr})`)
       return String(f(...inputsPreview))
     } catch {
-      return '(蠑上お繝ｩ繝ｼ)'
+      return '(式エラー)'
     }
   })()
 
@@ -340,7 +341,7 @@ function BindingsEditor({
   function pretty(v:any, limit=250){
     try {
       const s = JSON.stringify(v, null, 2) ?? 'null'
-      return s.length>limit ? s.slice(0,limit)+'\n窶ｦ' : s
+      return s.length>limit ? s.slice(0,limit)+'\n…' : s
     } catch {
       return String(v)
     }
@@ -403,7 +404,7 @@ function BindingsEditor({
     onChange(next)
   }
 
-  // targetProp 螟画峩譎ゅ↓UI繧呈里蟄伜､縺ｸ
+  // targetProp 変更時にUIを既存値へ
   useEffect(() => {
     const b = (node.bindings ?? {})[targetProp] as any
     setRows(
@@ -411,7 +412,7 @@ function BindingsEditor({
         ? b.inputs.map((r: any) => ({ scope: r.scope, path: r.path }))
         : [{ scope: 'page', path: 'prefCode' }]
     )
-    setExpr(b?.formula?.expr ?? '`蛟､: ${$0}`')
+    setExpr(b?.formula?.expr ?? '`値: ${$0}`')
   }, [targetProp, node.bindings])
 
   return (
@@ -516,7 +517,7 @@ function BindingsEditor({
                       }
                       if (e.key === 'Escape') { setSuggestIdx(-1) }
                     }}
-                    placeholder="prefCode 繧・莉ｻ諢上・ page.* 繝代せ"
+                    placeholder="prefCode または任意の page.* パス"
                   />
                   {(() => {
                     const PAGE_SUGGEST_ROOT = { id: pageRoot?.id, title: pageRoot?.title, frameId: pageRoot?.frameId, prefCode: (pageRoot as any)?.prefCode ?? '', ...(pageRoot as any) }
@@ -546,7 +547,7 @@ function BindingsEditor({
             <div style={{display:'flex', gap:6}}>
               <button onClick={()=>moveRow(i,-1)} disabled={i===0}>↑</button>
               <button onClick={()=>moveRow(i, 1)} disabled={i===rows.length-1}>↓</button>
-              <button onClick={()=>delRow(i)}>蜑企勁</button>
+              <button onClick={()=>delRow(i)}>削除</button>
             </div>
           </div>
         ))}
@@ -556,7 +557,7 @@ function BindingsEditor({
       {activeApiKey && (
         <div style={{border:'1px solid #eee', borderRadius:8, padding:10, background:'#fafafa'}}>
           <div style={{fontSize:12, color:'#666', marginBottom:6}}>
-            繝励Ξ繝薙Η繝ｼ: <b>api.{activeApiKey}</b>
+            プレビュー: <b>api.{activeApiKey}</b>
           </div>
           <pre style={{margin:0, whiteSpace:'pre-wrap'}}>
             {pretty(dottedGet(preview?.data, (rows.find(r=>r.scope==='api')?.path?.split('.').slice(1).join('.') ?? '')))}
@@ -573,7 +574,7 @@ function BindingsEditor({
           return (
             <div style={{border:'1px solid #eee', borderRadius:8, padding:10, background:'#fafafa', marginTop:8}}>
               <div style={{fontSize:12, color:'#666', marginBottom:6}}>
-                繝励Ξ繝薙Η繝ｼ: <b>page.{tail || '(empty)'}</b>
+                プレビュー: <b>page.{tail || '(empty)'}</b>
               </div>
               <pre style={{margin:0, whiteSpace:'pre-wrap'}}>{pretty(val)}</pre>
             </div>
@@ -593,7 +594,7 @@ function BindingsEditor({
           onFocus={() => { (window as any).__setBindingFormula = (v: string) => setExpr(v) }}
           onBlur={() => { if ((window as any).__setBindingFormula) (window as any).__setBindingFormula = undefined }}
           onKeyDown={(e) => {
-            // IME螟画鋤荳ｭ縺ｯ繧ｹ繧ｭ繝・・・・nter遒ｺ螳壹→陦晉ｪ√＆縺帙↑縺・ｼ・
+            // IME変換中はショートカットを Enter 確定と衝突させない
             // @ts-ignore
             if ((e as any).nativeEvent?.isComposing) return;
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -602,7 +603,7 @@ function BindingsEditor({
             }
           }}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          title="Ctrl(竚・+Enter 縺ｧ譛蠕後・謖ｿ蜈･繧帝←逕ｨ"
+          title="Ctrl()+Enter で最後の挿入を適用"
         />
         <div style={{ marginTop: 6 }}>
           <ApplyLastSnippetButton onApply={(f)=> setExpr(f)} />
@@ -616,8 +617,8 @@ function BindingsEditor({
       <div style={{padding:'8px 10px', border:'1px dashed #ccc', borderRadius:8, background:'#fafafa'}}>{previewValue}</div>
 
       <div style={{display:'flex', gap:8}}>
-        <button onClick={apply} style={{padding:'6px 10px', borderRadius:8, background:'#111', color:'#fff'}}>驕ｩ逕ｨ</button>
-        <button onClick={remove} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>隗｣髯､</button>
+        <button onClick={apply} style={{padding:'6px 10px', borderRadius:8, background:'#111', color:'#fff'}}>適用</button>
+        <button onClick={remove} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}>解除</button>
       </div>
       {!isMetaMode && <AutosaveMountHashed page={pageRoot} debounceMs={800} />}
     </div>
@@ -733,7 +734,7 @@ export default function Builder() {
   const loadPage = async (id: string) => {
     if (isMetaMode) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`)
-    if (!res.ok) return alert('隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆')
+    if (!res.ok) return alert('読み込みに失敗しました')
     const { page: loaded } = (await res.json()) as { page: Page }
     setHistory([])
     setSelId(undefined)
@@ -747,9 +748,9 @@ export default function Builder() {
 
   const deletePage = async (id: string) => {
     if (isMetaMode) return
-    if (!confirm(`Delete page "${id}"? 縺薙・謫堺ｽ懊・蜈・↓謌ｻ縺帙∪縺帙ｓ縲Ａ)) return
+    if (!confirm(`Delete page "${id}"? この操作を元に戻せません。`)) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
-    if (!res.ok) return alert('蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆')
+    if (!res.ok) return alert('削除に失敗しました')
     if (id === page.id) {
       setHistory([])
       setSelId(undefined)
@@ -762,12 +763,12 @@ export default function Builder() {
 
   const duplicatePage = async (id: string) => {
     if (isMetaMode) return
-    const to = prompt(`隍・｣ｽ蜈医・ pageId`, `${id}-copy`)
+    const to = prompt(`複製先の pageId`, `${id}-copy`)
     if (!to || to===id) return
     const res = await fetch('/api/duplicate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ sourceId: id, newId: to }) })
-    if (res.status===409) { show('蜷後§ pageId 縺悟ｭ伜惠縺励∪縺・); return }
-    if (!res.ok) { show('蜃ｦ逅・↓螟ｱ謨励＠縺ｾ縺励◆'); return }
-    show('螳御ｺ・＠縺ｾ縺励◆')
+    if (res.status===409) { show('同じ pageId が存在します'); return }
+    if (!res.ok) { show('処理に失敗しました'); return }
+    show('完了しました')
   }
 
   const ensureSlot = (p: Page, name: SlotName) => {
@@ -948,7 +949,7 @@ export default function Builder() {
                     duplicateSel(slot, n.id)
                   }}
                 >
-                  隍・｣ｽ
+                  複製
                 </button>
                 <select
                   onClick={(e) => e.stopPropagation()}
@@ -960,7 +961,7 @@ export default function Builder() {
                     moveSelToSlot(value, slot, n.id)
                   }}
                 >
-                  <option value="">竊・slot</option>
+                  <option value="">移動先 slot を選択</option>
                   {slotOrder
                     .filter((name) => name !== slot)
                     .map((name) => (
@@ -975,7 +976,7 @@ export default function Builder() {
         )
       })}
       {nodes.length === 0 && (
-        <li style={{ color: '#888' }}>・医％縺ｮ繧ｹ繝ｭ繝・ヨ縺ｫ縺ｯ縺ｾ縺隕∫ｴ縺後≠繧翫∪縺帙ｓ・・/li>
+        <li style={{ color: '#888' }}>このスロットにはまだ要素がありません</li>
       )}
     </ul>
   )
@@ -1060,7 +1061,7 @@ export default function Builder() {
 
   const newPage = () => {
     if (isMetaMode) return
-    const id = prompt('譁ｰ縺励＞ pageId 繧貞・蜉帙＠縺ｦ縺上□縺輔＞・井ｾ具ｼ嗄ap-about・・,'map-about')
+    const id = prompt('新しい pageId を入力してください (例: map-about)', 'map-about')
     if (!id) return
     setHistory([])
     setSelSlot(primarySlot)
@@ -1073,31 +1074,31 @@ export default function Builder() {
 
   return (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
-      {/* 蟾ｦ繝壹う繝ｳ・壹ヱ繝ｬ繝・ヨ・鬼lot蛻・崛 */}
+      {/* 左ペイン: パレット & Slot 列 */}
       <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
           <button onClick={newPage} disabled={isMetaMode} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>New Page</button>
           <button
             onClick={async()=>{
               if (isMetaMode) return
-              const to = prompt('譁ｰ縺励＞ pageId 繧貞・蜉・, page.id)
+              const to = prompt('新しい pageId を入力してください', page.id)
               if(!to || to===page.id) return
               const res = await fetch('/api/rename', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ oldId: page.id, newId: to }) })
-              if (res.status===409) { show('蜷後§ pageId 縺悟ｭ伜惠縺励∪縺・); return }
+              if (res.status===409) { show('同じ pageId が存在します'); return }
               if(!res.ok) { show('蜃ｦ逅・↓螟ｱ謨励＠縺ｾ縺励◆'); return }
               const j: any = await res.json()
               await loadPage(j.id)
               localStorage.setItem('chizu:lastPageId', j.id)
-              show(`Renamed 竊・${j.id}`)
+              show(`${j.id} にリネームしました`)
             }}
             disabled={isMetaMode}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>Rename</button>
           <button
             onClick={()=>setShowDiff(v=>!v)}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
-            title="繝壹・繧ｸ縺ｮDraft縺ｨPublished縺ｮ蟾ｮ蛻・ｒ陦ｨ遉ｺ"
+            title="ページの Draft と Published の差分を表示"
           >
-            螟画峩轤ｹ繧定ｦ九ｋ{diffCount>0 ? `・・{diffCount}・荏 : ''}
+            変更点を見る{diffCount > 0 ? `（${diffCount}）` : ''}
           </button>
           <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '○' : '×'}</button>
 
@@ -1110,7 +1111,7 @@ export default function Builder() {
               const prevFrame = frames.find((f) => f.id === frameId)!
               const missing = Object.keys(page.slotAssignments ?? {}).filter(s => !nextFrame.slots.some(ns => ns.name===s))
               if (missing.length) {
-                const ok = confirm(`谺｡縺ｮslot縺梧眠縺励＞Frame縺ｫ蟄伜惠縺励∪縺帙ｓ: ${missing.join(', ')}\ncontent譛ｫ蟆ｾ縺ｸ騾驕ｿ縺励∪縺吶らｶ夊｡後＠縺ｾ縺吶°・歔)
+                const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか？`)
                 if (!ok) return
               }
               const remapped = remapSlotsOnFrameChange(page, prevFrame, nextFrame)
@@ -1121,7 +1122,7 @@ export default function Builder() {
               setSelId(undefined)
             }}
             style={{marginLeft:'auto', padding:'6px 8px', border:'1px solid #ddd', borderRadius:8}}
-            title="Frame繧貞､画峩・域悴蟇ｾ蠢徭lot縺ｯcontent縺ｸ騾驕ｿ・・
+            title="Frameを変更（未対応slotはcontentへ退避）"
           >
             {frames.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
@@ -1149,19 +1150,19 @@ export default function Builder() {
                     disabled={isMetaMode}
                     style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}
                   >
-                    隍・｣ｽ
+                    複製
                   </button>
                   <button
                     onClick={() => deletePage(id)}
                     disabled={isMetaMode}
                     style={{padding:'6px 8px', border:'1px solid #f0c', color:'#c00', background:'#fff', borderRadius:8, opacity: isMetaMode ? 0.6 : 1}}
                   >
-                    蜑企勁
+                    削除
                   </button>
                 </div>
               ))
             ) : (
-              <div style={{color:'#888'}}>・井ｿ晏ｭ俶ｸ医∩繝壹・繧ｸ縺ｪ縺暦ｼ・/div>
+              <div style={{color:'#888'}}>保存済みページなし！</div>
             )}
           </div>
         </div>
@@ -1202,14 +1203,14 @@ export default function Builder() {
         <div>
           <div style={{display:'flex', gap:8, marginTop:8}}>
             <button onClick={undo}>Undo</button>
-            <button onClick={()=>moveSel(-1)} disabled={!selId}>竊・/button>
-            <button onClick={()=>moveSel(1)} disabled={!selId}>竊・/button>
-            <button onClick={removeSel} disabled={!selId}>蜑企勁</button>
+            <button onClick={()=>moveSel(-1)} disabled={!selId}>E/button>
+            <button onClick={()=>moveSel(1)} disabled={!selId}>E/button>
+            <button onClick={removeSel} disabled={!selId}>削除</button>
           </div>
         </div>
       </div>
 
-      {/* 荳ｭ螟ｮ・壹く繝｣繝ｳ繝舌せ */}
+      {/* 中央キャンバス */}
       {/* Canvas preview */}
       <div style={{ padding: 12 }}>
         <h3 style={{ margin: '8px 0' }}>Canvas</h3>
@@ -1241,7 +1242,7 @@ export default function Builder() {
         )}
       </div>
 
-      {/* 蜿ｳ・唔nspector・・rops / Bindings 繧ｿ繝厄ｼ・*/}
+      {/* 右ペイン: Inspector（Props / Bindings タブ） */}
       <div style={{borderLeft:'1px solid #eee', padding:12}}>
         <h3 style={{margin:'8px 0'}}>Inspector</h3>
         <div style={{display:'flex', gap:8, marginBottom:8}}>
@@ -1266,33 +1267,78 @@ export default function Builder() {
               }
             }} />
           )
-        ) : <div>隕∫ｴ繧帝∈謚槭＠縺ｦ縺上□縺輔＞</div>}
+        ) : <div>要素を選択してください</div>}
 
         {showDiff && diffs && (
           <div style={{marginTop:16, padding:12, border:'1px solid #eee', borderRadius:10, background:'#fcfcfc'}}>
             <h4 style={{margin:'0 0 8px'}}>差分レビュー</h4>
-            {(diffs as any).titleChanged && <div>繝ｻ繧ｿ繧､繝医Ν縺悟､画峩縺輔ｌ縺ｾ縺励◆</div>}
-            {(diffs as any).frameChanged && <div>繝ｻ繝輔Ξ繝ｼ繝縺・<b>{(parsedLast as any).frameId as any}</b> 竊・<b>{frameId}</b> 縺ｫ螟画峩</div>}
-            {(diffs as any).slotDiffs.map((s:any) => (
+            {(diffs as any).titleChanged && <div>・タイトルが変更されました</div>}
+            {(diffs as any).frameChanged && (
+              <div>・フレームが <b>{(parsedLast as any).frameId as any}</b> → <b>{frameId}</b> に変更</div>
+            )}
+            {(diffs as any).slotDiffs.map((s: any) => (
               <div key={s.slot} style={{marginTop:8}}>
                 <div style={{fontWeight:600}}>[{s.slot}]</div>
-                {s.added.length===0 && s.removed.length===0 && s.moved.length===0 && s.modified.length===0 ? (
+                {s.added.length === 0 && s.removed.length === 0 && s.moved.length === 0 && s.modified.length === 0 ? (
                   <div style={{color:'#888'}}>変更なし</div>
                 ) : (
                   <div style={{display:'grid', gap:4}}>
-                    {s.added.map((id:string)=> <button key={`a-${id}`} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===id); if (!exists) return; setSelSlot(s.slot); setSelId(id) }} style={{textAlign:'left'}}>・・霑ｽ蜉: {id}</button>)}
-                    {s.added.map((id:string)=> <button key={-} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===id); if (!exists) return; setSelSlot(s.slot); setSelId(id) }} style={{textAlign:'left'}}>追加: {id}</button>)}
-                    {s.removed.map((id:string)=> <div key={-}>削除: {id}</div>)}
-                    {s.moved.map((id:string)=> <button key={m-} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===id); if (!exists) return; setSelSlot(s.slot); setSelId(id) }} style={{textAlign:'left'}}>並び替え: {id}</button>)}
-                      const onlyBinding = m.changes.length>0 && m.changes.every((c:any) => c.kind === 'binding')
+                    {s.added.map((id: string) => (
+                      <button
+                        key={`a-${id}`}
+                        onClick={() => {
+                          const exists = getSlotNodes(page, s.slot).some((n) => n.id === id)
+                          if (!exists) return
+                          setSelSlot(s.slot)
+                          setSelId(id)
+                        }}
+                        style={{textAlign:'left'}}
+                      >
+                        追加: {id}
+                      </button>
+                    ))}
+                    {s.removed.map((id: string) => (
+                      <div key={`r-${id}`}>削除: {id}</div>
+                    ))}
+                    {s.moved.map((id: string) => (
+                      <button
+                        key={`m-${id}`}
+                        onClick={() => {
+                          const exists = getSlotNodes(page, s.slot).some((n) => n.id === id)
+                          if (!exists) return
+                          setSelSlot(s.slot)
+                          setSelId(id)
+                        }}
+                        style={{textAlign:'left'}}
+                      >
+                        並び替え: {id}
+                      </button>
+                    ))}
+                    {s.modified.map((m: any) => {
+                      const onlyBinding = m.changes.length > 0 && m.changes.every((c: any) => c.kind === 'binding')
+                      const summary = m.changes.map((c: any) => (c.kind === 'prop' ? `prop:${c.key}` : `binding:${c.key}`)).join(', ')
                       return (
-                        <button key={`c-${m.id}`} onClick={()=>{ const exists = getSlotNodes(page, s.slot).some(n=>n.id===m.id); if (!exists) return; setSelSlot(s.slot); setSelId(m.id); if (onlyBinding) setInspectorTab('bindings') }} style={{textAlign:'left'}}>
-                          笨・螟画峩: {m.id}・・m.changes.map((c:any)=> (c.kind==='prop'?`prop:${c.key}`:`binding:${c.key}`)).join(', ')}・・
-                          ・変更: {m.id} {m.changes.map((c:any)=> (c.kind==='prop'?prop::inding:)).join(', ')}
+                        <button
+                          key={`c-${m.id}`}
+                          onClick={() => {
+                            const exists = getSlotNodes(page, s.slot).some((n) => n.id === m.id)
+                            if (!exists) return
+                            setSelSlot(s.slot)
+                            setSelId(m.id)
+                            if (onlyBinding) setInspectorTab('bindings')
+                          }}
+                          style={{textAlign:'left'}}
+                        >
+                          変更: {m.id}（{summary || '変更内容なし'}）
+                        </button>
                       )
                     })}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
               </div>
             ))}
           </div>

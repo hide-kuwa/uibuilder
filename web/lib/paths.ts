@@ -1,4 +1,9 @@
+export const builder_layouts = (id: string) => `/builder/layouts/${encodeURIComponent(id)}`;
+export const builder_pages_edit = (id: string) => `/builder/pages/${encodeURIComponent(id)}/edit`;
+export const builder_pages_preview = (id: string) => `/builder/pages/${encodeURIComponent(id)}/preview`;
 export const map = (pref: string) => `/map/${encodeURIComponent(pref)}`;
+export const preview = (pageId: string) => `/preview/${encodeURIComponent(pageId)}`;
+export const preview_shared = (token: string) => `/preview/shared/${encodeURIComponent(token)}`;
 export const s = (pe: string) => `/s/${encodeURIComponent(pe)}`;
 export const s_p = (p: string) => `/s/p/${encodeURIComponent(p)}`;
 export const u = (uid: string) => `/u/${encodeURIComponent(uid)}`;
