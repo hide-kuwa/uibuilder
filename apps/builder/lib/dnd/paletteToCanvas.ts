@@ -36,7 +36,7 @@ export function deriveDropTarget(clientX: number, clientY: number) {
   if (!slot) {
     return { slotId: 'page.root', containerNodeId: currentPageId(), index: Infinity };
   }
-  const slotId = slot.getAttribute('data-slot')!;
+  const slotId = slot.getAttribute('data-slot') || 'page.root';
   const containerNodeId = slot.getAttribute('data-node-id') || currentPageId();
   return { slotId, containerNodeId, index: Infinity };
 }
