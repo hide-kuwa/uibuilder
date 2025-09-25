@@ -1,6 +1,6 @@
 "use client";
 import { Registry, ComponentNode } from "@domain-components";
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import { useResolvedProps } from "@/components/hooks/useResolvedProps";
 
 function LazyComponent({ node }: { node: ComponentNode }) {
@@ -24,6 +24,47 @@ function RenderNode({ node }: { node: ComponentNode }) {
   );
 }
 
+const DROP_SEP_CLASS = ["h-2", "-my-1", "opacity-0"] as const;
+
+function useDropSeparatorHitbox(tree: ComponentNode[], container: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const root = container.current;
+    if (!root) return;
+
+    const apply = (target: ParentNode) => {
+      target.querySelectorAll<HTMLElement>("[data-drop-sep=\"true\"]").forEach((el) => {
+        if (el.dataset.dropSepPatched === "true") return;
+        el.classList.add(...DROP_SEP_CLASS);
+        el.dataset.dropSepPatched = "true";
+      });
+    };
+
+    apply(root);
+
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        record.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement || node instanceof DocumentFragment) {
+            apply(node);
+          }
+        });
+      }
+    });
+
+    observer.observe(root, { subtree: true, childList: true });
+    return () => observer.disconnect();
+  }, [tree, container]);
+}
+
 export function CanvasRenderer({ tree }: { tree: ComponentNode[] }) {
-  return <div className="p-6 space-y-4">{tree.map((n) => <RenderNode key={n.id} node={n} />)}</div>;
+  const container = useRef<HTMLDivElement>(null);
+  useDropSeparatorHitbox(tree, container);
+
+  return (
+    <div ref={container} className="p-6 space-y-4">
+      {tree.map((n) => (
+        <RenderNode key={n.id} node={n} />
+      ))}
+    </div>
+  );
 }
