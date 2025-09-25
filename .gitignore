@@ -1,9 +1,8 @@
 node_modules
 public/component-meta.json
-.next
 web/.generated/
 
-.next/
-dist/
-coverage/
+/.next/
+/dist/
+/coverage/
 *.tsbuildinfo
