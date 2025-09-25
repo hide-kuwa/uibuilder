@@ -194,7 +194,7 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
 }
 
 // --- append-only: Palette left-pane tab (feature-flagged) ---
-if (ENABLE_PALETTE_V1) {
+if (ENABLE_PALETTE_V1 && typeof window !== 'undefined') {
   void import('@/components/leftpane/PaletteTab')
 }
 
