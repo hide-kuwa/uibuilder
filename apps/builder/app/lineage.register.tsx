@@ -2,6 +2,7 @@
 'use client'
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { ENABLE_PALETTE_V1 } from '@/lib/flags'
 
 const LineagePanel = dynamic(
   () => import('@/components/rightpane/LineagePanel').then(m => m.LineagePanel),
@@ -190,6 +191,11 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
     label: 'Interactions',
     render: () => <InteractionsTab />,
   })
+}
+
+// --- append-only: Palette left-pane tab (feature-flagged) ---
+if (ENABLE_PALETTE_V1) {
+  void import('@/components/leftpane/PaletteTab')
 }
 
 // --- append-only: mark alias imports as “used” to satisfy some ESLint configs ---
