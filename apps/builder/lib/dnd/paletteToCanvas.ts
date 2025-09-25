@@ -24,13 +24,11 @@ export function deriveDropTarget(clientX: number, clientY: number) {
   const sep = at?.closest?.('[data-drop-sep]') as HTMLElement | null;
   if (sep) {
     const slot = sep.closest('[data-slot]') as HTMLElement | null;
-    if (slot) {
-      const slotId = slot.getAttribute('data-slot') || 'page.root';
-      const containerNodeId =
-        slot.getAttribute('data-node-id') || currentPageId();
-      const index = Number(sep.getAttribute('data-drop-index')) || 0;
-      return { slotId, containerNodeId, index };
-    }
+    const slotId = slot?.getAttribute('data-slot') || 'page.root';
+    const containerNodeId =
+      slot?.getAttribute('data-node-id') || currentPageId();
+    const index = Number(sep.getAttribute('data-drop-index')) || 0;
+    return { slotId, containerNodeId, index };
   }
 
   // 2) fallback: whole-slot => append
