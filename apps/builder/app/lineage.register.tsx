@@ -177,6 +177,21 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
   ;(window as any).registerRightPaneTab?.({ key: 'presets', label: 'Presets', render: () => <PresetsPanel /> })
 }
 
+// --- append-only: Interactions tab ---
+import DynInteractions from 'next/dynamic'
+const InteractionsTab = DynInteractions(
+  () => import('@/components/rightpane/InteractionsTab'),
+  { ssr: false },
+)
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  ;(window as any).registerRightPaneTab?.({
+    key: 'interactions',
+    label: 'Interactions',
+    render: () => <InteractionsTab />,
+  })
+}
+
 // --- append-only: mark alias imports as “used” to satisfy some ESLint configs ---
 // 一部の設定では DynRecoPlus/DynSnippets/DynDsPlus/DynDs を未使用とみなすことがあるため、
 // 無害な参照を置いて警告を抑制する（実行副作用なし）。
@@ -185,4 +200,5 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
   void DynSnippets
   void DynDsPlus
   void DynDs
+  void DynInteractions
 })()
