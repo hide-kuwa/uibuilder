@@ -9,6 +9,90 @@ type SlotBag = Partial<Record<SlotName, SlotValue>>
 
 type SlotTag = 'header' | 'aside' | 'main' | 'footer'
 
+const SLOT_KEY_VARIANTS: Record<SlotName, string[]> = {
+  header: ['header', 'slot.header', 'slot_header', 'slots.header', 'slots_header', 'headerSlot', 'headerContainer', 'headerNode', 'headerId', 'headerContainerId', 'container.header', 'container_header', 'containers.header'],
+  sidebar: ['sidebar', 'slot.sidebar', 'slot_sidebar', 'slots.sidebar', 'slots_sidebar', 'sidebarSlot', 'sidebarContainer', 'sidebarNode', 'sidebarId', 'sidebarContainerId', 'container.sidebar', 'container_sidebar', 'containers.sidebar'],
+  content: ['content', 'slot.content', 'slot_content', 'slots.content', 'slots_content', 'contentSlot', 'contentContainer', 'contentNode', 'contentId', 'contentContainerId', 'container.content', 'container_content', 'containers.content'],
+  footer: ['footer', 'slot.footer', 'slot_footer', 'slots.footer', 'slots_footer', 'footerSlot', 'footerContainer', 'footerNode', 'footerId', 'footerContainerId', 'container.footer', 'container_footer', 'containers.footer'],
+}
+
+const SLOT_ID_FIELDS = ['nodeId', 'containerNodeId', 'containerId', 'id', 'value'] as const
+
+function pickNodeId(obj: Record<string, any> | undefined): string | undefined {
+  if (!obj) return undefined
+  for (const key of SLOT_ID_FIELDS) {
+    const val = obj[key]
+    if (typeof val === 'string' && val) return val
+  }
+  return undefined
+}
+
+function extractSlotContainerNodeId(source: any, slot: SlotName, seen: Set<any>): string | undefined {
+  if (!source || seen.has(source)) return undefined
+  if (typeof source === 'string') return source
+  if (Array.isArray(source)) {
+    for (const entry of source) {
+      if (!entry) continue
+      const matchCandidate = typeof entry === 'object' && entry !== null ? (entry as Record<string, any>) : undefined
+      if (matchCandidate) {
+        const slotHint = matchCandidate.slot ?? matchCandidate.name ?? matchCandidate.key
+        if (slotHint === slot || slotHint === `slot.${slot}` || slotHint === `slot_${slot}`) {
+          const direct = pickNodeId(matchCandidate)
+          if (direct) return direct
+        }
+      }
+      const nested = extractSlotContainerNodeId(entry, slot, seen)
+      if (nested) return nested
+    }
+    return undefined
+  }
+  if (typeof source === 'object') {
+    const record = source as Record<string, any>
+    if (typeof record.$$typeof === 'symbol') return undefined
+    seen.add(source)
+    for (const key of SLOT_KEY_VARIANTS[slot]) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) {
+        const nested = extractSlotContainerNodeId(record[key], slot, seen)
+        if (nested) return nested
+      }
+    }
+    const slotHint = record.slot ?? record.name ?? record.key
+    if (slotHint === slot || slotHint === `slot.${slot}` || slotHint === `slot_${slot}`) {
+      const direct = pickNodeId(record)
+      if (direct) return direct
+    }
+    for (const nestedKey of ['container', 'target', 'node']) {
+      if (Object.prototype.hasOwnProperty.call(record, nestedKey)) {
+        const nested = extractSlotContainerNodeId(record[nestedKey], slot, seen)
+        if (nested) return nested
+      }
+    }
+  }
+  return undefined
+}
+
+function getSlotContainerNodeId(runtime: any, slot: SlotName): string | undefined {
+  if (!runtime) return undefined
+  const seen = new Set<any>()
+  const sources = [
+    runtime?.frame?.slotContainers,
+    runtime?.frame?.slotContainerIds,
+    runtime?.frame?.slotNodes,
+    runtime?.frame?.slotIds,
+    runtime?.frame?.containers,
+    runtime?.frame?.slots,
+    runtime?.frame?.nodeIds,
+    runtime?.slotContainers,
+    runtime?.slotContainerIds,
+    runtime?.frame,
+  ]
+  for (const source of sources) {
+    const id = extractSlotContainerNodeId(source, slot, seen)
+    if (id) return id
+  }
+  return undefined
+}
+
 function SlotContainer({
   slotId,
   nodeId,
@@ -96,38 +180,52 @@ export const entries: any = {
     displayName: 'Frame Basic',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'header' }, { name: 'sidebar' }, { name: 'content', required: true }, { name: 'footer' }],
-    render: (_p: any, slots: SlotBag, _runtime?: any) => (
-      React.createElement(React.Fragment, null,
-        React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)),
-        React.createElement(SlotContainer, { slotId: 'slot.sidebar', as: 'aside' }, renderSlot(slots.sidebar)),
-        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)),
-        React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))
+    render: (_p: any, slots: SlotBag, runtime?: any) => {
+      const headerNodeId = getSlotContainerNodeId(runtime, 'header')
+      const sidebarNodeId = getSlotContainerNodeId(runtime, 'sidebar')
+      const contentNodeId = getSlotContainerNodeId(runtime, 'content')
+      const footerNodeId = getSlotContainerNodeId(runtime, 'footer')
+      return (
+        React.createElement(React.Fragment, null,
+          React.createElement(SlotContainer, { slotId: 'slot.header', nodeId: headerNodeId, as: 'header' }, renderSlot(slots.header)),
+          React.createElement(SlotContainer, { slotId: 'slot.sidebar', nodeId: sidebarNodeId, as: 'aside' }, renderSlot(slots.sidebar)),
+          React.createElement(SlotContainer, { slotId: 'slot.content', nodeId: contentNodeId, as: 'main' }, renderSlot(slots.content)),
+          React.createElement(SlotContainer, { slotId: 'slot.footer', nodeId: footerNodeId, as: 'footer' }, renderSlot(slots.footer))
+        )
       )
-    )
+    }
   },
   Frame_Toponly: {
     id: 'Frame_Toponly',
     displayName: 'Frame TopOnly',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'header' }, { name: 'content', required: true }],
-    render: (_p: any, slots: SlotBag, _runtime?: any) => (
-      React.createElement(React.Fragment, null,
-        React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)),
-        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content))
+    render: (_p: any, slots: SlotBag, runtime?: any) => {
+      const headerNodeId = getSlotContainerNodeId(runtime, 'header')
+      const contentNodeId = getSlotContainerNodeId(runtime, 'content')
+      return (
+        React.createElement(React.Fragment, null,
+          React.createElement(SlotContainer, { slotId: 'slot.header', nodeId: headerNodeId, as: 'header' }, renderSlot(slots.header)),
+          React.createElement(SlotContainer, { slotId: 'slot.content', nodeId: contentNodeId, as: 'main' }, renderSlot(slots.content))
+        )
       )
-    )
+    }
   },
   Frame_Wide: {
     id: 'Frame_Wide',
     displayName: 'Frame Wide',
     propsSchema: { type: 'object', properties: {} },
     slotSchema: [{ name: 'content', required: true }, { name: 'footer' }],
-    render: (_p: any, slots: SlotBag, _runtime?: any) => (
-      React.createElement(React.Fragment, null,
-        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)),
-        React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))
+    render: (_p: any, slots: SlotBag, runtime?: any) => {
+      const contentNodeId = getSlotContainerNodeId(runtime, 'content')
+      const footerNodeId = getSlotContainerNodeId(runtime, 'footer')
+      return (
+        React.createElement(React.Fragment, null,
+          React.createElement(SlotContainer, { slotId: 'slot.content', nodeId: contentNodeId, as: 'main' }, renderSlot(slots.content)),
+          React.createElement(SlotContainer, { slotId: 'slot.footer', nodeId: footerNodeId, as: 'footer' }, renderSlot(slots.footer))
+        )
       )
-    )
+    }
   }
 }
 
