@@ -7,6 +7,36 @@ type SlotName = 'header' | 'sidebar' | 'content' | 'footer'
 type SlotValue = ReactNode[] | React.ReactElement | undefined
 type SlotBag = Partial<Record<SlotName, SlotValue>>
 
+type SlotTag = 'header' | 'aside' | 'main' | 'footer'
+
+function SlotContainer({
+  slotId,
+  nodeId,
+  as,
+  children,
+}: {
+  slotId: string
+  nodeId?: string
+  as: SlotTag
+  children?: React.ReactNode
+}) {
+  const list = React.Children.toArray(children ?? [])
+  const pieces: React.ReactNode[] = []
+  pieces.push(React.createElement('div', { key: 'sep-0', 'data-drop-sep': '', 'data-drop-index': 0 }))
+  list.forEach((child, idx) => {
+    pieces.push(child)
+    pieces.push(React.createElement('div', { key: `sep-${idx + 1}`, 'data-drop-sep': '', 'data-drop-index': idx + 1 }))
+  })
+  return React.createElement(
+    as,
+    {
+      'data-slot': slotId,
+      'data-node-id': nodeId ?? slotId,
+    },
+    pieces
+  )
+}
+
 function renderSlot(content: SlotValue): React.ReactNode {
   if (Array.isArray(content)) {
     return (content as ReactNode[]).map((n: ReactNode, i: number) => React.createElement('div', { key: i }, n))
@@ -68,10 +98,10 @@ export const entries: any = {
     slotSchema: [{ name: 'header' }, { name: 'sidebar' }, { name: 'content', required: true }, { name: 'footer' }],
     render: (_p: any, slots: SlotBag, _runtime?: any) => (
       React.createElement(React.Fragment, null,
-        React.createElement('header', null, renderSlot(slots.header)),
-        React.createElement('aside',  null, renderSlot(slots.sidebar)),
-        React.createElement('main',   null, renderSlot(slots.content)),
-        React.createElement('footer', null, renderSlot(slots.footer))
+        React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)),
+        React.createElement(SlotContainer, { slotId: 'slot.sidebar', as: 'aside' }, renderSlot(slots.sidebar)),
+        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)),
+        React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))
       )
     )
   },
@@ -82,8 +112,8 @@ export const entries: any = {
     slotSchema: [{ name: 'header' }, { name: 'content', required: true }],
     render: (_p: any, slots: SlotBag, _runtime?: any) => (
       React.createElement(React.Fragment, null,
-        React.createElement('header', null, renderSlot(slots.header)),
-        React.createElement('main',   null, renderSlot(slots.content))
+        React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)),
+        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content))
       )
     )
   },
@@ -94,8 +124,8 @@ export const entries: any = {
     slotSchema: [{ name: 'content', required: true }, { name: 'footer' }],
     render: (_p: any, slots: SlotBag, _runtime?: any) => (
       React.createElement(React.Fragment, null,
-        React.createElement('main',   null, renderSlot(slots.content)),
-        React.createElement('footer', null, renderSlot(slots.footer))
+        React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)),
+        React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))
       )
     )
   }

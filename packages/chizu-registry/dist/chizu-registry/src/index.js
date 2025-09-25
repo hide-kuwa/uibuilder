@@ -1,4 +1,13 @@
 import React from 'react';
+const SlotContainer = ({ slotId, nodeId, as, children }) => {
+    const list = React.Children.toArray(children ?? []);
+    const pieces = [React.createElement('div', { key: 'sep-0', 'data-drop-sep': '', 'data-drop-index': 0 })];
+    list.forEach((child, idx) => {
+        pieces.push(child);
+        pieces.push(React.createElement('div', { key: `sep-${idx + 1}`, 'data-drop-sep': '', 'data-drop-index': idx + 1 }));
+    });
+    return React.createElement(as, { 'data-slot': slotId, 'data-node-id': nodeId ?? slotId }, pieces);
+};
 function renderSlot(content) {
     if (Array.isArray(content)) {
         return content.map((n, i) => React.createElement('div', { key: i }, n));
@@ -55,21 +64,21 @@ export const entries = {
         displayName: 'Frame Basic',
         propsSchema: { type: 'object', properties: {} },
         slotSchema: [{ name: 'header' }, { name: 'sidebar' }, { name: 'content', required: true }, { name: 'footer' }],
-        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement('header', null, renderSlot(slots.header)), React.createElement('aside', null, renderSlot(slots.sidebar)), React.createElement('main', null, renderSlot(slots.content)), React.createElement('footer', null, renderSlot(slots.footer))))
+        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)), React.createElement(SlotContainer, { slotId: 'slot.sidebar', as: 'aside' }, renderSlot(slots.sidebar)), React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)), React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))))
     },
     Frame_Toponly: {
         id: 'Frame_Toponly',
         displayName: 'Frame TopOnly',
         propsSchema: { type: 'object', properties: {} },
         slotSchema: [{ name: 'header' }, { name: 'content', required: true }],
-        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement('header', null, renderSlot(slots.header)), React.createElement('main', null, renderSlot(slots.content))))
+        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement(SlotContainer, { slotId: 'slot.header', as: 'header' }, renderSlot(slots.header)), React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content))))
     },
     Frame_Wide: {
         id: 'Frame_Wide',
         displayName: 'Frame Wide',
         propsSchema: { type: 'object', properties: {} },
         slotSchema: [{ name: 'content', required: true }, { name: 'footer' }],
-        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement('main', null, renderSlot(slots.content)), React.createElement('footer', null, renderSlot(slots.footer))))
+        render: (_p, slots, _runtime) => (React.createElement(React.Fragment, null, React.createElement(SlotContainer, { slotId: 'slot.content', as: 'main' }, renderSlot(slots.content)), React.createElement(SlotContainer, { slotId: 'slot.footer', as: 'footer' }, renderSlot(slots.footer))))
     }
 };
 export const R = new Proxy(entries, { get: (t, p) => t[p]?.render ?? (() => React.createElement('div', null, `Unknown:${p}`)) });

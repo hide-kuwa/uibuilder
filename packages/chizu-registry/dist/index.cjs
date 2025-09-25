@@ -1729,6 +1729,15 @@ __export(index_exports, {
   mergeHoverStyle: () => mergeHoverStyle
 });
 module.exports = __toCommonJS(index_exports);
+function SlotContainer({ slotId, nodeId, as, children }) {
+  const list = import_react13.default.Children.toArray(children ?? []);
+  const pieces = [import_react13.default.createElement("div", { key: "sep-0", "data-drop-sep": "", "data-drop-index": 0 })];
+  list.forEach((child, idx) => {
+    pieces.push(child);
+    pieces.push(import_react13.default.createElement("div", { key: `sep-${idx + 1}`, "data-drop-sep": "", "data-drop-index": idx + 1 }));
+  });
+  return import_react13.default.createElement(as, { "data-slot": slotId, "data-node-id": nodeId ?? slotId }, pieces);
+}
 function renderSlot(content) {
   if (Array.isArray(content)) {
     return content.map((n, i) => import_react13.default.createElement("div", { key: i }, n));
@@ -1819,10 +1828,10 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => import_react13.default.createElement(
           import_react13.default.Fragment,
           null,
-          import_react13.default.createElement("header", null, renderSlot(slots.header)),
-          import_react13.default.createElement("aside", null, renderSlot(slots.sidebar)),
-          import_react13.default.createElement("main", null, renderSlot(slots.content)),
-          import_react13.default.createElement("footer", null, renderSlot(slots.footer))
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.header", as: "header" }, renderSlot(slots.header)),
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.sidebar", as: "aside" }, renderSlot(slots.sidebar)),
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content)),
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.footer", as: "footer" }, renderSlot(slots.footer))
         )
       },
       Frame_Toponly: {
@@ -1833,8 +1842,8 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => import_react13.default.createElement(
           import_react13.default.Fragment,
           null,
-          import_react13.default.createElement("header", null, renderSlot(slots.header)),
-          import_react13.default.createElement("main", null, renderSlot(slots.content))
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.header", as: "header" }, renderSlot(slots.header)),
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content))
         )
       },
       Frame_Wide: {
@@ -1845,8 +1854,8 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => import_react13.default.createElement(
           import_react13.default.Fragment,
           null,
-          import_react13.default.createElement("main", null, renderSlot(slots.content)),
-          import_react13.default.createElement("footer", null, renderSlot(slots.footer))
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content)),
+          import_react13.default.createElement(SlotContainer, { slotId: "slot.footer", as: "footer" }, renderSlot(slots.footer))
         )
       }
     };

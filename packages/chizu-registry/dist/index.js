@@ -346,6 +346,15 @@ __export(index_exports, {
   mergeHoverStyle: () => mergeHoverStyle
 });
 import React7 from "react";
+const SlotContainer = ({ slotId, nodeId, as, children }) => {
+  const list = React7.Children.toArray(children ?? []);
+  const pieces = [React7.createElement("div", { key: "sep-0", "data-drop-sep": "", "data-drop-index": 0 })];
+  list.forEach((child, idx) => {
+    pieces.push(child);
+    pieces.push(React7.createElement("div", { key: `sep-${idx + 1}`, "data-drop-sep": "", "data-drop-index": idx + 1 }));
+  });
+  return React7.createElement(as, { "data-slot": slotId, "data-node-id": nodeId ?? slotId }, pieces);
+};
 function renderSlot(content) {
   if (Array.isArray(content)) {
     return content.map((n, i) => React7.createElement("div", { key: i }, n));
@@ -435,10 +444,10 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => React7.createElement(
           React7.Fragment,
           null,
-          React7.createElement("header", null, renderSlot(slots.header)),
-          React7.createElement("aside", null, renderSlot(slots.sidebar)),
-          React7.createElement("main", null, renderSlot(slots.content)),
-          React7.createElement("footer", null, renderSlot(slots.footer))
+          React7.createElement(SlotContainer, { slotId: "slot.header", as: "header" }, renderSlot(slots.header)),
+          React7.createElement(SlotContainer, { slotId: "slot.sidebar", as: "aside" }, renderSlot(slots.sidebar)),
+          React7.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content)),
+          React7.createElement(SlotContainer, { slotId: "slot.footer", as: "footer" }, renderSlot(slots.footer))
         )
       },
       Frame_Toponly: {
@@ -449,8 +458,8 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => React7.createElement(
           React7.Fragment,
           null,
-          React7.createElement("header", null, renderSlot(slots.header)),
-          React7.createElement("main", null, renderSlot(slots.content))
+          React7.createElement(SlotContainer, { slotId: "slot.header", as: "header" }, renderSlot(slots.header)),
+          React7.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content))
         )
       },
       Frame_Wide: {
@@ -461,8 +470,8 @@ var init_index = __esm({
         render: (_p, slots, _runtime) => React7.createElement(
           React7.Fragment,
           null,
-          React7.createElement("main", null, renderSlot(slots.content)),
-          React7.createElement("footer", null, renderSlot(slots.footer))
+          React7.createElement(SlotContainer, { slotId: "slot.content", as: "main" }, renderSlot(slots.content)),
+          React7.createElement(SlotContainer, { slotId: "slot.footer", as: "footer" }, renderSlot(slots.footer))
         )
       }
     };
