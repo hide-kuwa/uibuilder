@@ -2,6 +2,9 @@
 'use client'
 import React from 'react'
 import dynamic from 'next/dynamic'
+import '@/lib/palette/canary'
+import { registerInsertAPI } from '@/lib/bridge/insert'
+import { insertNode as insertNodeImpl } from '@/stores/tree'
 
 const LineagePanel = dynamic(
   () => import('@/components/rightpane/LineagePanel').then(m => m.LineagePanel),
@@ -18,7 +21,7 @@ declare global {
 export function RegisterLineageTabOnce() {
   React.useEffect(() => {
     if (!window.registerRightPaneTab) return
-    const getSel = () => window.__chizuSel ?? 'sheet:交際費集計'
+    const getSel = () => window.__chizuSel ?? 'sheet:default'
     const setSel = (id: string) => { window.__chizuSel = id }
     window.registerRightPaneTab({
       key: 'lineage',
@@ -36,7 +39,7 @@ const PublishPanel = dynamic(
 )
 
 if (typeof window !== 'undefined' && window.registerRightPaneTab) {
-  const getSel = () => window.__chizuSel ?? 'sheet:交際費集計'
+  const getSel = () => window.__chizuSel ?? 'sheet:default'
   window.registerRightPaneTab({
     key: 'publish',
     label: 'Publish',
@@ -132,18 +135,10 @@ export function RegisterDsTestTabOnce() {
   return null
 }
 /**
- * [append-only] Idempotent register pattern for right-pane tabs
- *
- * ▷ 目的：ブラウザの再マウントやホットリロード時でも「タブ登録」が重複しない安心感を担保する。
- * ▷ ルール：
- *   - グローバルに `window.__tab_<id>_registered` を置く（boolean）
- *   - true の場合は registerRightPaneTab を再実行しない
- *   - registerRightPaneTab は 2 形態を許容：
- *       1) オブジェクト：{ id, title, component }
- *       2) 3引数：registerRightPaneTab(id, title, component)
- * ▷ 実装例：RegisterDsTestPlusTabOnce() 内で上記ガードを確認してから登録する
- * ▷ 追記のみ：既存行は変更しない（本ブロックはドキュメント用途）
-*/
+ * append-only: documentation for dynamic tab registration (idempotent pattern)
+ * - Keep registrations guarded with window.__tab_<id>_registered
+ * - Support both object and 3-arg registerRightPaneTab signatures
+ */
 
 // --- append-only: Guide tab (UI-Audit fixes) ---
 import DynGuide from 'next/dynamic'
@@ -177,12 +172,33 @@ if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
   ;(window as any).registerRightPaneTab?.({ key: 'presets', label: 'Presets', render: () => <PresetsPanel /> })
 }
 
-// --- append-only: mark alias imports as “used” to satisfy some ESLint configs ---
-// 一部の設定では DynRecoPlus/DynSnippets/DynDsPlus/DynDs を未使用とみなすことがあるため、
-// 無害な参照を置いて警告を抑制する（実行副作用なし）。
+// --- append-only: Interactions tab ---
+import DynInteractions from 'next/dynamic'
+const InteractionsTab = DynInteractions(
+  () => import('@/components/rightpane/InteractionsTab'),
+  { ssr: false },
+)
+
+if (typeof window !== 'undefined' && (window as any).registerRightPaneTab) {
+  ;(window as any).registerRightPaneTab?.({
+    key: 'interactions',
+    label: 'Interactions',
+    render: () => <InteractionsTab />,
+  })
+}
+
+// --- append-only: keep dynamic imports referenced ---
 ;(() => {
-  void DynRecoPlus
-  void DynSnippets
-  void DynDsPlus
-  void DynDs
-})()
+  void DynRecoPlus;
+  void DynSnippets;
+  void DynDsPlus;
+  void DynDs;
+  void DynInteractions;
+})();
+
+// append-only: palette canary bootstrap
+registerInsertAPI(insertNodeImpl as any)
+
+
+
+

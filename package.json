@@ -37,7 +37,8 @@
         "routes:check": "ts-node --project tsconfig.json scripts/check_dynamic_hrefs.ts",
         "prebuild": "pnpm routes:gen && pnpm routes:check",
         "export:pages": "ts-node scripts/export-pages.ts",
-        "perf:baseline:stdin": "node scripts/ci/append-p95-from-stdin.mjs"
+        "perf:baseline:stdin": "node scripts/ci/append-p95-from-stdin.mjs",
+        "scan:builder": "tsx scripts/dev/scan-builder.ts > scripts/dev/report.md"
     },
     "bin": {
         "json2tsx": "./scripts/json2tsx.js"
@@ -81,6 +82,7 @@
         "start-server-and-test": "^2.1.0",
         "ts-node": "^10.9.1",
         "tsup": "^8.5.0",
+        "tsx": "^4.20.5",
         "typescript": "^5.4.0",
         "vitest": "^2.0.0"
     }
