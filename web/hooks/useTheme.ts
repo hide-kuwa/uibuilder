@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, createElement, useContext, useMemo, type ReactNode } from 'react'
 
 export type ThemeToken = {
   color: string
@@ -28,11 +28,7 @@ export const DomainThemeProvider = ({
 }) => {
   const parent = useContext(DomainThemeContext)
   const merged = useMemo(() => ({ ...parent, ...value }), [parent, value])
-  return (
-    <DomainThemeContext.Provider value={merged}>
-      {children}
-    </DomainThemeContext.Provider>
-  )
+  return createElement(DomainThemeContext.Provider, { value: merged, children })
 }
 
 export const LayoutThemeProvider = ({
@@ -44,11 +40,7 @@ export const LayoutThemeProvider = ({
 }) => {
   const parent = useContext(LayoutThemeContext)
   const merged = useMemo(() => ({ ...parent, ...value }), [parent, value])
-  return (
-    <LayoutThemeContext.Provider value={merged}>
-      {children}
-    </LayoutThemeContext.Provider>
-  )
+  return createElement(LayoutThemeContext.Provider, { value: merged, children })
 }
 
 export function useTheme(overrides?: Partial<ThemeToken>): ThemeToken {
