@@ -208,3 +208,13 @@ if (ENABLE_PALETTE_V1) {
   void DynDs
   void DynInteractions
 })()
+
+// append-only: register canonical insert and history bridges
+import { registerInsertAPI } from '@/lib/bridge/insert'
+import { insertNode as canonicalInsert } from '@/stores/insert'
+registerInsertAPI(canonicalInsert as any)
+
+// optional: if you have a real history API, register it here
+// import { pushInsert as realPushInsert } from '<path-to-history-api>'
+// import { registerHistoryInsert } from '@/lib/history/bridge'
+// registerHistoryInsert(realPushInsert)
