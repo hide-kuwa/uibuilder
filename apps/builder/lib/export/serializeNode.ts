@@ -1,5 +1,6 @@
 import { encodeActionRules } from '../actions/serialize'
 import type { ActionRule } from '../actions/types'
+import { ENABLE_STABLE_EXPORT } from '../flags'
 
 export type SerializableNode = {
   id: string
@@ -69,6 +70,7 @@ export function serializeNodes(nodes: SerializableNode[], level = 0): string {
 }
 
 export function normalizeNode(input: any): SerializableNode {
+  if (!ENABLE_STABLE_EXPORT) return input as SerializableNode
   const id = typeof input?.id === 'string' ? input.id : String(input?.id ?? 'node')
   const type = typeof input?.type === 'string' ? input.type : 'div'
   const props = cloneProps(input?.props)
