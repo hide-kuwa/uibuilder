@@ -32,9 +32,13 @@ function useDropSeparatorHitbox(tree: ComponentNode[], container: React.RefObjec
     if (!root) return;
 
     const apply = (target: ParentNode) => {
-      target.querySelectorAll<HTMLElement>("[data-drop-sep=\"true\"]").forEach((el) => {
+      target.querySelectorAll<HTMLElement>("[data-drop-sep]").forEach((el) => {
         if (el.dataset.dropSepPatched === "true") return;
         el.classList.add(...DROP_SEP_CLASS);
+        const index = el.getAttribute("data-drop-index");
+        if (index !== null) {
+          el.dataset.dropIndex = index;
+        }
         el.dataset.dropSepPatched = "true";
       });
     };
