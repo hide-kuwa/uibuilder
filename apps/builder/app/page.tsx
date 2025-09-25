@@ -20,7 +20,7 @@ import { buildPreviewTree, clone, jsonFetcher } from './builder/utils'
 import { diffPage, getSlotNodes } from './builder/diff'
 
 function show(msg: string) {
-  // TODO: 後でトーストに差し替え可能な暫定アラート
+  // TODO: 後でト�Eストに差し替え可能な暫定アラーチE
   if (typeof window !== 'undefined') alert(msg)
 }
 
@@ -148,7 +148,7 @@ export default function Builder() {
 
   const deletePage = async (id: string) => {
     if (isMetaMode) return
-    if (!confirm(`Delete page "${id}"? この操作を元に戻せません。`)) return
+    if (!confirm(`Delete page "${id}"? こ�E操作を允E��戻せません。`)) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
     if (!res.ok) return alert('削除に失敗しました')
     if (id === page.id) {
@@ -163,12 +163,12 @@ export default function Builder() {
 
   const duplicatePage = async (id: string) => {
     if (isMetaMode) return
-    const to = prompt(`複製先の pageId`, `${id}-copy`)
+    const to = prompt(`褁E��先�E pageId`, `${id}-copy`)
     if (!to || to===id) return
     const res = await fetch('/api/duplicate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ sourceId: id, newId: to }) })
-    if (res.status===409) { show('同じ pageId が存在します'); return }
-    if (!res.ok) { show('処理に失敗しました'); return }
-    show('完了しました')
+    if (res.status===409) { show('同じ pageId が存在しまぁE); return }
+    if (!res.ok) { show('処琁E��失敗しました'); return }
+    show('完亁E��ました')
   }
 
   const ensureSlot = (p: Page, name: SlotName) => {
@@ -349,7 +349,7 @@ export default function Builder() {
                     duplicateSel(slot, n.id)
                   }}
                 >
-                  複製
+                  褁E��
                 </button>
                 <select
                   onClick={(e) => e.stopPropagation()}
@@ -361,7 +361,7 @@ export default function Builder() {
                     moveSelToSlot(value, slot, n.id)
                   }}
                 >
-                  <option value="">移動先 slot を選択</option>
+                  <option value="">移動�E slot を選抁E/option>
                   {slotOrder
                     .filter((name) => name !== slot)
                     .map((name) => (
@@ -376,7 +376,7 @@ export default function Builder() {
         )
       })}
       {nodes.length === 0 && (
-        <li style={{ color: '#888' }}>このスロットにはまだ要素がありません</li>
+        <li style={{ color: '#888' }}>こ�EスロチE��にはまだ要素がありません</li>
       )}
     </ul>
   )
@@ -461,7 +461,7 @@ export default function Builder() {
 
   const newPage = () => {
     if (isMetaMode) return
-    const id = prompt('新しい pageId を入力してください (例: map-about)', 'map-about')
+    const id = prompt('新しい pageId を�E力してください (侁E map-about)', 'map-about')
     if (!id) return
     setHistory([])
     setSelSlot(primarySlot)
@@ -474,33 +474,33 @@ export default function Builder() {
 
   return (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
-      {/* 左ペイン: パレット & Slot 列 */}
+      {/* 左ペイン: パレチE�� & Slot 刁E*/}
       <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
           <button onClick={newPage} disabled={isMetaMode} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>New Page</button>
           <button
             onClick={async()=>{
               if (isMetaMode) return
-              const to = prompt('新しい pageId を入力してください', page.id)
+              const to = prompt('新しい pageId を�E力してください', page.id)
               if(!to || to===page.id) return
               const res = await fetch('/api/rename', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ oldId: page.id, newId: to }) })
-              if (res.status===409) { show('同じ pageId が存在します'); return }
-              if(!res.ok) { show('蜃ｦ逅・↓螟ｱ謨励＠縺ｾ縺励◆'); return }
+              if (res.status===409) { show('同じ pageId が存在しまぁE); return }
+              if(!res.ok) { show('蜁E��送E�E↓螟�E�謨励�E�縺�E�縺励◁E); return }
               const j: any = await res.json()
               await loadPage(j.id)
               localStorage.setItem('chizu:lastPageId', j.id)
-              show(`${j.id} にリネームしました`)
+              show(`${j.id} にリネ�Eムしました`)
             }}
             disabled={isMetaMode}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>Rename</button>
           <button
             onClick={()=>setShowDiff(v=>!v)}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
-            title="ページの Draft と Published の差分を表示"
+            title="ペ�Eジの Draft と Published の差刁E��表示"
           >
-            変更点を見る{diffCount > 0 ? `（${diffCount}）` : ''}
+            変更点を見る{diffCount > 0 ? `�E�E{diffCount}�E�` : ''}
           </button>
-          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存→生成 {dirty ? '○' : '×'}</button>
+          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存�E生�E {dirty ? '◁E : 'ÁE}</button>
 
           <select
             value={frameId}
@@ -511,7 +511,7 @@ export default function Builder() {
               const prevFrame = frames.find((f) => f.id === frameId)!
               const missing = Object.keys(page.slotAssignments ?? {}).filter(s => !nextFrame.slots.some(ns => ns.name===s))
               if (missing.length) {
-                const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか？`)
+                const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか�E�`)
                 if (!ok) return
               }
               const remapped = remapSlotsOnFrameChange(page, prevFrame, nextFrame)
@@ -522,7 +522,7 @@ export default function Builder() {
               setSelId(undefined)
             }}
             style={{marginLeft:'auto', padding:'6px 8px', border:'1px solid #ddd', borderRadius:8}}
-            title="Frameを変更（未対応slotはcontentへ退避）"
+            title="Frameを変更�E�未対応slotはcontentへ退避�E�E
           >
             {frames.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
@@ -550,7 +550,7 @@ export default function Builder() {
                     disabled={isMetaMode}
                     style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}
                   >
-                    複製
+                    褁E��
                   </button>
                   <button
                     onClick={() => deletePage(id)}
@@ -562,7 +562,7 @@ export default function Builder() {
                 </div>
               ))
             ) : (
-              <div style={{color:'#888'}}>保存済みページなし！</div>
+              <div style={{color:'#888'}}>保存済みペ�Eジなし！E/div>
             )}
           </div>
         </div>
@@ -603,8 +603,8 @@ export default function Builder() {
         <div>
           <div style={{display:'flex', gap:8, marginTop:8}}>
             <button onClick={undo}>Undo</button>
-            <button onClick={() => moveSel(-1)} disabled={!selId}>↑</button>
-            <button onClick={() => moveSel(1)} disabled={!selId}>↓</button>
+            <button onClick={() => moveSel(-1)} disabled={!selId}>ↁE/button>
+            <button onClick={() => moveSel(1)} disabled={!selId}>ↁE/button>
             <button onClick={removeSel} disabled={!selId}>削除</button>
           </div>
         </div>
@@ -615,12 +615,7 @@ export default function Builder() {
       <div style={{ padding: 12 }}>
         <h3 style={{ margin: '8px 0' }}>Canvas</h3>
         <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff', marginBottom: 12 }}>
-          <CanvasRenderer
-            tree={previewTree}
-            runtime={previewRuntime}
-            builderManifest={isMetaMode ? previewTree : undefined}
-            isMetaMode={isMetaMode}
-          />
+          <CanvasRenderer\r\n            tree={previewTree}\r\n            runtime={previewRuntime}\r\n            builderManifest={isMetaMode ? previewTree : undefined}\r\n            isMetaMode={isMetaMode}\r\n            pageId={page.id}\r\n          />
         </div>
       </div>
 
@@ -642,7 +637,7 @@ export default function Builder() {
         )}
       </div>
 
-      {/* 右ペイン: Inspector（Props / Bindings タブ） */}
+      {/* 右ペイン: Inspector�E�Erops / Bindings タブ！E*/}
       <div style={{borderLeft:'1px solid #eee', padding:12}}>
         <h3 style={{margin:'8px 0'}}>Inspector</h3>
         <div style={{display:'flex', gap:8, marginBottom:8}}>
@@ -671,16 +666,16 @@ export default function Builder() {
 
         {showDiff && diffs && (
           <div style={{marginTop:16, padding:12, border:'1px solid #eee', borderRadius:10, background:'#fcfcfc'}}>
-            <h4 style={{margin:'0 0 8px'}}>差分レビュー</h4>
+            <h4 style={{margin:'0 0 8px'}}>差刁E��ビュー</h4>
             {(diffs as any).titleChanged && <div>・タイトルが変更されました</div>}
             {(diffs as any).frameChanged && (
-              <div>・フレームが <b>{(parsedLast as any).frameId as any}</b> → <b>{frameId}</b> に変更</div>
+              <div>・フレームぁE<b>{(parsedLast as any).frameId as any}</b> ↁE<b>{frameId}</b> に変更</div>
             )}
             {(diffs as any).slotDiffs.map((s: any) => (
               <div key={s.slot} style={{marginTop:8}}>
                 <div style={{fontWeight:600}}>[{s.slot}]</div>
                 {s.added.length === 0 && s.removed.length === 0 && s.moved.length === 0 && s.modified.length === 0 ? (
-                  <div style={{color:'#888'}}>変更なし</div>
+                  <div style={{color:'#888'}}>変更なぁE/div>
                 ) : (
                   <div style={{display:'grid', gap:4}}>
                     {s.added.map((id: string) => (
@@ -711,7 +706,7 @@ export default function Builder() {
                         }}
                         style={{textAlign:'left'}}
                       >
-                        並び替え: {id}
+                        並び替ぁE {id}
                       </button>
                     ))}
                     {s.modified.map((m: any) => {
@@ -729,7 +724,7 @@ export default function Builder() {
                           }}
                           style={{textAlign:'left'}}
                         >
-                          変更: {m.id}（{summary || '変更内容なし'}）
+                          変更: {m.id}�E�Esummary || '変更冁E��なぁE}�E�E
                         </button>
                       )
                     })}
@@ -743,3 +738,5 @@ export default function Builder() {
     </div>
   )
 }
+
+
