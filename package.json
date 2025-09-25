@@ -25,6 +25,7 @@
         "gen:meta": "ts-node scripts/extract-props.ts",
         "e2e": "playwright test -c e2e/playwright.config.ts",
         "e2e:builder": "playwright test apps/builder/e2e --project=chromium",
+        "e2e:palette": "playwright test apps/builder/e2e -g \"palette drag\"",
         "test:unit": "vitest run",
         "test:watch": "vitest apps/builder/lib/guide/color.spec.ts apps/builder/lib/utils/deepGet.spec.ts",
         "test:e2e": "cross-env NEXT_PUBLIC_E2E=1 playwright test -c e2e/playwright.config.ts apps/builder/e2e --project=chromium",

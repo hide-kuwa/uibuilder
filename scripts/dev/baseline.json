@@ -1,0 +1,7 @@
+[
+  "callInsertAPI",
+  "createNodeFromDef",
+  "getComponentDef",
+  "insertNode",
+  "registerInsertAPI"
+]
