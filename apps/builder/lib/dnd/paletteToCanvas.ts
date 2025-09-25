@@ -21,14 +21,16 @@ export function deriveDropTarget(clientX: number, clientY: number) {
   const at = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
 
   // 1) precise: separator between children
-  const sep = at?.closest?.('[data-drop-sep="true"]') as HTMLElement | null;
+  const sep = at?.closest?.('[data-drop-sep]') as HTMLElement | null;
   if (sep) {
     const slot = sep.closest('[data-slot]') as HTMLElement | null;
-    const slotId = slot?.getAttribute('data-slot') || 'page.root';
-    const containerNodeId =
-      slot?.getAttribute('data-node-id') || currentPageId();
-    const index = Number(sep.getAttribute('data-child-index')) || 0;
-    return { slotId, containerNodeId, index };
+    if (slot) {
+      const slotId = slot.getAttribute('data-slot') || 'page.root';
+      const containerNodeId =
+        slot.getAttribute('data-node-id') || currentPageId();
+      const index = Number(sep.getAttribute('data-drop-index')) || 0;
+      return { slotId, containerNodeId, index };
+    }
   }
 
   // 2) fallback: whole-slot => append
@@ -36,7 +38,7 @@ export function deriveDropTarget(clientX: number, clientY: number) {
   if (!slot) {
     return { slotId: 'page.root', containerNodeId: currentPageId(), index: Infinity };
   }
-  const slotId = slot.getAttribute('data-slot')!;
+  const slotId = slot.getAttribute('data-slot') || 'page.root';
   const containerNodeId = slot.getAttribute('data-node-id') || currentPageId();
   return { slotId, containerNodeId, index: Infinity };
 }
