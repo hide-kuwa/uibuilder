@@ -1,8 +1,10 @@
 "use client";
 
 import type { DragEvent as ReactDragEvent } from 'react'
+import type { ComponentNode } from '@chizu/types'
+import { instantiatePaletteId } from '@/lib/registry/instantiate'
 
-const DT_KEY = 'application/x-uib-palette-id'
+export const DT_KEY = 'application/x-uib-palette-id'
 
 export function startPaletteDrag(ev: ReactDragEvent, compId: string) {
   if (!ev.dataTransfer) return
@@ -17,6 +19,15 @@ function currentPageId(): string {
 }
 
 type DropTarget = { slotId: string; containerNodeId: string; index: number }
+
+type InsertFn = (node: ComponentNode, opts: { parentId: string; index: number }) => ComponentNode | void
+
+type CanvasDropDeps = {
+  getDef?: (id: string) => any
+  createNode?: (def: any, opts?: { slotKey?: string }) => any
+  callInsert?: (parentId: string, index: number, node: any) => void
+  select?: (id: string, slotId?: string) => void
+}
 
 function deriveDropTarget(clientX: number, clientY: number): DropTarget {
   const fallback: DropTarget = { slotId: 'page.root', containerNodeId: currentPageId(), index: Number.POSITIVE_INFINITY }
@@ -41,3 +52,52 @@ function deriveDropTarget(clientX: number, clientY: number): DropTarget {
   return { slotId, containerNodeId, index: Number.POSITIVE_INFINITY }
 }
 
+export function applyPaletteDrop(
+  paletteId: string,
+  parentId: string,
+  index: number,
+  insert: InsertFn,
+  select?: (id: string) => void,
+) {
+  const node = instantiatePaletteId(paletteId, { parentId, index })
+  const inserted = insert(node, { parentId, index }) as ComponentNode | undefined
+  const finalNode = inserted ?? node
+  try { select?.(finalNode.id) } catch {}
+}
+
+function enhanceNodeFromRegistry(
+  paletteId: string,
+  slotId: string | undefined,
+  draft: ComponentNode,
+  deps: CanvasDropDeps,
+): ComponentNode {
+  const { getDef, createNode } = deps
+  if (!getDef || !createNode) return draft
+  try {
+    const def = getDef(paletteId)
+    if (!def) return draft
+    const node = createNode(def, { slotKey: slotId }) as ComponentNode | undefined
+    return node ?? draft
+  } catch {
+    return draft
+  }
+}
+
+export function handleCanvasDrop(event: DragEvent, deps: CanvasDropDeps) {
+  const dt = event.dataTransfer
+  if (!dt) return
+  const paletteId = dt.getData(DT_KEY)
+  if (!paletteId) return
+
+  const target = deriveDropTarget(event.clientX, event.clientY)
+  const { callInsert } = deps
+  if (!callInsert) return
+
+  const select = deps.select ? (id: string) => deps.select?.(id, target.slotId) : undefined
+
+  applyPaletteDrop(paletteId, target.containerNodeId, target.index, (draft, opts) => {
+    const prepared = enhanceNodeFromRegistry(paletteId, target.slotId, draft, deps)
+    callInsert(opts.parentId, opts.index, prepared)
+    return prepared
+  }, select)
+}

@@ -18,12 +18,13 @@ import RegisterLineageStickyHighlightOnce from './lineage.highlight.register'
 import EventStreamHealth from './EventStreamHealth'
 // append-only: provide binding resolve bridge for previews
 import '@/lib/binding/resolve'
+import { Providers } from './providers'
 import EnvToggle from '@/components/EnvToggle'
 import PresetsTestIdE2E from '@/components/PresetsTestIdE2E'
 import PerfPanel from '@/components/debug/PerfPanel'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth /><div style={{position:'fixed',top:6,right:8,zIndex:50}}><EnvToggle /></div><PresetsTestIdE2E />{process.env.NEXT_PUBLIC_E2E === '1' && <PerfPanel />}{children}</body></html>
+  return <html lang="ja"><body style={{margin:0,fontFamily:'ui-sans-serif'}}><RegisterLineageTabOnce /><RecoEventsBridge /><AutosaveBadge /><RecoPersistBridge /><BindingsEventsBridge /><RegisterDsTestTabOnce /><RegisterDsTestPlusTabOnce /><RbacBridge /><ExportHashBadge /><ExportHashCopyHotkey /><RegisterLineageStickyHighlightOnce /><EventStreamHealth /><div style={{position:'fixed',top:6,right:8,zIndex:50}}><EnvToggle /></div><PresetsTestIdE2E />{process.env.NEXT_PUBLIC_E2E === '1' && <PerfPanel />}<Providers>{children}</Providers></body></html>
 }
 
 // --- append-only: Tag the Presets tab with a test id for E2E

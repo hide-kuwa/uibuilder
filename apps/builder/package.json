@@ -1,31 +1,36 @@
 {
-  "name": "builder",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "route:check": "node scripts/check-route-conflicts.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "next lint",
-    "utf8-guard": "node -e \"const fs=require('fs'),path=require('path');let bad=0;function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()) w(p); else if(/\\.(ts|tsx|js|jsx|json|md|css|html)$/.test(e.name)){const s=fs.readFileSync(p,'utf8'); if(s.includes('\\uFFFD')){ console.error('FFFD:',p); bad=1; } } }} w('apps/builder'); process.exit(bad);\"",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "prepare": "pnpm -r --filter @chizu/* build"
-  },
-  "dependencies": {
-    "@chizu/registry": "workspace:*",
-    "@chizu/renderer": "workspace:*",
-    "@chizu/types": "workspace:*",
-    "idb-keyval": "^6.2.2",
-    "jszip": "^3.10.1",
-    "next": "14.2.5",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "swr": "2.2.5"
-  },
-  "devDependencies": {
-    "typescript": "5.5.4",
-    "@typescript-eslint/parser": "^7.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0"
-  }
+    "name":  "builder",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "route:check":  "node scripts/check-route-conflicts.mjs",
+                    "typecheck":  "tsc -p tsconfig.json --noEmit",
+                    "lint":  "next lint",
+                    "utf8-guard":  "node -e \"const fs=require(\u0027fs\u0027),path=require(\u0027path\u0027);let bad=0;function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()) w(p); else if(/\\.(ts|tsx|js|jsx|json|md|css|html)$/.test(e.name)){const s=fs.readFileSync(p,\u0027utf8\u0027); if(s.includes(\u0027\\uFFFD\u0027)){ console.error(\u0027FFFD:\u0027,p); bad=1; } } }} w(\u0027apps/builder\u0027); process.exit(bad);\"",
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start -p 3000",
+                    "prepare":  "pnpm -r --filter @chizu/* build",
+                    "test":  "vitest --run",
+                    "test:ui":  "vitest",
+                    "e2e":  "playwright test apps/builder/tests",
+                    "e2e:one":  "playwright test apps/builder/tests/palette.e2e.spec.ts",
+                    "e2e:headed":  "playwright test --headed apps/builder/tests/palette.e2e.spec.ts"
+                },
+    "dependencies":  {
+                         "@chizu/registry":  "workspace:*",
+                         "@chizu/renderer":  "workspace:*",
+                         "@chizu/types":  "workspace:*",
+                         "idb-keyval":  "^6.2.2",
+                         "jszip":  "^3.10.1",
+                         "next":  "14.2.5",
+                         "react":  "18.3.1",
+                         "react-dom":  "18.3.1",
+                         "swr":  "2.2.5"
+                     },
+    "devDependencies":  {
+                            "typescript":  "5.5.4",
+                            "@typescript-eslint/parser":  "^7.0.0",
+                            "@typescript-eslint/eslint-plugin":  "^7.0.0"
+                        }
 }

@@ -24,6 +24,10 @@ export default function CanvasRoot({ children, className, fallbackActive, pageId
         getDef: getComponentDef,
         createNode: createNodeFromDef,
         callInsert: callInsertAPI,
+        select: (id, slotId) => {
+          try { (window as any).__chizuSel = id } catch {}
+          try { window.dispatchEvent(new CustomEvent('builder.selectNode', { detail: { id, slotId } })) } catch {}
+        },
       })
     }
     const onDragOver = (event: DragEvent) => {
@@ -46,6 +50,7 @@ export default function CanvasRoot({ children, className, fallbackActive, pageId
       data-safe-manifest={fallbackActive ? '1' : undefined}
       data-page-id={rootId}
       data-slot="page.root"
+      data-testid="canvas-root"
       data-node-id={rootId}
       data-canvas-root
     >

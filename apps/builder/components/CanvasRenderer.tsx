@@ -13,7 +13,14 @@ export type RuntimeValue = {
   api?: Record<string, any>
 }
 
-type CanvasRendererProps = {\r\n  tree: ComponentNode[]\r\n  runtime?: RuntimeValue\r\n  builderManifest?: ComponentNode[] | null\r\n  isMetaMode?: boolean\r\n  className?: string\r\n  pageId?: string\r\n}
+type CanvasRendererProps = {
+  tree: ComponentNode[]
+  runtime?: RuntimeValue
+  builderManifest?: ComponentNode[] | null
+  isMetaMode?: boolean
+  className?: string
+  pageId?: string
+}
 
 const FACTORY_MANIFEST: ComponentNode[] = [
   {
@@ -181,7 +188,21 @@ function renderNode(node: ComponentNode, runtime: RuntimeValue): React.ReactNode
   }
 
   const resolvedProps = resolveBindings(runtime, node.id, node.props ?? {}, node.bindings)
-  const slotNodes = node.slots\r\n    ? Object.fromEntries(\r\n        Object.entries(node.slots).map(([slotName, slotChildren]) => {\r\n          const renderedChildren = (slotChildren ?? []).map((child) => renderNode(child, runtime))\r\n          return [\r\n            slotName,\r\n            [\r\n              <SlotContainer key={${node.id}:} slotId={slotName} nodeId={node.id}>\r\n                {renderedChildren}\r\n              </SlotContainer>,\r\n            ],\r\n          ]\r\n        }),\r\n      )\r\n    : undefined
+  const slotNodes = node.slots
+    ? Object.fromEntries(
+        Object.entries(node.slots).map(([slotName, slotChildren]) => {
+          const renderedChildren = (slotChildren ?? []).map((child) => renderNode(child, runtime))
+          return [
+            slotName,
+            [
+              <SlotContainer key={`${node.id}:${slotName}`} slotId={slotName} nodeId={node.id}>
+                {renderedChildren}
+              </SlotContainer>,
+            ],
+          ]
+        }),
+      )
+    : undefined
   const childNodes = (node.children ?? []).map((child) => renderNode(child, runtime))
 
   let rendered: React.ReactNode
@@ -254,7 +275,14 @@ function isRenderableManifest(nodes: ComponentNode[] | null | undefined): nodes 
   return visit(nodes)
 }
 
-export function CanvasRenderer({\r\n  tree,\r\n  runtime,\r\n  builderManifest,\r\n  isMetaMode = false,\r\n  className,\r\n  pageId,\r\n}: CanvasRendererProps) {
+export function CanvasRenderer({
+  tree,
+  runtime,
+  builderManifest,
+  isMetaMode = false,
+  className,
+  pageId,
+}: CanvasRendererProps) {
   const runtimeValue = useMemo(() => runtime ?? {}, [runtime])
 
   const { nodesToRender, fallbackActive } = useMemo(() => {
@@ -268,7 +296,12 @@ export function CanvasRenderer({\r\n  tree,\r\n  runtime,\r\n  builderManifest,\
     return { nodesToRender: base, fallbackActive: false }
   }, [builderManifest, isMetaMode, tree])
 
-  const canvasPageId = pageId ?? 'page-root'\r\n\r\n  return (\r\n    <CanvasRoot className={className} fallbackActive={fallbackActive} pageId={canvasPageId}>\r\n      {fallbackActive ? (\r\n        <div
+  const canvasPageId = pageId ?? 'page-root'
+
+  return (
+    <CanvasRoot className={className} fallbackActive={fallbackActive} pageId={canvasPageId}>
+      {fallbackActive ? (
+        <div
           style={{
             marginBottom: 12,
             padding: '8px 12px',
@@ -281,8 +314,17 @@ export function CanvasRenderer({\r\n  tree,\r\n  runtime,\r\n  builderManifest,\
         >
           Safe Mode: Builder manifest fallback applied. Please review your saved layout.
         </div>
-      ) : null}\r\n      <SlotContainer slotId={SLOT_ROOT_ID} nodeId={canvasPageId} style={{ display: 'grid', gap: 12 }}>\r\n        {nodesToRender.map((node) => renderNode(node, runtimeValue))}\r\n      </SlotContainer>\r\n    </CanvasRoot>\r\n  )
+      ) : null}
+      <SlotContainer slotId={SLOT_ROOT_ID} nodeId={canvasPageId} style={{ display: 'grid', gap: 12 }}>
+        {nodesToRender.map((node) => renderNode(node, runtimeValue))}
+      </SlotContainer>
+    </CanvasRoot>
+  )
 }
+
+
+
+
 
 
 

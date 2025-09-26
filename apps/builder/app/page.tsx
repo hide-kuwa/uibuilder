@@ -1,8 +1,9 @@
-'use client'
+﻿'use client'
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { Page, ComponentNode, Frame } from '@chizu/types'
 import { CanvasRenderer } from '@/components/CanvasRenderer'
+import { Palette } from '@/components/palette/Palette'
 import { DEFAULT_BUILDER_MANIFEST } from '@/lib/meta/builderManifest'
 import { loadBuilderManifest, saveBuilderManifest } from '@/lib/meta/storage'
 import { PropsEditor } from './builder/components/PropsEditor'
@@ -20,7 +21,7 @@ import { buildPreviewTree, clone, jsonFetcher } from './builder/utils'
 import { diffPage, getSlotNodes } from './builder/diff'
 
 function show(msg: string) {
-  // TODO: 後でト�Eストに差し替え可能な暫定アラーチE
+  // TODO: 蠕後〒繝医・繧ｹ繝医↓蟾ｮ縺玲崛縺亥庄閭ｽ縺ｪ證ｫ螳壹い繝ｩ繝ｼ繝・
   if (typeof window !== 'undefined') alert(msg)
 }
 
@@ -37,7 +38,7 @@ export default function Builder() {
       return clone(DEFAULT_BUILDER_MANIFEST)
     }
     const p = DEFAULT_PAGE('map-home')
-    p.content.push({ id: 'hero_init', type: 'Hero', props: { title: '地図で巡る旅' } })
+    p.content.push({ id: 'hero_init', type: 'Hero', props: { title: '蝨ｰ蝗ｳ縺ｧ蟾｡繧区羅' } })
     p.slotAssignments = { header: [{ id: 'nav', type: 'TopNav' }], sidebar: [{ id: 'list', type: 'PrefList' }] }
     return p
   })
@@ -55,6 +56,18 @@ export default function Builder() {
   }, [page, selSlot])
 
   const [selId,setSelId] = useState<string|undefined>(undefined)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: string; slotId?: SlotName }>).detail || {}
+      if (detail.slotId) {
+        setSelSlot(detail.slotId as SlotName)
+      }
+      setSelId(typeof detail.id === 'string' ? detail.id : undefined)
+    }
+    window.addEventListener('builder.selectNode', handler as EventListener)
+    return () => window.removeEventListener('builder.selectNode', handler as EventListener)
+  }, [])
   const [history,setHistory] = useState<Page[]>([])
   const [inspectorTab, setInspectorTab] = useState<'props'|'bindings'>('props')
   const [lastSaved, setLastSaved] = useState<string>('')
@@ -134,7 +147,7 @@ export default function Builder() {
   const loadPage = async (id: string) => {
     if (isMetaMode) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`)
-    if (!res.ok) return alert('読み込みに失敗しました')
+    if (!res.ok) return alert('隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆')
     const { page: loaded } = (await res.json()) as { page: Page }
     setHistory([])
     setSelId(undefined)
@@ -148,9 +161,9 @@ export default function Builder() {
 
   const deletePage = async (id: string) => {
     if (isMetaMode) return
-    if (!confirm(`Delete page "${id}"? こ�E操作を允E��戻せません。`)) return
+    if (!confirm(`Delete page "${id}"? 縺薙・謫堺ｽ懊ｒ蜈・↓謌ｻ縺帙∪縺帙ｓ縲Ａ)) return
     const res = await fetch(`/api/page?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
-    if (!res.ok) return alert('削除に失敗しました')
+    if (!res.ok) return alert('蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆')
     if (id === page.id) {
       setHistory([])
       setSelId(undefined)
@@ -163,12 +176,12 @@ export default function Builder() {
 
   const duplicatePage = async (id: string) => {
     if (isMetaMode) return
-    const to = prompt(`褁E��先�E pageId`, `${id}-copy`)
+    const to = prompt(`隍・｣ｽ蜈医・ pageId`, `${id}-copy`)
     if (!to || to===id) return
     const res = await fetch('/api/duplicate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ sourceId: id, newId: to }) })
-    if (res.status===409) { show('同じ pageId が存在しまぁE); return }
-    if (!res.ok) { show('処琁E��失敗しました'); return }
-    show('完亁E��ました')
+    if (res.status===409) { show('蜷後§ pageId 縺悟ｭ伜惠縺励∪縺・); return }
+    if (!res.ok) { show('蜃ｦ逅・↓螟ｱ謨励＠縺ｾ縺励◆'); return }
+    show('螳御ｺ・＠縺ｾ縺励◆')
   }
 
   const ensureSlot = (p: Page, name: SlotName) => {
@@ -349,7 +362,7 @@ export default function Builder() {
                     duplicateSel(slot, n.id)
                   }}
                 >
-                  褁E��
+                  隍・｣ｽ
                 </button>
                 <select
                   onClick={(e) => e.stopPropagation()}
@@ -361,7 +374,7 @@ export default function Builder() {
                     moveSelToSlot(value, slot, n.id)
                   }}
                 >
-                  <option value="">移動�E slot を選抁E/option>
+                  <option value="">遘ｻ蜍募・ slot 繧帝∈謚・/option>
                   {slotOrder
                     .filter((name) => name !== slot)
                     .map((name) => (
@@ -376,7 +389,7 @@ export default function Builder() {
         )
       })}
       {nodes.length === 0 && (
-        <li style={{ color: '#888' }}>こ�EスロチE��にはまだ要素がありません</li>
+        <li style={{ color: '#888' }}>縺薙・繧ｹ繝ｭ繝・ヨ縺ｫ縺ｯ縺ｾ縺隕∫ｴ縺後≠繧翫∪縺帙ｓ</li>
       )}
     </ul>
   )
@@ -461,7 +474,7 @@ export default function Builder() {
 
   const newPage = () => {
     if (isMetaMode) return
-    const id = prompt('新しい pageId を�E力してください (侁E map-about)', 'map-about')
+    const id = prompt('譁ｰ縺励＞ pageId 繧貞・蜉帙＠縺ｦ縺上□縺輔＞ (萓・ map-about)', 'map-about')
     if (!id) return
     setHistory([])
     setSelSlot(primarySlot)
@@ -474,33 +487,33 @@ export default function Builder() {
 
   return (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr 340px', height:'100vh'}}>
-      {/* 左ペイン: パレチE�� & Slot 刁E*/}
+      {/* 蟾ｦ繝壹う繝ｳ: 繝代Ξ繝・ヨ & Slot 蛻・*/}
       <div style={{borderRight:'1px solid #eee', padding:12, display:'grid', gridTemplateRows:'auto auto auto 1fr auto', gap:12}}>
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
           <button onClick={newPage} disabled={isMetaMode} style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>New Page</button>
           <button
             onClick={async()=>{
               if (isMetaMode) return
-              const to = prompt('新しい pageId を�E力してください', page.id)
+              const to = prompt('譁ｰ縺励＞ pageId 繧貞・蜉帙＠縺ｦ縺上□縺輔＞', page.id)
               if(!to || to===page.id) return
               const res = await fetch('/api/rename', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ oldId: page.id, newId: to }) })
-              if (res.status===409) { show('同じ pageId が存在しまぁE); return }
-              if(!res.ok) { show('蜁E��送E�E↓螟�E�謨励�E�縺�E�縺励◁E); return }
+              if (res.status===409) { show('蜷後§ pageId 縺悟ｭ伜惠縺励∪縺・); return }
+              if(!res.ok) { show('陷・ｽｦ騾・・竊楢棔・ｱ隰ｨ蜉ｱ・邵ｺ・ｾ邵ｺ蜉ｱ笳・); return }
               const j: any = await res.json()
               await loadPage(j.id)
               localStorage.setItem('chizu:lastPageId', j.id)
-              show(`${j.id} にリネ�Eムしました`)
+              show(`${j.id} 縺ｫ繝ｪ繝阪・繝縺励∪縺励◆`)
             }}
             disabled={isMetaMode}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}>Rename</button>
           <button
             onClick={()=>setShowDiff(v=>!v)}
             style={{padding:'6px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff'}}
-            title="ペ�Eジの Draft と Published の差刁E��表示"
+            title="繝壹・繧ｸ縺ｮ Draft 縺ｨ Published 縺ｮ蟾ｮ蛻・ｒ陦ｨ遉ｺ"
           >
-            変更点を見る{diffCount > 0 ? `�E�E{diffCount}�E�` : ''}
+            螟画峩轤ｹ繧定ｦ九ｋ{diffCount > 0 ? `・・{diffCount}・荏 : ''}
           </button>
-          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>保存�E生�E {dirty ? '◁E : 'ÁE}</button>
+          <button onClick={save} disabled={!dirty} style={{padding:'6px 10px', borderRadius:8, background: dirty ? '#111' : '#888', color:'#fff'}}>菫晏ｭ倪・逕滓・ {dirty ? '笳・ : 'ﾃ・}</button>
 
           <select
             value={frameId}
@@ -511,7 +524,7 @@ export default function Builder() {
               const prevFrame = frames.find((f) => f.id === frameId)!
               const missing = Object.keys(page.slotAssignments ?? {}).filter(s => !nextFrame.slots.some(ns => ns.name===s))
               if (missing.length) {
-                const ok = confirm(`次のslotが新しいFrameに存在しません: ${missing.join(', ')}\ncontent末尾へ退避します。続行しますか�E�`)
+                const ok = confirm(`谺｡縺ｮslot縺梧眠縺励＞Frame縺ｫ蟄伜惠縺励∪縺帙ｓ: ${missing.join(', ')}\ncontent譛ｫ蟆ｾ縺ｸ騾驕ｿ縺励∪縺吶らｶ夊｡後＠縺ｾ縺吶°・歔)
                 if (!ok) return
               }
               const remapped = remapSlotsOnFrameChange(page, prevFrame, nextFrame)
@@ -522,7 +535,7 @@ export default function Builder() {
               setSelId(undefined)
             }}
             style={{marginLeft:'auto', padding:'6px 8px', border:'1px solid #ddd', borderRadius:8}}
-            title="Frameを変更�E�未対応slotはcontentへ退避�E�E
+            title="Frame繧貞､画峩・域悴蟇ｾ蠢徭lot縺ｯcontent縺ｸ騾驕ｿ・・
           >
             {frames.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
@@ -550,19 +563,19 @@ export default function Builder() {
                     disabled={isMetaMode}
                     style={{padding:'6px 8px', border:'1px solid #ddd', borderRadius:8, background:'#fff', opacity: isMetaMode ? 0.6 : 1}}
                   >
-                    褁E��
+                    隍・｣ｽ
                   </button>
                   <button
                     onClick={() => deletePage(id)}
                     disabled={isMetaMode}
                     style={{padding:'6px 8px', border:'1px solid #f0c', color:'#c00', background:'#fff', borderRadius:8, opacity: isMetaMode ? 0.6 : 1}}
                   >
-                    削除
+                    蜑企勁
                   </button>
                 </div>
               ))
             ) : (
-              <div style={{color:'#888'}}>保存済みペ�Eジなし！E/div>
+              <div style={{color:'#888'}}>菫晏ｭ俶ｸ医∩繝壹・繧ｸ縺ｪ縺暦ｼ・/div>
             )}
           </div>
         </div>
@@ -593,24 +606,20 @@ export default function Builder() {
 
         <div>
           <h3 style={{margin:'8px 0'}}>Components</h3>
-          <div style={{display:'grid', gap:8}}>
-            {CATALOG.map(c => (
-              <button key={c.type} onClick={()=>addNode(c.type)} style={{padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, background:'#fff', textAlign:'left'}}>{c.label}</button>
-            ))}
-          </div>
+          <Palette />
         </div>
 
         <div>
           <div style={{display:'flex', gap:8, marginTop:8}}>
             <button onClick={undo}>Undo</button>
-            <button onClick={() => moveSel(-1)} disabled={!selId}>ↁE/button>
-            <button onClick={() => moveSel(1)} disabled={!selId}>ↁE/button>
-            <button onClick={removeSel} disabled={!selId}>削除</button>
+            <button onClick={() => moveSel(-1)} disabled={!selId}>竊・/button>
+            <button onClick={() => moveSel(1)} disabled={!selId}>竊・/button>
+            <button onClick={removeSel} disabled={!selId}>蜑企勁</button>
           </div>
         </div>
       </div>
 
-      {/* 中央キャンバス */}
+      {/* 荳ｭ螟ｮ繧ｭ繝｣繝ｳ繝舌せ */}
       {/* Canvas preview */}
       <div style={{ padding: 12 }}>
         <h3 style={{ margin: '8px 0' }}>Canvas</h3>
@@ -637,7 +646,7 @@ export default function Builder() {
         )}
       </div>
 
-      {/* 右ペイン: Inspector�E�Erops / Bindings タブ！E*/}
+      {/* 蜿ｳ繝壹う繝ｳ: Inspector・・rops / Bindings 繧ｿ繝厄ｼ・*/}
       <div style={{borderLeft:'1px solid #eee', padding:12}}>
         <h3 style={{margin:'8px 0'}}>Inspector</h3>
         <div style={{display:'flex', gap:8, marginBottom:8}}>
@@ -662,20 +671,20 @@ export default function Builder() {
               }
             }} />
           )
-        ) : <div>要素を選択してください</div>}
+        ) : <div>隕∫ｴ繧帝∈謚槭＠縺ｦ縺上□縺輔＞</div>}
 
         {showDiff && diffs && (
           <div style={{marginTop:16, padding:12, border:'1px solid #eee', borderRadius:10, background:'#fcfcfc'}}>
-            <h4 style={{margin:'0 0 8px'}}>差刁E��ビュー</h4>
-            {(diffs as any).titleChanged && <div>・タイトルが変更されました</div>}
+            <h4 style={{margin:'0 0 8px'}}>蟾ｮ蛻・Ξ繝薙Η繝ｼ</h4>
+            {(diffs as any).titleChanged && <div>繝ｻ繧ｿ繧､繝医Ν縺悟､画峩縺輔ｌ縺ｾ縺励◆</div>}
             {(diffs as any).frameChanged && (
-              <div>・フレームぁE<b>{(parsedLast as any).frameId as any}</b> ↁE<b>{frameId}</b> に変更</div>
+              <div>繝ｻ繝輔Ξ繝ｼ繝縺・<b>{(parsedLast as any).frameId as any}</b> 竊・<b>{frameId}</b> 縺ｫ螟画峩</div>
             )}
             {(diffs as any).slotDiffs.map((s: any) => (
               <div key={s.slot} style={{marginTop:8}}>
                 <div style={{fontWeight:600}}>[{s.slot}]</div>
                 {s.added.length === 0 && s.removed.length === 0 && s.moved.length === 0 && s.modified.length === 0 ? (
-                  <div style={{color:'#888'}}>変更なぁE/div>
+                  <div style={{color:'#888'}}>螟画峩縺ｪ縺・/div>
                 ) : (
                   <div style={{display:'grid', gap:4}}>
                     {s.added.map((id: string) => (
@@ -689,11 +698,11 @@ export default function Builder() {
                         }}
                         style={{textAlign:'left'}}
                       >
-                        追加: {id}
+                        霑ｽ蜉: {id}
                       </button>
                     ))}
                     {s.removed.map((id: string) => (
-                      <div key={`r-${id}`}>削除: {id}</div>
+                      <div key={`r-${id}`}>蜑企勁: {id}</div>
                     ))}
                     {s.moved.map((id: string) => (
                       <button
@@ -706,7 +715,7 @@ export default function Builder() {
                         }}
                         style={{textAlign:'left'}}
                       >
-                        並び替ぁE {id}
+                        荳ｦ縺ｳ譖ｿ縺・ {id}
                       </button>
                     ))}
                     {s.modified.map((m: any) => {
@@ -724,7 +733,7 @@ export default function Builder() {
                           }}
                           style={{textAlign:'left'}}
                         >
-                          変更: {m.id}�E�Esummary || '変更冁E��なぁE}�E�E
+                          螟画峩: {m.id}・・summary || '螟画峩蜀・ｮｹ縺ｪ縺・}・・
                         </button>
                       )
                     })}
@@ -738,5 +747,6 @@ export default function Builder() {
     </div>
   )
 }
+
 
 

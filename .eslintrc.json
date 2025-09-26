@@ -1,10 +1,58 @@
 {
-  "extends": ["next/core-web-vitals"],
+  "extends": [
+    "next/core-web-vitals"
+  ],
   "rules": {
-    "max-lines": ["warn", { "max": 400, "skipBlankLines": true, "skipComments": true }],
-    "max-lines-per-function": ["warn", { "max": 120, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
-    "complexity": ["warn", { "max": 12 }],
-    "max-depth": ["warn", 4],
-    "max-params": ["warn", 6]
+    "max-lines": [
+      "warn",
+      {
+        "max": 400,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "max-lines-per-function": [
+      "warn",
+      {
+        "max": 120,
+        "skipBlankLines": true,
+        "skipComments": true,
+        "IIFEs": true
+      }
+    ],
+    "complexity": [
+      "warn",
+      {
+        "max": 12
+      }
+    ],
+    "max-depth": [
+      "warn",
+      4
+    ],
+    "max-params": [
+      "warn",
+      6
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "Math",
+        "property": "random",
+        "message": "Do not call Math.random() in render"
+      },
+      {
+        "object": "Date",
+        "property": "now",
+        "message": "Do not call Date.now() in render"
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "location",
+        "message": "Do not use location.origin in render; use previewHref()"
+      }
+    ]
   }
 }

@@ -19,11 +19,64 @@ export type Snapshot = {
   data: any
 }
 
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(DB_NAME, DB_VER)
-    req.onupgradeneeded = () => {
-      const db = req.result
+// Lightweight open() wrapper with VersionError fallback.
+// - First attempt uses the requested version so onupgradeneeded still fires for migrations.
+// - If a VersionError occurs (requested version < existing), retry without a version to attach to the current DB.
+export type IDBUpgradeHandler = (
+  db: IDBDatabase,
+  oldVersion: number,
+  newVersion: number | null,
+  tx: IDBTransaction | null,
+  ev: IDBVersionChangeEvent
+) => void
+
+export function openWithVersionFallback(
+  name: string,
+  version: number,
+  onUpgrade?: IDBUpgradeHandler
+): Promise<IDBDatabase> {
+  const tryOpen = (useVersion: boolean): Promise<IDBDatabase> =>
+    new Promise((resolve, reject) => {
+      let req: IDBOpenDBRequest
+      try {
+        req = useVersion ? indexedDB.open(name, version) : indexedDB.open(name)
+      } catch (err) {
+        reject(err)
+        return
+      }
+
+      req.onupgradeneeded = (ev) => {
+        if (!onUpgrade) return
+        try {
+          onUpgrade(req.result, ev.oldVersion, req.result.version, req.transaction, ev as any)
+        } catch (error) {
+          reject(error)
+          return
+        }
+      }
+
+      req.onsuccess = () => resolve(req.result)
+
+      req.onblocked = () => {
+        reject(new Error('IndexedDB open blocked'))
+      }
+
+      req.onerror = () => {
+        const err = req.error
+        if (useVersion && err && err.name === 'VersionError') {
+          tryOpen(false).then(resolve).catch(reject)
+          return
+        }
+        reject(err ?? new Error('IndexedDB open error'))
+      }
+    })
+
+  return tryOpen(true)
+}
+
+async function openDB(): Promise<IDBDatabase> {
+  return openWithVersionFallback(DB_NAME, DB_VER, (db, oldVersion) => {
+    if (oldVersion < 1) {
       if (!db.objectStoreNames.contains(STORE_KV)) {
         db.createObjectStore(STORE_KV, { keyPath: 'key' })
       }
@@ -33,13 +86,9 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_SNAP)) {
         const s = db.createObjectStore(STORE_SNAP, { keyPath: 'id' })
         s.createIndex('byProject', 'projectId', { unique: false })
-        s.createIndex('byProjectCreated', ['projectId', 'createdAt'], {
-          unique: false,
-        })
+        s.createIndex('byProjectCreated', ['projectId', 'createdAt'], { unique: false })
       }
     }
-    req.onsuccess = () => res(req.result)
-    req.onerror = () => rej(req.error)
   })
 }
 
@@ -170,4 +219,3 @@ export const idbStorage = {
     })
   },
 }
-

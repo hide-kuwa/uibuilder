@@ -1,66 +1,47 @@
-const DB_NAME = "ui-builder";
-const STORE = "projects";
-function open() {
-  return new Promise<IDBDatabase>((res, rej) => {
-    const request = indexedDB.open(DB_NAME, 1);
+﻿import { openWithVersionFallback } from '../idb'
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
-    };
+const DB_NAME = 'ui-builder'
+const STORE = 'projects'
 
-    request.onsuccess = () => {
-      const db = request.result;
-      if (db.objectStoreNames.contains(STORE)) {
-        res(db);
-        return;
-      }
-
-      // Handle databases that were created without the required store.
-      db.close();
-      const fix = indexedDB.open(DB_NAME, db.version + 1);
-      fix.onupgradeneeded = () => {
-        const upgradeDb = fix.result;
-        if (!upgradeDb.objectStoreNames.contains(STORE)) {
-          upgradeDb.createObjectStore(STORE);
-        }
-      };
-      fix.onsuccess = () => res(fix.result);
-      fix.onerror = () => rej(fix.error);
-      fix.onblocked = () => {
-        // If blocked, still fail gracefully so callers can retry later
-        try { fix.result?.close?.() } catch {}
-        rej(new Error('IndexedDB upgrade blocked'))
-      }
-    };
-
-    request.onerror = () => rej(request.error);
-    request.onblocked = () => {
-      try { request.result?.close?.() } catch {}
-      rej(new Error('IndexedDB open blocked'))
+async function open(): Promise<IDBDatabase> {
+  let db = await openWithVersionFallback(DB_NAME, 1, (db, oldVersion) => {
+    if (oldVersion < 1 && !db.objectStoreNames.contains(STORE)) {
+      db.createObjectStore(STORE)
     }
-  });
+  })
+
+  if (db.objectStoreNames.contains(STORE)) {
+    return db
+  }
+
+  const nextVersion = db.version + 1
+  try { db.close() } catch {}
+  return openWithVersionFallback(DB_NAME, nextVersion, (upgradeDb) => {
+    if (!upgradeDb.objectStoreNames.contains(STORE)) {
+      upgradeDb.createObjectStore(STORE)
+    }
+  })
 }
+
 export async function idbSet(key: string, value: any) {
-  let db = await open();
+  let db = await open()
   try {
     await new Promise<void>((res, rej) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(value, key);
-      tx.oncomplete = () => res();
-      tx.onerror = () => rej(tx.error);
-    });
+      const tx = db.transaction(STORE, 'readwrite')
+      tx.objectStore(STORE).put(value, key)
+      tx.oncomplete = () => res()
+      tx.onerror = () => rej(tx.error)
+    })
   } catch (e: any) {
-    // Retry once if store missing due to race
     if (e && String(e).includes('NotFoundError')) {
       try { db.close() } catch {}
       db = await open()
       await new Promise<void>((res, rej) => {
-        const tx = db.transaction(STORE, "readwrite");
-        tx.objectStore(STORE).put(value, key);
-        tx.oncomplete = () => res();
-        tx.onerror = () => rej(tx.error);
-      });
+        const tx = db.transaction(STORE, 'readwrite')
+        tx.objectStore(STORE).put(value, key)
+        tx.oncomplete = () => res()
+        tx.onerror = () => rej(tx.error)
+      })
     } else {
       try { db.close() } catch {}
       throw e
@@ -68,32 +49,32 @@ export async function idbSet(key: string, value: any) {
   }
   try { db.close() } catch {}
 }
+
 export async function idbGet<T>(key: string): Promise<T | undefined> {
-  let db = await open();
+  let db = await open()
   try {
     const out = await new Promise<T | undefined>((res, rej) => {
-      const tx = db.transaction(STORE, "readonly");
-      const req = tx.objectStore(STORE).get(key);
-      req.onsuccess = () => res(req.result as any);
-      req.onerror = () => rej(req.error);
-    });
+      const tx = db.transaction(STORE, 'readonly')
+      const req = tx.objectStore(STORE).get(key)
+      req.onsuccess = () => res(req.result as any)
+      req.onerror = () => rej(req.error)
+    })
     try { db.close() } catch {}
-    return out;
+    return out
   } catch (e: any) {
     if (e && String(e).includes('NotFoundError')) {
       try { db.close() } catch {}
-      db = await open();
+      db = await open()
       const out = await new Promise<T | undefined>((res, rej) => {
-        const tx = db.transaction(STORE, "readonly");
-        const req = tx.objectStore(STORE).get(key);
-        req.onsuccess = () => res(req.result as any);
-        req.onerror = () => rej(req.error);
-      });
+        const tx = db.transaction(STORE, 'readonly')
+        const req = tx.objectStore(STORE).get(key)
+        req.onsuccess = () => res(req.result as any)
+        req.onerror = () => rej(req.error)
+      })
       try { db.close() } catch {}
-      return out;
-    } else {
-      try { db.close() } catch {}
-      throw e
+      return out
     }
+    try { db.close() } catch {}
+    throw e
   }
 }
