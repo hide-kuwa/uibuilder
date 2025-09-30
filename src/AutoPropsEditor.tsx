@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDataSources } from './dataSources'
 import { PropBinding, useEditorState, useEditorActions } from './store'
-import { library as componentMeta } from '../lib/registry'
+import { library as componentMeta } from '@/lib/presets/registry'
 import { t, generateKey, registerKey, getLanguage } from './lib/i18n'
 import AssetPicker, { AssetMeta } from './components/assets/AssetPicker'
 import { groupProps, type PropMeta } from './lib/groupProps'
